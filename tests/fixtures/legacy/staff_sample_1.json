@@ -1,0 +1,14 @@
+{
+    "staff_id": 1,
+    "dept_id": 4,
+    "role_id": 1,
+    "username": "admsupport",
+    "firstname": "Adm",
+    "lastname": "Support",
+    "email": "anhgolden@gmail.com",
+    "isactive": 0,
+    "isadmin": 1,
+    "created": "2019-06-25 11:19:58",
+    "lastlogin": "2020-12-30 17:26:00",
+    "dept_name": "BP. Monitor"
+}
