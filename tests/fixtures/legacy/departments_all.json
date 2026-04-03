@@ -1,0 +1,50 @@
+[
+    {
+        "id": 1,
+        "pid": null,
+        "name": "Payoo Support",
+        "ispublic": 1
+    },
+    {
+        "id": 2,
+        "pid": null,
+        "name": "BP. Ho tro",
+        "ispublic": 1
+    },
+    {
+        "id": 3,
+        "pid": null,
+        "name": "BP. Xu ly the",
+        "ispublic": 1
+    },
+    {
+        "id": 4,
+        "pid": null,
+        "name": "BP. Monitor",
+        "ispublic": 1
+    },
+    {
+        "id": 7,
+        "pid": null,
+        "name": "BP. Tra gop",
+        "ispublic": 1
+    },
+    {
+        "id": 8,
+        "pid": null,
+        "name": "BP. Tra soat",
+        "ispublic": 1
+    },
+    {
+        "id": 9,
+        "pid": null,
+        "name": "T.OP",
+        "ispublic": 1
+    },
+    {
+        "id": 10,
+        "pid": null,
+        "name": "QoS",
+        "ispublic": 1
+    }
+]
