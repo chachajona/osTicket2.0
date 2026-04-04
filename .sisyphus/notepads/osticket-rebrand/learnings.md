@@ -207,3 +207,72 @@ Ran `php artisan benchmark:dynamic-forms --iterations=100` on real database. Tic
 
 ## Documentation Created
 - `docs/models.md` — full relationship map for all 65+ models grouped by domain
+
+# Task 2 — Artisan Commands for Cron Jobs
+
+## Created Commands
+1. **FetchMailCommand** (`tickets:fetch-mail`)
+   - Signature: `tickets:fetch-mail {--dry-run}`
+   - Stub implementation for Task 3
+   - Scheduled: every 5 minutes
+
+2. **CheckOverdueTicketsCommand** (`tickets:check-overdue`)
+   - Signature: `tickets:check-overdue {--dry-run}`
+   - Queries: `isoverdue=0 AND closed IS NULL AND duedate < now()`
+   - Updates: `isoverdue='1'` for overdue tickets
+   - Scheduled: every 5 minutes
+
+3. **PurgeLogsCommand** (`system:purge-logs`)
+   - Signature: `system:purge-logs {--dry-run} {--days=90}`
+   - Queries Syslog model where `created < NOW() - INTERVAL {days} DAY`
+   - Scheduled: daily at 03:00
+
+4. **CleanupDraftsCommand** (`drafts:cleanup`)
+   - Signature: `drafts:cleanup {--dry-run} {--days=30}`
+   - Queries Draft model where `created < NOW() - INTERVAL {days} DAY`
+   - Scheduled: daily
+
+5. **CleanupFilesCommand** (`files:cleanup`)
+   - Signature: `files:cleanup {--dry-run}`
+   - Queries: File where `id NOT IN (SELECT file_id FROM attachment)`
+   - Note: File table PK is `id`, not `file_id`
+   - Scheduled: weekly
+
+## Database Schema Discoveries
+
+### ost_ticket Table
+- Primary key: `ticket_id`
+- Status tracking: `status_id` (not just `status`)
+- Overdue flag: `isoverdue` (0 = not overdue, 1 = overdue)
+- Closure tracking: `closed` field (NULL when open, populated when closed)
+
+### ost_file Table
+- Primary key: `id` (not `file_id`)
+- Columns: id, ft, bk, type, size, key, signature, name, attrs, created
+- File chunks: `file_chunk` with `(file_id, chunk_id)` composite PK
+
+### ost_attachment Table
+- Primary key: `id`
+- Foreign key: `file_id` references `ost_file.id`
+- Links files to objects (tickets, etc.)
+
+## Command Pattern in Laravel
+- All commands extend `Illuminate\Console\Command`
+- Signature: `protected $signature = 'command:name {--option}'`
+- Option access: `$this->option('option-name')`
+- Dry-run pattern: Check `$this->option('dry-run')` before destructive operations
+- Output: Use `$this->info()`, `$this->line()`, `$this->comment()` for CLI feedback
+- Status codes: Return `self::SUCCESS` or `self::FAILURE`
+
+## Schedule Registration
+All commands registered in `routes/console.php`:
+- Every 5 minutes: `->everyFiveMinutes()`
+- Daily: `->daily()`
+- Daily at specific time: `->dailyAt('HH:MM')`
+- Weekly: `->weekly()`
+
+## Testing Results
+- All 5 commands tested with `--dry-run` flag
+- All queries validated against actual database
+- Dry-run mode lists what would be changed without persisting
+- No errors in final implementation
