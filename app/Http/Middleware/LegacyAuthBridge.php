@@ -96,7 +96,12 @@ class LegacyAuthBridge
 
         // Match _auth|a:..{...s:5:"staff";a:N:{s:2:"id";i:(\d+);...}...}
         if (preg_match('/_auth\|(.+?)(?=\w+\||$)/s', $data, $matches)) {
-            $authData = @unserialize($matches[1]);
+            $authData = @unserialize($matches[1], ['allowed_classes' => false]);
+
+            if (! is_array($authData)) {
+                return null;
+            }
+
             $staffId = $authData['staff']['id'] ?? null;
 
             if ($staffId && $staffId > 0) {
