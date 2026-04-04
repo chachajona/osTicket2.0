@@ -24,7 +24,7 @@ namespace App\Models;
  * @property-read Staff|null      $staff
  * @property-read Department|null $department
  * @property-read Thread|null     $thread
- * @property-read User|null       $user
+ * @property-read LegacyUser|null $user
  * @property-read TicketCdata|null $cdata
  */
 class Ticket extends LegacyModel
@@ -90,12 +90,12 @@ class Ticket extends LegacyModel
     /**
      * Get the user who created the ticket.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<LegacyUser, $this>
      */
     public function user()
     {
         return $this->belongsTo(
-            User::class,
+            LegacyUser::class,
             'user_id',
             'id'
         );
