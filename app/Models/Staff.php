@@ -2,10 +2,15 @@
 
 namespace App\Models;
 
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\Hash;
 
 /**
  * Staff model for the legacy osTicket ost_staff table.
+ *
+ * Implements Authenticatable so Laravel's auth guards can work with
+ * legacy staff records. Maps staff_id as the auth identifier and
+ * passwd as the auth password column.
  *
  * @property int    $staff_id
  * @property int    $dept_id
@@ -22,7 +27,7 @@ use Illuminate\Support\Facades\Hash;
  * @property-read Department|null $department
  * @property-read \Illuminate\Database\Eloquent\Collection<int, Ticket> $assignedTickets
  */
-class Staff extends LegacyModel
+class Staff extends LegacyModel implements Authenticatable
 {
     /**
      * The table associated with the model.
@@ -56,6 +61,62 @@ class Staff extends LegacyModel
     public function assignedTickets()
     {
         return $this->hasMany(Ticket::class, 'staff_id', 'staff_id');
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getAuthIdentifierName(): string
+    {
+        return 'staff_id';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getAuthIdentifier(): mixed
+    {
+        return $this->staff_id;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getAuthPassword(): string
+    {
+        return $this->passwd;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getAuthPasswordName(): string
+    {
+        return 'passwd';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getRememberToken(): ?string
+    {
+        return null;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setRememberToken($value): void
+    {
+        // Legacy table has no remember_token column
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getRememberTokenName(): string
+    {
+        return '';
     }
 
     /**

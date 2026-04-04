@@ -12,7 +12,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->encryptCookies(except: ['OSTSESSID']);
+
         $middleware->web(append: [
+            \App\Http\Middleware\LegacyAuthBridge::class,
             HandleInertiaRequests::class,
         ]);
     })
