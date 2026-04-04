@@ -276,3 +276,57 @@ All commands registered in `routes/console.php`:
 - All queries validated against actual database
 - Dry-run mode lists what would be changed without persisting
 - No errors in final implementation
+
+# Task 3 — Email-to-Ticket Pipeline
+
+## Package Installed
+- `webklex/laravel-imap` ^6.2 — wraps PHP IMAP extension into a clean OO API
+
+## EmailAccount Table Schema
+- `type` column: `'mailbox'` for IMAP fetch accounts, `'smtp'` for outgoing
+- `active` column: 1 = enabled, 0 = disabled
+- `host` can be empty string for disabled accounts; must filter `host != ''`
+- `postfetch` column: `'delete'` to delete after processing; otherwise archive if `archivefolder` is set
+- `auth_id` = username, `auth_bk` = password
+- `protocol` = 'IMAP' (uppercase in DB)
+- `encryption` values: 'ssl', 'tls', '' (none)
+
+## thread_entry_email Is the Key for Thread Matching
+- `ost_thread_entry_email.mid` stores the Message-ID of each email sent/received
+- Thread matching: look up `In-Reply-To` and `References` header values in `thread_entry_email.mid`
+- If found → reply to existing thread; otherwise → create new ticket
+
+## thread_entry Column Notes
+- `type` = 'M' for user messages, 'R' for staff response, 'N' for internal note
+- `staff_id` = 0 for user-originated messages
+- `poster` = display name of sender
+- `source` = 'Email' for email-originated entries
+- `format` = 'html' or 'text' depending on email body
+
+## Ticket Table Notes
+- `source` = 'Email' for email-created tickets
+- `email_id` FK to ost_email to track which mailbox received it
+- `lastupdate` used to track last message time (not `lastmessage`/`lastresponse` in this schema)
+
+## Sequence Table Notes
+- `id=1` is the General Ticket sequence
+- `padding=0` means no zero-padding in this installation (use raw number)
+- `next` + `increment` atomically updated with `lockForUpdate()`
+
+## File Storage Pattern
+- `ost_file.key` used for deduplication (md5 hash of content)
+- `ost_file.ft` = 'P' for permanently stored files
+- `ost_attachment.object_type` = 'H' for thread entry attachments
+- `ost_attachment.object_id` = thread_entry.id
+
+## Bounce Detection Patterns
+- `Auto-Submitted: auto-replied|auto-generated` header
+- `X-Auto-Response-Suppress` header
+- `Content-Type: multipart/report; report-type=delivery-status`
+- `Content-Type: message/delivery-status`
+- From address matching `/^(mailer-daemon|postmaster|noreply|no-reply)@/i`
+
+## User Resolution
+- Check `ost_user_email.address` first to find existing user
+- If not found, create `ost_user` + `ost_user_email` rows
+- `ost_user.default_email_id` can be 0 initially (update later if needed)
