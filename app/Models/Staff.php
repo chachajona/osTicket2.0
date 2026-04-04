@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use Illuminate\Support\Facades\Hash;
+
 /**
  * Staff model for the legacy osTicket ost_staff table.
  *
@@ -54,5 +56,22 @@ class Staff extends LegacyModel
     public function assignedTickets()
     {
         return $this->hasMany(Ticket::class, 'staff_id', 'staff_id');
+    }
+
+    /**
+     * Rehash the staff password to bcrypt if it's still using MD5.
+     *
+     * Called after successful login to transparently upgrade legacy
+     * MD5 hashes to bcrypt, mirroring osTicket's check_passwd() behavior.
+     *
+     * @param  string  $plainPassword
+     * @return void
+     */
+    public function rehashPasswordIfNeeded(string $plainPassword): void
+    {
+        if (Hash::needsRehash($this->passwd)) {
+            $this->passwd = Hash::make($plainPassword);
+            $this->save();
+        }
     }
 }
