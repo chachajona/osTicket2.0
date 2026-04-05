@@ -13,6 +13,10 @@ class DepartmentPermissionService
             return true;
         }
 
+        if ((int) $staff->dept_id === $deptId) {
+            return true;
+        }
+
         return StaffDeptAccess::where('staff_id', $staff->staff_id)
             ->where('dept_id', $deptId)
             ->exists();
@@ -37,9 +41,15 @@ class DepartmentPermissionService
             return [];
         }
 
-        return StaffDeptAccess::where('staff_id', $staff->staff_id)
+        $deptIds = StaffDeptAccess::where('staff_id', $staff->staff_id)
             ->pluck('dept_id')
             ->all();
+
+        if ($staff->dept_id && ! in_array((int) $staff->dept_id, $deptIds, true)) {
+            array_unshift($deptIds, (int) $staff->dept_id);
+        }
+
+        return $deptIds;
     }
 
     public function hasRoleInDepartment(Staff $staff, int $deptId, int $roleId): bool
