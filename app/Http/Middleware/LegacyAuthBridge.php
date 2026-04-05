@@ -32,18 +32,22 @@ class LegacyAuthBridge
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (Auth::guard('staff')->check()) {
-            return $next($request);
-        }
-
+        $guard = Auth::guard('staff');
         $sessionId = $request->cookie('OSTSESSID');
-        if (! $sessionId) {
+        $legacyStaffId = $sessionId ? $this->resolveStaffId($sessionId) : null;
+
+        if ($guard->check()) {
+            if (! $legacyStaffId || (int) $guard->id() !== $legacyStaffId) {
+                $guard->logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+            }
+
             return $next($request);
         }
 
-        $staffId = $this->resolveStaffId($sessionId);
-        if ($staffId) {
-            Auth::guard('staff')->loginUsingId($staffId);
+        if ($legacyStaffId) {
+            $guard->loginUsingId($legacyStaffId);
         }
 
         return $next($request);
@@ -65,7 +69,7 @@ class LegacyAuthBridge
         $session = DB::connection('legacy')
             ->table('session')
             ->where('session_id', $sessionId)
-            ->where('session_expire', '>', now())
+            ->whereRaw('session_expire > NOW()')
             ->first(['user_id', 'session_data']);
 
         if (! $session) {
@@ -96,7 +100,12 @@ class LegacyAuthBridge
 
         // Match _auth|a:..{...s:5:"staff";a:N:{s:2:"id";i:(\d+);...}...}
         if (preg_match('/_auth\|(.+?)(?=\w+\||$)/s', $data, $matches)) {
-            $authData = @unserialize($matches[1]);
+            $authData = @unserialize($matches[1], ['allowed_classes' => false]);
+
+            if (! is_array($authData)) {
+                return null;
+            }
+
             $staffId = $authData['staff']['id'] ?? null;
 
             if ($staffId && $staffId > 0) {

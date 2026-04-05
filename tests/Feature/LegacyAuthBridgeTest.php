@@ -25,7 +25,7 @@ test('authenticates staff from valid legacy session', function () {
     $session = DB::connection('legacy')
         ->table('session')
         ->where('user_id', '>', 0)
-        ->where('session_expire', '>', now())
+        ->whereRaw('session_expire > NOW()')
         ->first();
 
     if (! $session) {
@@ -51,7 +51,7 @@ test('authenticates staff from valid legacy session', function () {
 test('rejects expired legacy session', function () {
     $session = DB::connection('legacy')
         ->table('session')
-        ->where('session_expire', '<', now())
+        ->whereRaw('session_expire < NOW()')
         ->first();
 
     if (! $session) {
@@ -65,7 +65,7 @@ test('rejects expired legacy session', function () {
     $response->assertJson(['authenticated' => false]);
 });
 
-test('does not re-query when staff guard is already authenticated', function () {
+test('logs out staff when legacy session is missing', function () {
     $staff = Staff::where('isactive', 1)->first();
     if (! $staff) {
         $this->markTestSkipped('No active staff found.');
@@ -73,11 +73,9 @@ test('does not re-query when staff guard is already authenticated', function () 
 
     Auth::guard('staff')->loginUsingId($staff->staff_id);
 
+    // No OSTSESSID cookie — middleware should invalidate the Laravel session
     $response = $this->get('/scp/test-auth');
 
     $response->assertOk();
-    $response->assertJson([
-        'authenticated' => true,
-        'staff_id' => $staff->staff_id,
-    ]);
+    $response->assertJson(['authenticated' => false]);
 });
