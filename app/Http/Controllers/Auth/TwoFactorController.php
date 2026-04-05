@@ -1,0 +1,89 @@
+<?php
+
+namespace App\Http\Controllers\Auth;
+
+use App\Http\Controllers\Controller;
+use App\Services\TwoFactorAuthService;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class TwoFactorController extends Controller
+{
+    public function __construct(private readonly TwoFactorAuthService $twoFactor) {}
+
+    public function show(Request $request): Response|RedirectResponse
+    {
+        if (! $request->session()->has('2fa.staff_id')) {
+            return redirect()->route('scp.login');
+        }
+
+        return Inertia::render('Auth/TwoFactor');
+    }
+
+    public function verify(Request $request): RedirectResponse
+    {
+        $staffId = $request->session()->get('2fa.staff_id');
+
+        if (! $staffId) {
+            return redirect()->route('scp.login');
+        }
+
+        $request->validate(['code' => ['required', 'string', 'size:6']]);
+
+        $valid = $this->twoFactor->validateToken((int) $staffId, $request->input('code'));
+
+        if (! $valid) {
+            $strikes = $this->twoFactor->getStrikes((int) $staffId);
+
+            if ($strikes >= 3 || ! $this->twoFactor->hasPendingToken((int) $staffId)) {
+                $request->session()->forget(['2fa.staff_id', '2fa.remember']);
+
+                return redirect()->route('scp.login')->withErrors([
+                    'code' => 'Too many attempts or code expired. Please log in again.',
+                ]);
+            }
+
+            throw ValidationException::withMessages([
+                'code' => ['Invalid verification code. Please try again.'],
+            ]);
+        }
+
+        $remember = (bool) $request->session()->pull('2fa.remember', false);
+        $request->session()->forget('2fa.staff_id');
+
+        Auth::guard('staff')->loginUsingId($staffId, $remember);
+        $request->session()->regenerate();
+
+        return redirect()->intended('/scp');
+    }
+
+    public function resend(Request $request): RedirectResponse
+    {
+        $staffId = $request->session()->get('2fa.staff_id');
+
+        if (! $staffId) {
+            return redirect()->route('scp.login');
+        }
+
+        $staff = \App\Models\Staff::find($staffId);
+
+        if (! $staff) {
+            return redirect()->route('scp.login');
+        }
+
+        $code = $this->twoFactor->generateToken((int) $staffId);
+
+        \Illuminate\Support\Facades\Mail::raw(
+            "Your osTicket login code is: {$code}\n\nThis code expires in 6 minutes.",
+            fn ($message) => $message
+                ->to($staff->email)
+                ->subject('Your Login Verification Code')
+        );
+
+        return back()->with('status', 'A new verification code has been sent to your email.');
+    }
+}

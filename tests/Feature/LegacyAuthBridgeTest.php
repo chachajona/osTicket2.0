@@ -1,8 +1,6 @@
 <?php
 
-use App\Http\Middleware\LegacyAuthBridge;
 use App\Models\Staff;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -25,7 +23,7 @@ test('authenticates staff from valid legacy session', function () {
     $session = DB::connection('legacy')
         ->table('session')
         ->where('user_id', '>', 0)
-        ->whereRaw('session_expire > NOW()')
+        ->where('session_expire', '>', now())
         ->first();
 
     if (! $session) {
@@ -51,7 +49,7 @@ test('authenticates staff from valid legacy session', function () {
 test('rejects expired legacy session', function () {
     $session = DB::connection('legacy')
         ->table('session')
-        ->whereRaw('session_expire < NOW()')
+        ->where('session_expire', '<', now())
         ->first();
 
     if (! $session) {
