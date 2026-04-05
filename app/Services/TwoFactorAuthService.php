@@ -32,6 +32,12 @@ class TwoFactorAuthService
             return false;
         }
 
+        if (hash_equals($state['otp'], $token)) {
+            Cache::forget($key);
+
+            return true;
+        }
+
         $state['strikes']++;
 
         if ($state['strikes'] >= self::MAX_STRIKES) {
@@ -43,13 +49,7 @@ class TwoFactorAuthService
 
         Cache::put($key, $state, self::TTL_SECONDS);
 
-        if (! hash_equals($state['otp'], $token)) {
-            return false;
-        }
-
-        Cache::forget($key);
-
-        return true;
+        return false;
     }
 
     public function hasPendingToken(int $staffId): bool
