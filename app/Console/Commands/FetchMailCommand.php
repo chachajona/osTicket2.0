@@ -332,11 +332,15 @@ final class FetchMailCommand extends Command
             'updated' => now()->format('Y-m-d H:i:s'),
         ]);
 
-        DB::connection('legacy')->table('user_email')->insert([
+        $emailId = DB::connection('legacy')->table('user_email')->insertGetId([
             'user_id' => $userId,
             'flags' => 0,
             'address' => $email,
         ]);
+
+        DB::connection('legacy')->table('user')
+            ->where('id', $userId)
+            ->update(['default_email_id' => $emailId]);
 
         return (int) $userId;
     }
