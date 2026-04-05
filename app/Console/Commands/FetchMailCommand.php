@@ -7,6 +7,7 @@ namespace App\Console\Commands;
 use App\Models\Attachment;
 use App\Models\EmailAccount;
 use App\Models\File;
+use App\Models\FileChunk;
 use App\Models\Thread;
 use App\Models\ThreadEntry;
 use App\Models\ThreadEntryEmail;
@@ -266,11 +267,20 @@ final class FetchMailCommand extends Command
                         'type' => $att['type'],
                         'size' => $att['size'],
                         'name' => $att['name'],
+                        'bk' => 'D',
                         'ft' => 'P',
                         'signature' => sha1($att['content']),
                         'created' => now()->format('Y-m-d H:i:s'),
                     ]
                 );
+
+                if ($file->wasRecentlyCreated) {
+                    FileChunk::create([
+                        'file_id' => $file->id,
+                        'chunk_id' => 0,
+                        'filedata' => $att['content'],
+                    ]);
+                }
 
                 Attachment::create([
                     'file_id' => $file->id,
