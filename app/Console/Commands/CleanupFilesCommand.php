@@ -23,34 +23,35 @@ final class CleanupFilesCommand extends Command
             $this->info('DRY RUN MODE: No files will be deleted');
         }
 
-        $orphanedFiles = File::query()
-            ->whereNotIn('id', DB::connection('legacy')->table('attachment')->select('file_id'))
-            ->get();
+        $query = File::query()
+            ->whereNotIn('id', DB::connection('legacy')->table('attachment')->select('file_id'));
 
-        if ($orphanedFiles->isEmpty()) {
+        $count = $query->count();
+
+        if ($count === 0) {
             $this->info('No orphaned files found.');
 
             return self::SUCCESS;
         }
 
-        $this->line("Found {$orphanedFiles->count()} orphaned file(s) to delete:");
-        foreach ($orphanedFiles->take(5) as $file) {
+        $this->line("Found {$count} orphaned file(s) to delete:");
+        foreach ($query->limit(5)->get() as $file) {
             $this->line("  - File #{$file->id} ({$file->name})");
         }
-        if ($orphanedFiles->count() > 5) {
-            $this->line('  ... and '.($orphanedFiles->count() - 5).' more');
+        if ($count > 5) {
+            $this->line('  ... and '.($count - 5).' more');
         }
 
         if (! $dryRun) {
-            $orphanedIds = $orphanedFiles->pluck('id');
+            $orphanedIds = $query->pluck('id');
 
             FileChunk::whereIn('file_id', $orphanedIds)->delete();
 
             File::whereIn('id', $orphanedIds)->delete();
 
-            $this->comment("{$orphanedFiles->count()} file(s) deleted");
+            $this->comment("{$count} file(s) deleted");
         } else {
-            $this->comment("Would delete {$orphanedFiles->count()} file(s)");
+            $this->comment("Would delete {$count} file(s)");
         }
 
         return self::SUCCESS;
