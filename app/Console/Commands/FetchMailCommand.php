@@ -247,8 +247,7 @@ final class FetchMailCommand extends Command
 
             $this->saveAttachments($attachments, $entry->id);
 
-            Ticket::where('thread', $thread->id)
-                ->orWhereHas('thread', fn ($q) => $q->where('id', $thread->id))
+            Ticket::where('ticket_id', $thread->object_id)
                 ->update(['lastupdate' => now()->format('Y-m-d H:i:s')]);
 
             $this->line("  Appended reply to thread #{$thread->id}");
