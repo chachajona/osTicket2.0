@@ -63,7 +63,7 @@ test('rejects expired legacy session', function () {
     $response->assertJson(['authenticated' => false]);
 });
 
-test('logs out staff when legacy session is missing', function () {
+test('preserves native Laravel session when no OSTSESSID cookie is present', function () {
     $staff = Staff::where('isactive', 1)->first();
     if (! $staff) {
         $this->markTestSkipped('No active staff found.');
@@ -71,9 +71,10 @@ test('logs out staff when legacy session is missing', function () {
 
     Auth::guard('staff')->loginUsingId($staff->staff_id);
 
-    // No OSTSESSID cookie — middleware should invalidate the Laravel session
+    // No OSTSESSID cookie — middleware should NOT invalidate a native Laravel session
+    // (staff authenticated via Laravel login+2FA flow won't have an OSTSESSID cookie)
     $response = $this->get('/scp/test-auth');
 
     $response->assertOk();
-    $response->assertJson(['authenticated' => false]);
+    $response->assertJson(['authenticated' => true]);
 });
