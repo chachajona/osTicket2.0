@@ -24,32 +24,30 @@ final class CleanupDraftsCommand extends Command
 
         $cutoffDate = now()->subDays($days);
 
-        $oldDrafts = Draft::query()
-            ->where('created', '<', $cutoffDate)
-            ->get();
+        $query = Draft::query()->where('created', '<', $cutoffDate);
 
-        if ($oldDrafts->isEmpty()) {
+        $count = $query->count();
+
+        if ($count === 0) {
             $this->info("No draft entries older than {$days} days found.");
 
             return self::SUCCESS;
         }
 
-        $this->line("Found {$oldDrafts->count()} draft(s) older than {$days} days to delete:");
-        foreach ($oldDrafts->take(5) as $draft) {
+        $this->line("Found {$count} draft(s) older than {$days} days to delete:");
+        foreach ($query->limit(5)->get() as $draft) {
             $this->line("  - Draft #{$draft->draft_id} (created: {$draft->created})");
         }
-        if ($oldDrafts->count() > 5) {
-            $this->line('  ... and '.($oldDrafts->count() - 5).' more');
+        if ($count > 5) {
+            $this->line('  ... and '.($count - 5).' more');
         }
 
         if (! $dryRun) {
-            Draft::query()
-                ->where('created', '<', $cutoffDate)
-                ->delete();
+            $query->delete();
 
-            $this->comment("{$oldDrafts->count()} draft(s) deleted");
+            $this->comment("{$count} draft(s) deleted");
         } else {
-            $this->comment("Would delete {$oldDrafts->count()} draft(s)");
+            $this->comment("Would delete {$count} draft(s)");
         }
 
         return self::SUCCESS;

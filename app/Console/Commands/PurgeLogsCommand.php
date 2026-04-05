@@ -24,32 +24,30 @@ final class PurgeLogsCommand extends Command
 
         $cutoffDate = now()->subDays($days);
 
-        $oldLogs = Syslog::query()
-            ->where('created', '<', $cutoffDate)
-            ->get();
+        $query = Syslog::query()->where('created', '<', $cutoffDate);
 
-        if ($oldLogs->isEmpty()) {
+        $count = $query->count();
+
+        if ($count === 0) {
             $this->info("No log entries older than {$days} days found.");
 
             return self::SUCCESS;
         }
 
-        $this->line("Found {$oldLogs->count()} log entry(ies) older than {$days} days to delete:");
-        foreach ($oldLogs->take(5) as $log) {
+        $this->line("Found {$count} log entry(ies) older than {$days} days to delete:");
+        foreach ($query->limit(5)->get() as $log) {
             $this->line("  - Log #{$log->log_id} (created: {$log->created})");
         }
-        if ($oldLogs->count() > 5) {
-            $this->line('  ... and '.($oldLogs->count() - 5).' more');
+        if ($count > 5) {
+            $this->line('  ... and '.($count - 5).' more');
         }
 
         if (! $dryRun) {
-            Syslog::query()
-                ->where('created', '<', $cutoffDate)
-                ->delete();
+            $query->delete();
 
-            $this->comment("{$oldLogs->count()} log entry(ies) deleted");
+            $this->comment("{$count} log entry(ies) deleted");
         } else {
-            $this->comment("Would delete {$oldLogs->count()} log entry(ies)");
+            $this->comment("Would delete {$count} log entry(ies)");
         }
 
         return self::SUCCESS;
