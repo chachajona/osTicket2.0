@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Models\File;
+use App\Models\FileChunk;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -41,9 +42,11 @@ final class CleanupFilesCommand extends Command
         }
 
         if (! $dryRun) {
-            File::query()
-                ->whereNotIn('id', DB::connection('legacy')->table('attachment')->select('file_id'))
-                ->delete();
+            $orphanedIds = $orphanedFiles->pluck('id');
+
+            FileChunk::whereIn('file_id', $orphanedIds)->delete();
+
+            File::whereIn('id', $orphanedIds)->delete();
 
             $this->comment("{$orphanedFiles->count()} file(s) deleted");
         } else {
