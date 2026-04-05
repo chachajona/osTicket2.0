@@ -33,7 +33,7 @@ class LegacyAuthBridge
         $legacyStaffId = $sessionId ? $this->resolveStaffId($sessionId) : null;
 
         if ($guard->check()) {
-            if ($sessionId && (! $legacyStaffId || (int) $guard->id() !== $legacyStaffId)) {
+            if ($legacyStaffId && (int) $guard->id() !== $legacyStaffId) {
                 $guard->logout();
                 $request->session()->invalidate();
                 $request->session()->regenerateToken();
