@@ -1,0 +1,15 @@
+{
+    "id": 1,
+    "pid": null,
+    "name": "Payoo Support",
+    "signature": "<p><strong><br \/>B\u1ed9 ph\u1eadn h\u1ed7 tr\u1ee3 Kh\u00e1ch h\u00e0ng<\/strong><br \/>Website: hotro.payoo.vn<br \/>Tel: 1900545478<br \/><\/p>",
+    "manager_id": 0,
+    "sla_id": 0,
+    "email_id": 0,
+    "ispublic": 1,
+    "flags": 4,
+    "created": "2023-09-18 10:45:09",
+    "updated": "2023-09-18 11:28:30",
+    "manager_firstname": null,
+    "manager_lastname": null
+}

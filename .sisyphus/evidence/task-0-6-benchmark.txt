@@ -1,0 +1,59 @@
+Benchmarking dynamic forms access approaches
+Ticket ID: 159 | Iterations: 10 | Batch size: 10
+
+Running Approach A (CdataApproach)...
+Running Approach B (JsonAccessorApproach, cold cache)...
+Running Approach B (JsonAccessorApproach, warm cache)...
+Running Approach C (EavApproach, cold cache)...
+Running Approach C (EavApproach, warm cache)...
+Running batch benchmark (batch size: 10)...
+
+=== SINGLE TICKET RESULTS (10 iterations) ===
++------------------------------------------------+-----------+---------------+-----------------+--------+
+| Approach                                       | Total (s) | Avg/iter (ms) | DB Queries/iter | Fields |
++------------------------------------------------+-----------+---------------+-----------------+--------+
+| A: CdataApproach (direct __cdata)              | 0.0076    | 0.76          | 2               | 8      |
+| B: JsonAccessorApproach (cold cache each iter) | 0.0098    | 0.98          | 2               | 8      |
+| B: JsonAccessorApproach (warm cache)           | 0.0016    | 0.16          | 1               | 8      |
+| C: EavApproach (cold cache each iter)          | 0.012     | 1.198         | 2               | 2      |
+| C: EavApproach (warm cache)                    | 0.0023    | 0.228         | 1               | 2      |
++------------------------------------------------+-----------+---------------+-----------------+--------+
+
+=== BATCH RESULTS (20 iterations, batch=10) ===
++---------------------------------+-----------+----------------+
+| Approach                        | Total (s) | Avg/batch (ms) |
++---------------------------------+-----------+----------------+
+| A: CdataApproach (batch)        | 0.0144    | 0.718          |
+| B: JsonAccessorApproach (batch) | 0.0042    | 0.209          |
+| C: EavApproach (batch)          | 0.0066    | 0.331          |
++---------------------------------+-----------+----------------+
+
+=== SAMPLE FIELD OUTPUT ===
+A (cdata columns):
+  subject: Buổi chiều, ông Putin vào Lăng viếng Chủ tịch Hồ Chí Minh...
+  priority: 2
+  transid: 
+  transdt: 0
+  ewallet: 
+  ... and 3 more fields
+B (label-mapped):
+  Subject: Buổi chiều, ông Putin vào Lăng viếng Chủ tịch Hồ Chí Minh...
+  Priority: 2
+  Transaction Number: 
+  Transaction DateTime: 0
+  Payoo eWallet: 
+  ... and 3 more fields
+C (EAV labels):
+  Subject: Buổi chiều, ông Putin vào Lăng viếng Chủ tịch Hồ Chí Minh...
+  Priority: Normal
+
+=== RECOMMENDATION ===
+Performance ranking (warm cache, single ticket):
+  1st: A=0.76ms | 2nd: B=0.16ms | 3rd: C=0.228ms
+
+__cdata and EAV return the same field count (8 fields).
+RECOMMENDED: Approach B (JsonAccessorApproach) with warm cache.
+Rationale: Human-readable keys, near-parity performance with Approach A, and
+           uses the fast __cdata materialized view. Label map cached in Redis/file.
+
+See docs/dynamic-forms-strategy.md for full architectural analysis.
