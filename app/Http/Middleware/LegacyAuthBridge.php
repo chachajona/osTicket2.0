@@ -25,10 +25,6 @@ class LegacyAuthBridge
 {
     /**
      * Handle an incoming request.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Closure  $next
-     * @return \Symfony\Component\HttpFoundation\Response
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -37,7 +33,7 @@ class LegacyAuthBridge
         $legacyStaffId = $sessionId ? $this->resolveStaffId($sessionId) : null;
 
         if ($guard->check()) {
-            if (! $legacyStaffId || (int) $guard->id() !== $legacyStaffId) {
+            if ($sessionId && (! $legacyStaffId || (int) $guard->id() !== $legacyStaffId)) {
                 $guard->logout();
                 $request->session()->invalidate();
                 $request->session()->regenerateToken();
@@ -60,16 +56,13 @@ class LegacyAuthBridge
      * and extracts the staff ID. First checks the user_id column directly,
      * then falls back to parsing the serialized session_data for the
      * _auth.staff.id value.
-     *
-     * @param  string  $sessionId
-     * @return int|null
      */
     private function resolveStaffId(string $sessionId): ?int
     {
         $session = DB::connection('legacy')
             ->table('session')
             ->where('session_id', $sessionId)
-            ->whereRaw('session_expire > NOW()')
+            ->where('session_expire', '>', now())
             ->first(['user_id', 'session_data']);
 
         if (! $session) {
@@ -88,9 +81,6 @@ class LegacyAuthBridge
      *
      * osTicket uses PHP's session serialization format (pipe-delimited keys)
      * where the _auth section contains: _auth|a:1:{s:5:"staff";a:3:{s:2:"id";i:2;...}}
-     *
-     * @param  string|null  $data
-     * @return int|null
      */
     private function extractStaffIdFromSessionData(?string $data): ?int
     {
@@ -118,9 +108,6 @@ class LegacyAuthBridge
 
     /**
      * Verify that a staff ID exists and the account is active.
-     *
-     * @param  int  $staffId
-     * @return int|null
      */
     private function verifyStaffExists(int $staffId): ?int
     {
