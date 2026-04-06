@@ -35,7 +35,7 @@ final class PurgeLogsCommand extends Command
         }
 
         $this->line("Found {$count} log entry(ies) older than {$days} days to delete:");
-        foreach ($query->limit(5)->get() as $log) {
+        foreach ((clone $query)->orderBy('created')->limit(5)->get() as $log) {
             $this->line("  - Log #{$log->log_id} (created: {$log->created})");
         }
         if ($count > 5) {
