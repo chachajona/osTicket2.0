@@ -75,42 +75,44 @@ final class FetchMailCommand extends Command
         $client = $this->buildClient($account);
         $client->connect();
 
-        $folder = $client->getFolder($account->folder ?: 'INBOX');
-        $maxFetch = max(1, (int) ($account->fetchmax ?: 30));
+        try {
+            $folder = $client->getFolder($account->folder ?: 'INBOX');
+            $maxFetch = max(1, (int) ($account->fetchmax ?: 30));
 
-        $messages = $folder->query()->unseen()->limit($maxFetch)->get();
+            $messages = $folder->query()->unseen()->limit($maxFetch)->get();
 
-        $processed = 0;
-        foreach ($messages as $message) {
-            try {
-                $this->processMessage($message, $account, $parser, $dryRun);
-                $processed++;
+            $processed = 0;
+            foreach ($messages as $message) {
+                try {
+                    $this->processMessage($message, $account, $parser, $dryRun);
+                    $processed++;
 
-                if (! $dryRun) {
-                    $message->setFlag('Seen');
+                    if (! $dryRun) {
+                        $message->setFlag('Seen');
 
-                    if ($account->postfetch === 'delete') {
-                        $message->delete();
-                    } elseif ($account->archivefolder) {
-                        $message->move($account->archivefolder);
+                        if ($account->postfetch === 'delete') {
+                            $message->delete();
+                        } elseif ($account->archivefolder) {
+                            $message->move($account->archivefolder);
+                        }
                     }
+                } catch (\Throwable $e) {
+                    $this->warn("  Skipped message UID {$message->getUid()}: {$e->getMessage()}");
+                    Log::warning('FetchMailCommand: message error', [
+                        'uid' => $message->getUid(),
+                        'account_id' => $account->id,
+                        'error' => $e->getMessage(),
+                    ]);
                 }
-            } catch (\Throwable $e) {
-                $this->warn("  Skipped message UID {$message->getUid()}: {$e->getMessage()}");
-                Log::warning('FetchMailCommand: message error', [
-                    'uid' => $message->getUid(),
-                    'account_id' => $account->id,
-                    'error' => $e->getMessage(),
-                ]);
             }
-        }
 
-        if (! $dryRun) {
-            $account->last_activity = now()->format('Y-m-d H:i:s');
-            $account->save();
+            if (! $dryRun) {
+                $account->last_activity = now()->format('Y-m-d H:i:s');
+                $account->save();
+            }
+        } finally {
+            $client->disconnect();
         }
-
-        $client->disconnect();
 
         return $processed;
     }
