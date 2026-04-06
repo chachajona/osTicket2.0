@@ -35,7 +35,7 @@ final class CleanupFilesCommand extends Command
         }
 
         $this->line("Found {$count} orphaned file(s) to delete:");
-        foreach ($query->limit(5)->get() as $file) {
+        foreach ((clone $query)->limit(5)->get() as $file) {
             $this->line("  - File #{$file->id} ({$file->name})");
         }
         if ($count > 5) {

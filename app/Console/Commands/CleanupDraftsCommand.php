@@ -35,7 +35,7 @@ final class CleanupDraftsCommand extends Command
         }
 
         $this->line("Found {$count} draft(s) older than {$days} days to delete:");
-        foreach ($query->limit(5)->get() as $draft) {
+        foreach ((clone $query)->orderBy('created')->limit(5)->get() as $draft) {
             $this->line("  - Draft #{$draft->draft_id} (created: {$draft->created})");
         }
         if ($count > 5) {
