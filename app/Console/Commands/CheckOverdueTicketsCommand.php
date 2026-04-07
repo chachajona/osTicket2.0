@@ -21,12 +21,15 @@ final class CheckOverdueTicketsCommand extends Command
             $this->info('DRY RUN MODE: No tickets will be updated');
         }
 
-        $overdueTickets = Ticket::query()
-            ->where('isoverdue', '0')
+        $now = now();
+
+        $query = Ticket::query()
+            ->where('isoverdue', 0)
             ->whereNull('closed')
             ->whereNotNull('duedate')
-            ->where('duedate', '<', now())
-            ->get();
+            ->where('duedate', '<', $now);
+
+        $overdueTickets = (clone $query)->get();
 
         if ($overdueTickets->isEmpty()) {
             $this->info('No overdue tickets found.');
@@ -40,14 +43,9 @@ final class CheckOverdueTicketsCommand extends Command
         }
 
         if (! $dryRun) {
-            Ticket::query()
-                ->where('isoverdue', '0')
-                ->whereNull('closed')
-                ->whereNotNull('duedate')
-                ->where('duedate', '<', now())
-                ->update(['isoverdue' => '1']);
+            $updated = $query->update(['isoverdue' => 1]);
 
-            $this->comment("{$overdueTickets->count()} ticket(s) marked as overdue");
+            $this->comment("{$updated} ticket(s) marked as overdue");
         } else {
             $this->comment("Would mark {$overdueTickets->count()} ticket(s) as overdue");
         }

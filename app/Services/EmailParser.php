@@ -54,8 +54,8 @@ final class EmailParser
         }
 
         return [
-            'from_email' => $fromEmail,
-            'from_name' => $fromName ?: $fromEmail,
+            'from_email' => $fromEmail ?? '',
+            'from_name' => $fromName ?: ($fromEmail ?? ''),
             'subject' => $subject,
             'message_id' => $messageId,
             'in_reply_to' => $inReplyTo,
