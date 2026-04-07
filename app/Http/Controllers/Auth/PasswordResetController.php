@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -27,7 +28,7 @@ class PasswordResetController extends Controller
             'email' => ['required', 'email'],
         ]);
 
-        $staff = Staff::where('email', $request->input('email'))
+        $staff = Staff::where('email', (string) $request->input('email'))
             ->where('isactive', 1)
             ->first();
 
@@ -80,7 +81,7 @@ class PasswordResetController extends Controller
         $staffId = Cache::pull("password_reset.{$token}");
 
         if (! $staffId) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
+            throw ValidationException::withMessages([
                 'token' => ['This password reset link is invalid or has expired.'],
             ]);
         }
@@ -90,7 +91,7 @@ class PasswordResetController extends Controller
         $staff = Staff::find($staffId);
 
         if (! $staff) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
+            throw ValidationException::withMessages([
                 'token' => ['Staff account not found.'],
             ]);
         }
