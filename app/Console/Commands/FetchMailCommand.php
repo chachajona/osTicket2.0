@@ -12,8 +12,10 @@ use App\Models\Thread;
 use App\Models\ThreadEntry;
 use App\Models\ThreadEntryEmail;
 use App\Models\Ticket;
+use App\Models\TicketCdata;
 use App\Services\EmailParser;
 use Illuminate\Console\Command;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Webklex\PHPIMAP\Client;
@@ -199,6 +201,11 @@ final class FetchMailCommand extends Command
                 'updated' => now()->format('Y-m-d H:i:s'),
             ]);
 
+            TicketCdata::updateOrCreate(
+                ['ticket_id' => $ticket->ticket_id],
+                ['subject' => $headers['subject']]
+            );
+
             $thread = Thread::create([
                 'object_id' => $ticket->ticket_id,
                 'object_type' => 'T',
@@ -341,8 +348,9 @@ final class FetchMailCommand extends Command
 
     private function resolveOrCreateUser(string $email, string $name): int
     {
-        $userEmail = DB::connection('legacy')
-            ->table('user_email')
+        $connection = DB::connection('legacy');
+
+        $userEmail = $connection->table('user_email')
             ->where('address', $email)
             ->first();
 
@@ -350,26 +358,38 @@ final class FetchMailCommand extends Command
             return (int) $userEmail->user_id;
         }
 
-        $userId = DB::connection('legacy')->table('user')->insertGetId([
-            'org_id' => 0,
-            'default_email_id' => 0,
-            'status' => 0,
-            'name' => $name ?: $email,
-            'created' => now()->format('Y-m-d H:i:s'),
-            'updated' => now()->format('Y-m-d H:i:s'),
-        ]);
+        try {
+            $userId = $connection->table('user')->insertGetId([
+                'org_id' => 0,
+                'default_email_id' => 0,
+                'status' => 0,
+                'name' => $name ?: $email,
+                'created' => now()->format('Y-m-d H:i:s'),
+                'updated' => now()->format('Y-m-d H:i:s'),
+            ]);
 
-        $emailId = DB::connection('legacy')->table('user_email')->insertGetId([
-            'user_id' => $userId,
-            'flags' => 0,
-            'address' => $email,
-        ]);
+            $emailId = $connection->table('user_email')->insertGetId([
+                'user_id' => $userId,
+                'flags' => 0,
+                'address' => $email,
+            ]);
 
-        DB::connection('legacy')->table('user')
-            ->where('id', $userId)
-            ->update(['default_email_id' => $emailId]);
+            $connection->table('user')
+                ->where('id', $userId)
+                ->update(['default_email_id' => $emailId]);
 
-        return (int) $userId;
+            return (int) $userId;
+        } catch (UniqueConstraintViolationException) {
+            $userEmail = $connection->table('user_email')
+                ->where('address', $email)
+                ->first();
+
+            if ($userEmail) {
+                return (int) $userEmail->user_id;
+            }
+
+            throw new \RuntimeException("Failed to resolve user for {$email} after unique constraint violation.");
+        }
     }
 
     private function defaultDeptId(EmailAccount $account): int
