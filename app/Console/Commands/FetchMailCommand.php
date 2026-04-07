@@ -131,6 +131,13 @@ final class FetchMailCommand extends Command
 
         $headers = $parser->parseHeaders($message);
 
+        $fromEmail = trim($headers['from_email']);
+        if ($fromEmail === '' || ! filter_var($fromEmail, FILTER_VALIDATE_EMAIL)) {
+            $this->warn("  [invalid] Message UID {$message->getUid()} has missing/invalid From address; skipped.");
+
+            return;
+        }
+
         if (! empty($headers['message_id'])
             && ThreadEntryEmail::where('mid', $headers['message_id'])->exists()) {
             $this->line("  [duplicate] Already processed Message-ID {$headers['message_id']}");
