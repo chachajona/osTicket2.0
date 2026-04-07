@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Staff;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
@@ -31,13 +32,16 @@ class PasswordResetController extends Controller
             ->first();
 
         if ($staff) {
+            $previousToken = Cache::get("password_reset_staff.{$staff->staff_id}");
+
+            if ($previousToken) {
+                Cache::forget("password_reset.{$previousToken}");
+            }
+
             $token = Str::random(64);
 
-            \Illuminate\Support\Facades\Cache::put(
-                "password_reset.{$token}",
-                $staff->staff_id,
-                now()->addMinutes(60)
-            );
+            Cache::put("password_reset.{$token}", $staff->staff_id, now()->addMinutes(60));
+            Cache::put("password_reset_staff.{$staff->staff_id}", $token, now()->addMinutes(60));
 
             $resetUrl = route('scp.password.reset', ['token' => $token]);
 
@@ -54,7 +58,7 @@ class PasswordResetController extends Controller
 
     public function showResetForm(Request $request, string $token): Response|RedirectResponse
     {
-        $staffId = \Illuminate\Support\Facades\Cache::get("password_reset.{$token}");
+        $staffId = Cache::get("password_reset.{$token}");
 
         if (! $staffId) {
             return redirect()->route('scp.password.request')->withErrors([
@@ -73,13 +77,15 @@ class PasswordResetController extends Controller
         ]);
 
         $token = $request->input('token');
-        $staffId = \Illuminate\Support\Facades\Cache::get("password_reset.{$token}");
+        $staffId = Cache::pull("password_reset.{$token}");
 
         if (! $staffId) {
             throw \Illuminate\Validation\ValidationException::withMessages([
                 'token' => ['This password reset link is invalid or has expired.'],
             ]);
         }
+
+        Cache::forget("password_reset_staff.{$staffId}");
 
         $staff = Staff::find($staffId);
 
@@ -91,8 +97,6 @@ class PasswordResetController extends Controller
 
         $staff->passwd = Hash::make($request->input('password'));
         $staff->save();
-
-        \Illuminate\Support\Facades\Cache::forget("password_reset.{$token}");
 
         return redirect()->route('scp.login')->with('status', 'Password reset successfully. Please log in.');
     }
