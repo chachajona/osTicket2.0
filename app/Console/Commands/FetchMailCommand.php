@@ -130,6 +130,14 @@ final class FetchMailCommand extends Command
         }
 
         $headers = $parser->parseHeaders($message);
+
+        if (! empty($headers['message_id'])
+            && ThreadEntryEmail::where('mid', $headers['message_id'])->exists()) {
+            $this->line("  [duplicate] Already processed Message-ID {$headers['message_id']}");
+
+            return;
+        }
+
         $body = $parser->parseBody($message);
         $attachments = $parser->parseAttachments($message);
 
