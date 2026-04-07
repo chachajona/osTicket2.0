@@ -11,13 +11,23 @@ class TwoFactorAuthService
 
     private const MAX_STRIKES = 3;
 
-    public function generateToken(int $staffId): string
+    public function generateToken(int $staffId, bool $preserveStrikes = false): string
     {
         $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
+        $strikes = 0;
+
+        if ($preserveStrikes) {
+            $existing = Cache::get($this->tokenKey($staffId));
+
+            if (is_array($existing)) {
+                $strikes = (int) ($existing['strikes'] ?? 0);
+            }
+        }
+
         Cache::put($this->tokenKey($staffId), [
             'otp' => $code,
-            'strikes' => 0,
+            'strikes' => $strikes,
         ], self::TTL_SECONDS);
 
         return $code;
