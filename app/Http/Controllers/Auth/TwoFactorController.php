@@ -7,6 +7,7 @@ use App\Services\TwoFactorAuthService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -63,19 +64,31 @@ class TwoFactorController extends Controller
 
     public function resend(Request $request): RedirectResponse
     {
-        $staffId = $request->session()->get('2fa.staff_id');
+        $staffId = (int) $request->session()->get('2fa.staff_id');
 
         if (! $staffId) {
             return redirect()->route('scp.login');
         }
 
+        $rateLimitKey = "2fa-resend:staff:{$staffId}";
+
+        if (RateLimiter::tooManyAttempts($rateLimitKey, 1)) {
+            $seconds = RateLimiter::availableIn($rateLimitKey);
+
+            return back()->withErrors([
+                'code' => "Please wait {$seconds} seconds before requesting another code.",
+            ]);
+        }
+
         $staff = \App\Models\Staff::find($staffId);
 
         if (! $staff) {
+            $request->session()->forget(['2fa.staff_id', '2fa.remember']);
+
             return redirect()->route('scp.login');
         }
 
-        $code = $this->twoFactor->generateToken((int) $staffId);
+        $code = $this->twoFactor->generateToken($staffId, preserveStrikes: true);
 
         \Illuminate\Support\Facades\Mail::raw(
             "Your osTicket login code is: {$code}\n\nThis code expires in 6 minutes.",
@@ -83,6 +96,8 @@ class TwoFactorController extends Controller
                 ->to($staff->email)
                 ->subject('Your Login Verification Code')
         );
+
+        RateLimiter::hit($rateLimitKey, 60);
 
         return back()->with('status', 'A new verification code has been sent to your email.');
     }
