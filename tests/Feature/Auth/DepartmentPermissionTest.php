@@ -1,8 +1,8 @@
 <?php
 
 use App\Models\Staff;
-use App\Models\StaffDeptAccess;
 use App\Services\DepartmentPermissionService;
+use Illuminate\Support\Facades\DB;
 
 function makeStaffModel(array $attrs = []): Staff
 {
@@ -46,8 +46,21 @@ test('admin getAccessibleDepartmentIds returns empty array', function () {
 });
 
 test('non-admin without dept access is denied', function () {
-    $service = new DepartmentPermissionService();
+    $service = new DepartmentPermissionService;
     $staff = makeStaffModel(['staff_id' => 999]);
 
     expect($service->hasAccessToDepartment($staff, 1))->toBeFalse();
+});
+
+test('getAccessibleDepartmentIds normalizes numeric strings and avoids duplicates', function () {
+    $service = new DepartmentPermissionService;
+
+    DB::connection('legacy')->table('staff_dept_access')->insert([
+        ['staff_id' => 10, 'dept_id' => 1, 'role_id' => 2, 'flags' => 0],
+        ['staff_id' => 10, 'dept_id' => 2, 'role_id' => 2, 'flags' => 0],
+    ]);
+
+    $staff = makeStaffModel(['staff_id' => 10, 'dept_id' => 1]);
+
+    expect($service->getAccessibleDepartmentIds($staff))->toBe([1, 2]);
 });

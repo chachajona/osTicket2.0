@@ -43,6 +43,9 @@ class DepartmentPermissionService
 
         $deptIds = StaffDeptAccess::where('staff_id', $staff->staff_id)
             ->pluck('dept_id')
+            ->map(static fn ($deptId): int => (int) $deptId)
+            ->unique()
+            ->values()
             ->all();
 
         if ($staff->dept_id && ! in_array((int) $staff->dept_id, $deptIds, true)) {

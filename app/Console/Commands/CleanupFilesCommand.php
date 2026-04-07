@@ -43,11 +43,18 @@ final class CleanupFilesCommand extends Command
         }
 
         if (! $dryRun) {
-            $orphanedIds = $query->pluck('id');
+            (clone $query)
+                ->orderBy('id')
+                ->chunkById(1000, function ($files) {
+                    $fileIds = $files->pluck('id');
 
-            FileChunk::whereIn('file_id', $orphanedIds)->delete();
+                    FileChunk::whereIn('file_id', $fileIds)->delete();
+                    File::whereIn('id', $fileIds)->delete();
+                });
 
-            File::whereIn('id', $orphanedIds)->delete();
+            FileChunk::query()
+                ->whereNotIn('file_id', File::query()->select('id'))
+                ->delete();
 
             $this->comment("{$count} file(s) deleted");
         } else {
