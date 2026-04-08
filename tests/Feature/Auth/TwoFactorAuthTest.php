@@ -40,6 +40,18 @@ test('2fa lockout after 3 failed attempts redirects to login with error', functi
     expect($service->hasPendingToken(5))->toBeFalse();
 });
 
+test('2fa verify keeps session active after a non-locking invalid attempt', function () {
+    $service = app(TwoFactorAuthService::class);
+    $service->generateToken(9);
+
+    $response = $this->withSession(['2fa.staff_id' => 9])
+        ->post('/scp/2fa', ['code' => '123123']);
+
+    $response->assertSessionHasErrors(['code']);
+    expect($service->hasPendingToken(9))->toBeTrue()
+        ->and($service->getStrikes(9))->toBe(1);
+});
+
 test('2fa resend requires active session', function () {
     $response = $this->post('/scp/2fa/resend');
 

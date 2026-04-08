@@ -4,7 +4,7 @@ use App\Services\TwoFactorAuthService;
 use Illuminate\Support\Facades\Cache;
 
 beforeEach(function () {
-    $this->service = new TwoFactorAuthService();
+    $this->service = new TwoFactorAuthService;
 });
 
 test('generates a 6-digit numeric token', function () {
@@ -59,6 +59,7 @@ test('validateToken clears token on success', function () {
 
 test('validateToken returns false for expired token', function () {
     expect($this->service->validateToken(99, '123456'))->toBeFalse();
+    expect($this->service->validateTokenState(99, '123456'))->toBe(TwoFactorAuthService::STATUS_EXPIRED);
 });
 
 test('validateToken locks out after 3 failed attempts', function () {
@@ -66,7 +67,7 @@ test('validateToken locks out after 3 failed attempts', function () {
 
     $this->service->validateToken(1, 'wrong1');
     $this->service->validateToken(1, 'wrong2');
-    $this->service->validateToken(1, 'wrong3');
+    expect($this->service->validateTokenState(1, 'wrong3'))->toBe(TwoFactorAuthService::STATUS_LOCKED_OUT);
 
     expect($this->service->hasPendingToken(1))->toBeFalse();
 });
@@ -88,4 +89,12 @@ test('tokens are isolated per staff id', function () {
     expect($this->service->validateToken(1, $code2))->toBeFalse();
     expect($this->service->validateToken(2, $code1))->toBeFalse();
     expect($this->service->validateToken(1, $code1))->toBeTrue();
+});
+
+test('validateTokenState reports invalid attempts before lockout', function () {
+    $this->service->generateToken(12);
+
+    expect($this->service->validateTokenState(12, '111111'))->toBe(TwoFactorAuthService::STATUS_INVALID)
+        ->and($this->service->getStrikes(12))->toBe(1)
+        ->and($this->service->hasPendingToken(12))->toBeTrue();
 });

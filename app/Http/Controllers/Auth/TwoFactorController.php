@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Staff;
 use App\Services\TwoFactorAuthService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -35,12 +37,10 @@ class TwoFactorController extends Controller
 
         $request->validate(['code' => ['required', 'string', 'size:6']]);
 
-        $valid = $this->twoFactor->validateToken((int) $staffId, $request->input('code'));
+        $status = $this->twoFactor->validateTokenState((int) $staffId, $request->input('code'));
 
-        if (! $valid) {
-            $strikes = $this->twoFactor->getStrikes((int) $staffId);
-
-            if ($strikes >= 3 || ! $this->twoFactor->hasPendingToken((int) $staffId)) {
+        if ($status !== TwoFactorAuthService::STATUS_VALID) {
+            if (in_array($status, [TwoFactorAuthService::STATUS_LOCKED_OUT, TwoFactorAuthService::STATUS_EXPIRED], true)) {
                 $request->session()->forget(['2fa.staff_id', '2fa.remember']);
 
                 return redirect()->route('scp.login')->withErrors([
@@ -80,7 +80,7 @@ class TwoFactorController extends Controller
             ]);
         }
 
-        $staff = \App\Models\Staff::find($staffId);
+        $staff = Staff::find($staffId);
 
         if (! $staff) {
             $request->session()->forget(['2fa.staff_id', '2fa.remember']);
@@ -90,7 +90,7 @@ class TwoFactorController extends Controller
 
         $code = $this->twoFactor->generateToken($staffId, preserveStrikes: true);
 
-        \Illuminate\Support\Facades\Mail::raw(
+        Mail::raw(
             "Your osTicket login code is: {$code}\n\nThis code expires in 6 minutes.",
             fn ($message) => $message
                 ->to($staff->email)
