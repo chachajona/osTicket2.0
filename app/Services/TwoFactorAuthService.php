@@ -11,6 +11,14 @@ class TwoFactorAuthService
 
     private const MAX_STRIKES = 3;
 
+    public const STATUS_VALID = 'valid';
+
+    public const STATUS_INVALID = 'invalid';
+
+    public const STATUS_LOCKED_OUT = 'locked_out';
+
+    public const STATUS_EXPIRED = 'expired';
+
     public function generateToken(int $staffId, bool $preserveStrikes = false): string
     {
         $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
@@ -35,17 +43,22 @@ class TwoFactorAuthService
 
     public function validateToken(int $staffId, string $token): bool
     {
+        return $this->validateTokenState($staffId, $token) === self::STATUS_VALID;
+    }
+
+    public function validateTokenState(int $staffId, string $token): string
+    {
         $key = $this->tokenKey($staffId);
         $state = Cache::get($key);
 
         if (! $state) {
-            return false;
+            return self::STATUS_EXPIRED;
         }
 
         if (hash_equals($state['otp'], $token)) {
             Cache::forget($key);
 
-            return true;
+            return self::STATUS_VALID;
         }
 
         $state['strikes']++;
@@ -54,12 +67,12 @@ class TwoFactorAuthService
             Cache::forget($key);
             Log::info('2FA lockout: max attempts exceeded', ['staff_id' => $staffId]);
 
-            return false;
+            return self::STATUS_LOCKED_OUT;
         }
 
         Cache::put($key, $state, self::TTL_SECONDS);
 
-        return false;
+        return self::STATUS_INVALID;
     }
 
     public function hasPendingToken(int $staffId): bool
