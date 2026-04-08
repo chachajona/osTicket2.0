@@ -16,6 +16,7 @@ return new class extends Migration
         $columnNames = config('permission.column_names');
         $pivotRole = $columnNames['role_pivot_key'] ?? 'role_id';
         $pivotPermission = $columnNames['permission_pivot_key'] ?? 'permission_id';
+        $schema = Schema::connection(config('permission.connection', 'legacy'));
 
         throw_if(empty($tableNames), 'Error: config/permission.php not loaded. Run [php artisan config:clear] and try again.');
         throw_if($teams && empty($columnNames['team_foreign_key'] ?? null), 'Error: team_foreign_key on config/permission.php not loaded. Run [php artisan config:clear] and try again.');
@@ -23,7 +24,7 @@ return new class extends Migration
         /**
          * See `docs/prerequisites.md` for suggested lengths on 'name' and 'guard_name' if "1071 Specified key was too long" errors are encountered.
          */
-        Schema::create($tableNames['permissions'], static function (Blueprint $table) {
+        $schema->create($tableNames['permissions'], static function (Blueprint $table) {
             $table->id(); // permission id
             $table->string('name');
             $table->string('guard_name');
@@ -35,7 +36,7 @@ return new class extends Migration
         /**
          * See `docs/prerequisites.md` for suggested lengths on 'name' and 'guard_name' if "1071 Specified key was too long" errors are encountered.
          */
-        Schema::create($tableNames['roles'], static function (Blueprint $table) use ($teams, $columnNames) {
+        $schema->create($tableNames['roles'], static function (Blueprint $table) use ($teams, $columnNames) {
             $table->id(); // role id
             if ($teams || config('permission.testing')) { // permission.testing is a fix for sqlite testing
                 $table->unsignedBigInteger($columnNames['team_foreign_key'])->nullable();
@@ -51,7 +52,7 @@ return new class extends Migration
             }
         });
 
-        Schema::create($tableNames['model_has_permissions'], static function (Blueprint $table) use ($tableNames, $columnNames, $pivotPermission, $teams) {
+        $schema->create($tableNames['model_has_permissions'], static function (Blueprint $table) use ($tableNames, $columnNames, $pivotPermission, $teams) {
             $table->unsignedBigInteger($pivotPermission);
 
             $table->string('model_type');
@@ -74,7 +75,7 @@ return new class extends Migration
             }
         });
 
-        Schema::create($tableNames['model_has_roles'], static function (Blueprint $table) use ($tableNames, $columnNames, $pivotRole, $teams) {
+        $schema->create($tableNames['model_has_roles'], static function (Blueprint $table) use ($tableNames, $columnNames, $pivotRole, $teams) {
             $table->unsignedBigInteger($pivotRole);
 
             $table->string('model_type');
@@ -97,7 +98,7 @@ return new class extends Migration
             }
         });
 
-        Schema::create($tableNames['role_has_permissions'], static function (Blueprint $table) use ($tableNames, $pivotRole, $pivotPermission) {
+        $schema->create($tableNames['role_has_permissions'], static function (Blueprint $table) use ($tableNames, $pivotRole, $pivotPermission) {
             $table->unsignedBigInteger($pivotPermission);
             $table->unsignedBigInteger($pivotRole);
 
@@ -125,13 +126,14 @@ return new class extends Migration
     public function down(): void
     {
         $tableNames = config('permission.table_names');
+        $schema = Schema::connection(config('permission.connection', 'legacy'));
 
         throw_if(empty($tableNames), 'Error: config/permission.php not found and defaults could not be merged. Please publish the package configuration before proceeding, or drop the tables manually.');
 
-        Schema::dropIfExists($tableNames['role_has_permissions']);
-        Schema::dropIfExists($tableNames['model_has_roles']);
-        Schema::dropIfExists($tableNames['model_has_permissions']);
-        Schema::dropIfExists($tableNames['roles']);
-        Schema::dropIfExists($tableNames['permissions']);
+        $schema->dropIfExists($tableNames['role_has_permissions']);
+        $schema->dropIfExists($tableNames['model_has_roles']);
+        $schema->dropIfExists($tableNames['model_has_permissions']);
+        $schema->dropIfExists($tableNames['roles']);
+        $schema->dropIfExists($tableNames['permissions']);
     }
 };
