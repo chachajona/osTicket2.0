@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\Staff;
+use App\Models\Task;
 use App\Models\Ticket;
 use App\Services\LegacyHasher;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -27,7 +28,7 @@ class AppServiceProvider extends ServiceProvider
         Relation::enforceMorphMap([
             'T' => Ticket::class,
             'staff' => Staff::class,
-            // 'A' => \App\Models\Task::class, // TODO: uncomment when Task model is created
+            'A' => Task::class,
         ]);
 
         $this->app->make(HashManager::class)->extend('legacy', function () {
