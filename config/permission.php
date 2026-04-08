@@ -1,10 +1,18 @@
 <?php
 
+use App\Models\LegacyPermission as Permission;
+use App\Models\LegacyRole as Role;
 use Spatie\Permission\DefaultTeamResolver;
-use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 
 return [
+
+    /*
+     * The database connection used by the permission package.
+     *
+     * Staff records live in the legacy osTicket database, so the
+     * package tables need to stay on that same connection.
+     */
+    'connection' => env('PERMISSION_DB_CONNECTION', 'legacy'),
 
     'models' => [
 
