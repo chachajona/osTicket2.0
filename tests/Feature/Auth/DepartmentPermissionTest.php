@@ -38,7 +38,25 @@ test('admin getRoleIdForDepartment returns null', function () {
     expect($service->getRoleIdForDepartment($admin, 1))->toBeNull();
 });
 
+test('admin canAccessAllDepartments returns true', function () {
+    $service = app(DepartmentPermissionService::class);
+    $admin = makeStaffModel(['isadmin' => '1']);
+
+    expect($service->canAccessAllDepartments($admin))->toBeTrue();
+});
+
+test('non-admin canAccessAllDepartments returns false', function () {
+    $service = app(DepartmentPermissionService::class);
+    $staff = makeStaffModel(['isadmin' => '0']);
+
+    expect($service->canAccessAllDepartments($staff))->toBeFalse();
+});
+
 test('admin getAccessibleDepartmentIds returns empty array', function () {
+    // The empty list here is NOT a "match everything" marker - it only means
+    // the admin is not scoped to any explicit department rows. Callers must
+    // branch on canAccessAllDepartments() before filtering by the returned
+    // list so whereIn('dept_id', []) never accidentally matches zero rows.
     $service = app(DepartmentPermissionService::class);
     $admin = makeStaffModel(['isadmin' => '1']);
 
