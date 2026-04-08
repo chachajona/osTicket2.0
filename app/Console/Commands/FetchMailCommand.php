@@ -370,27 +370,41 @@ final class FetchMailCommand extends Command
         }
 
         try {
-            $userId = $connection->table('user')->insertGetId([
-                'org_id' => 0,
-                'default_email_id' => 0,
-                'status' => 0,
-                'name' => $name ?: $email,
-                'created' => now()->format('Y-m-d H:i:s'),
-                'updated' => now()->format('Y-m-d H:i:s'),
-            ]);
+            // Wrap the user + user_email + default_email_id update in a nested
+            // transaction so they land as an atomic unit on the legacy
+            // connection. This method is invoked from inside createTicket()'s
+            // outer transaction, so Laravel translates this nested call into a
+            // SAVEPOINT. When a concurrent fetch-mail worker wins the race on
+            // user_email.address the unique-constraint exception rolls the
+            // savepoint back cleanly, discarding the ost_user insert that
+            // would otherwise commit as an orphan row with default_email_id=0
+            // once the outer transaction eventually commits.
+            return $connection->transaction(function () use ($connection, $email, $name): int {
+                $userId = $connection->table('user')->insertGetId([
+                    'org_id' => 0,
+                    'default_email_id' => 0,
+                    'status' => 0,
+                    'name' => $name ?: $email,
+                    'created' => now()->format('Y-m-d H:i:s'),
+                    'updated' => now()->format('Y-m-d H:i:s'),
+                ]);
 
-            $emailId = $connection->table('user_email')->insertGetId([
-                'user_id' => $userId,
-                'flags' => 0,
-                'address' => $email,
-            ]);
+                $emailId = $connection->table('user_email')->insertGetId([
+                    'user_id' => $userId,
+                    'flags' => 0,
+                    'address' => $email,
+                ]);
 
-            $connection->table('user')
-                ->where('id', $userId)
-                ->update(['default_email_id' => $emailId]);
+                $connection->table('user')
+                    ->where('id', $userId)
+                    ->update(['default_email_id' => $emailId]);
 
-            return (int) $userId;
+                return (int) $userId;
+            });
         } catch (UniqueConstraintViolationException) {
+            // Savepoint has already rolled back; the losing worker's user row
+            // is gone and we can safely re-query user_email to pick up the
+            // row inserted by the winner without leaking any state.
             $userEmail = $connection->table('user_email')
                 ->where('address', $email)
                 ->first();
