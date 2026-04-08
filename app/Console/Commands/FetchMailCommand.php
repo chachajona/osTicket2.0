@@ -184,9 +184,20 @@ final class FetchMailCommand extends Command
         array $body,
         array $attachments
     ): void {
-        DB::connection('legacy')->transaction(function () use ($account, $headers, $body, $attachments) {
-            $number = $this->nextTicketNumber();
+        // Allocate the ticket number in its own short transaction BEFORE the
+        // outer ticket-creation transaction begins. nextTicketNumber() takes
+        // a lockForUpdate() on ost_sequence, and InnoDB holds row locks until
+        // the outermost enclosing transaction commits - savepoints from
+        // Laravel's nested transaction() do not release them. If the lock is
+        // taken inside the createTicket transaction it is held for the full
+        // duration of user resolution, ticket/thread/entry inserts, cdata
+        // upsert, and attachment persistence (which writes file binaries),
+        // serialising every concurrent fetch-mail worker on a single row.
+        // Running it here releases the lock as soon as the sequence row is
+        // updated, which is the same scoping legacy osTicket uses.
+        $number = $this->nextTicketNumber();
 
+        DB::connection('legacy')->transaction(function () use ($account, $number, $headers, $body, $attachments) {
             $userId = $this->resolveOrCreateUser($headers['from_email'], $headers['from_name']);
 
             $ticket = Ticket::create([
