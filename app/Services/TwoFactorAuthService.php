@@ -33,9 +33,16 @@ class TwoFactorAuthService
             }
         }
 
+        // Record the absolute expiry timestamp alongside the OTP so
+        // validateTokenState() can preserve the remaining lifetime on
+        // invalid attempts instead of resetting it to a full TTL window.
+        // Resend intentionally generates a brand new code with a fresh
+        // expires_at value - that path is the supported way to extend
+        // the challenge, not silent TTL drift from failed guesses.
         Cache::put($this->tokenKey($staffId), [
             'otp' => $code,
             'strikes' => $strikes,
+            'expires_at' => now()->timestamp + self::TTL_SECONDS,
         ], self::TTL_SECONDS);
 
         return $code;
@@ -61,6 +68,23 @@ class TwoFactorAuthService
             return self::STATUS_VALID;
         }
 
+        // Re-check expiry against the absolute timestamp we stored during
+        // generation so the token window is bounded by the original issue
+        // time regardless of how many invalid attempts have landed since.
+        // Older cache entries that predate the expires_at field fall back
+        // to the legacy full-TTL behaviour so deploy/rollover does not
+        // strand staff mid-challenge.
+        $expiresAt = (int) ($state['expires_at'] ?? 0);
+        $remaining = $expiresAt > 0
+            ? $expiresAt - now()->timestamp
+            : self::TTL_SECONDS;
+
+        if ($remaining <= 0) {
+            Cache::forget($key);
+
+            return self::STATUS_EXPIRED;
+        }
+
         $state['strikes']++;
 
         if ($state['strikes'] >= self::MAX_STRIKES) {
@@ -70,7 +94,7 @@ class TwoFactorAuthService
             return self::STATUS_LOCKED_OUT;
         }
 
-        Cache::put($key, $state, self::TTL_SECONDS);
+        Cache::put($key, $state, $remaining);
 
         return self::STATUS_INVALID;
     }

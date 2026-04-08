@@ -98,3 +98,39 @@ test('validateTokenState reports invalid attempts before lockout', function () {
         ->and($this->service->getStrikes(12))->toBe(1)
         ->and($this->service->hasPendingToken(12))->toBeTrue();
 });
+
+test('invalid attempt does not extend the original token expiry window', function () {
+    // Seed the cache with an entry whose absolute expires_at is already in
+    // the past so we can deterministically observe the expiry check firing
+    // regardless of the test runner's clock resolution. A legitimate invalid
+    // attempt must surface STATUS_EXPIRED (not STATUS_INVALID) and must not
+    // re-put a fresh entry, because the original lifetime has already ended.
+    Cache::put('2fa.staff.77', [
+        'otp' => '654321',
+        'strikes' => 0,
+        'expires_at' => now()->timestamp - 5,
+    ], 3600);
+
+    expect($this->service->validateTokenState(77, '000000'))->toBe(TwoFactorAuthService::STATUS_EXPIRED)
+        ->and($this->service->hasPendingToken(77))->toBeFalse();
+});
+
+test('invalid attempt preserves remaining ttl instead of resetting it', function () {
+    // Seed a token whose absolute expiry is 30s away and confirm the cache
+    // entry after an invalid attempt still has the same expires_at value so
+    // repeated wrong guesses cannot drift the original window forwards.
+    $expiresAt = now()->timestamp + 30;
+    Cache::put('2fa.staff.88', [
+        'otp' => '654321',
+        'strikes' => 0,
+        'expires_at' => $expiresAt,
+    ], 3600);
+
+    expect($this->service->validateTokenState(88, '000000'))->toBe(TwoFactorAuthService::STATUS_INVALID);
+
+    $state = Cache::get('2fa.staff.88');
+
+    expect($state)->toBeArray()
+        ->and($state['strikes'])->toBe(1)
+        ->and($state['expires_at'])->toBe($expiresAt);
+});
