@@ -35,9 +35,29 @@ class DepartmentPermissionService
         return $access?->role_id;
     }
 
+    /**
+     * Determine whether a staff member can access every department without
+     * enumeration. Callers MUST check this before calling
+     * getAccessibleDepartmentIds() to avoid accidentally filtering a query
+     * with an empty whereIn() clause for admins.
+     */
+    public function canAccessAllDepartments(Staff $staff): bool
+    {
+        return (bool) $staff->isadmin;
+    }
+
+    /**
+     * Return the concrete list of department IDs the staff member has been
+     * explicitly granted. Admins return an empty list because they are not
+     * scoped to any particular departments; callers that need to filter a
+     * query by department should branch on canAccessAllDepartments() first
+     * and skip the whereIn() when it returns true.
+     *
+     * @return int[]
+     */
     public function getAccessibleDepartmentIds(Staff $staff): array
     {
-        if ($staff->isadmin) {
+        if ($this->canAccessAllDepartments($staff)) {
             return [];
         }
 
