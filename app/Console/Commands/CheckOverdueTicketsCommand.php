@@ -29,17 +29,25 @@ final class CheckOverdueTicketsCommand extends Command
             ->whereNotNull('duedate')
             ->where('duedate', '<', $now);
 
-        $overdueTickets = (clone $query)->get();
+        // Use count() + a small sample for the preview instead of materialising
+        // the entire matched set. After a system outage the overdue backlog
+        // can grow to tens of thousands of rows, and loading them all would
+        // waste memory and flood the console/log capture. This matches the
+        // pattern used by PurgeLogsCommand and CleanupDraftsCommand.
+        $count = (clone $query)->count();
 
-        if ($overdueTickets->isEmpty()) {
+        if ($count === 0) {
             $this->info('No overdue tickets found.');
 
             return self::SUCCESS;
         }
 
-        $this->line("Found {$overdueTickets->count()} overdue ticket(s):");
-        foreach ($overdueTickets as $ticket) {
+        $this->line("Found {$count} overdue ticket(s):");
+        foreach ((clone $query)->orderBy('duedate')->limit(5)->get() as $ticket) {
             $this->line("  - Ticket #{$ticket->ticket_id} (due: {$ticket->duedate})");
+        }
+        if ($count > 5) {
+            $this->line('  ... and '.($count - 5).' more');
         }
 
         if (! $dryRun) {
@@ -47,7 +55,7 @@ final class CheckOverdueTicketsCommand extends Command
 
             $this->comment("{$updated} ticket(s) marked as overdue");
         } else {
-            $this->comment("Would mark {$overdueTickets->count()} ticket(s) as overdue");
+            $this->comment("Would mark {$count} ticket(s) as overdue");
         }
 
         return self::SUCCESS;
