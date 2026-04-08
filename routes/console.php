@@ -8,8 +8,8 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-Schedule::command('tickets:fetch-mail')->everyFiveMinutes();
-Schedule::command('tickets:check-overdue')->everyFiveMinutes();
+Schedule::command('tickets:fetch-mail')->everyFiveMinutes()->withoutOverlapping();
+Schedule::command('tickets:check-overdue')->everyFiveMinutes()->withoutOverlapping();
 Schedule::command('system:purge-logs')->dailyAt('03:00');
 Schedule::command('drafts:cleanup')->daily();
 Schedule::command('files:cleanup')->weekly();
