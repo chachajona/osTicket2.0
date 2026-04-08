@@ -43,6 +43,17 @@ final class EmailParser
         $references = $this->attributeToString($message->getReferences());
         $subject = $this->attributeToString($message->getSubject()) ?: '(No Subject)';
 
+        // RFC 5322 recommends but does not require Message-ID. When a client
+        // omits it, legacy osTicket's class.mailparse.php synthesises a
+        // deterministic identifier from the raw header so the same physical
+        // message always hashes to the same mid. We replicate that behaviour
+        // here so FetchMailCommand's dedupe check and thread lookups keep
+        // working for malformed senders instead of silently storing an empty
+        // mid string that defeats idempotency.
+        if ($messageId === '') {
+            $messageId = $this->synthesiseMessageId($message);
+        }
+
         $date = null;
         try {
             $dateAttr = $message->getDate();
@@ -226,6 +237,59 @@ final class EmailParser
     // ------------------------------------------------------------------
     // Internal helpers
     // ------------------------------------------------------------------
+
+    /**
+     * Produce a deterministic synthetic Message-ID for messages whose sender
+     * omitted the header entirely.
+     *
+     * Mirrors legacy class.mailparse.php which hashes the raw header block
+     * so the same physical message always resolves to the same mid. Falls
+     * back to hashing the raw body if the header block is unavailable, and
+     * finally to a subject/date hash so we always return a non-empty value.
+     */
+    private function synthesiseMessageId(Message $message): string
+    {
+        try {
+            $header = $message->getHeader();
+            $rawHeader = is_object($header) ? (string) ($header->raw ?? '') : '';
+        } catch (\Throwable) {
+            $rawHeader = '';
+        }
+
+        if ($rawHeader !== '') {
+            return sprintf('<%s@local>', md5($rawHeader));
+        }
+
+        try {
+            $rawBody = (string) $message->getRawBody();
+        } catch (\Throwable) {
+            $rawBody = '';
+        }
+
+        if ($rawBody !== '') {
+            return sprintf('<%s@local>', md5($rawBody));
+        }
+
+        // Last-resort fallback: hash whatever metadata we did manage to parse.
+        // This is still deterministic for a given (subject, from, date) tuple
+        // so a reprocessed copy of the same message resolves to the same mid.
+        $subject = $this->attributeToString($message->getSubject());
+        $fromAttr = $message->getFrom();
+        $fromEmail = ($fromAttr && $fromAttr->count() > 0)
+            ? (string) ($fromAttr->first()->mail ?? '')
+            : '';
+        $dateStr = '';
+        try {
+            $dateAttr = $message->getDate();
+            if ($dateAttr && $dateAttr->count() > 0) {
+                $dateStr = (string) ($dateAttr->first()?->format('Y-m-d H:i:s') ?? '');
+            }
+        } catch (\Throwable) {
+            $dateStr = '';
+        }
+
+        return sprintf('<%s@local>', md5($subject.'|'.$fromEmail.'|'.$dateStr));
+    }
 
     /**
      * Safely coerce a webklex Attribute (or null/scalar) to string.
