@@ -36,7 +36,7 @@ test('authenticated staff are redirected from login page', function () {
 
     $response = $this->get('/scp/login');
 
-    $response->assertStatus(200);
+    $response->assertRedirect('/scp');
 });
 
 test('login requires username and password', function () {
@@ -165,4 +165,28 @@ test('forgot password shows generic success message regardless of account existe
     $response = $this->post('/scp/password/forgot', ['email' => 'nobody@example.com']);
 
     $response->assertSessionHas('status');
+});
+
+test('forgot password requests are rate limited', function () {
+    Mail::fake();
+
+    DB::connection('legacy')->table('staff')->insert([
+        'staff_id' => 99,
+        'username' => 'resetstaff',
+        'firstname' => 'Reset',
+        'lastname' => 'Staff',
+        'email' => 'reset@example.com',
+        'passwd' => bcrypt('password'),
+        'isactive' => 1,
+        'isadmin' => 0,
+        'created' => now(),
+    ]);
+
+    $this->post('/scp/password/forgot', ['email' => 'reset@example.com'])
+        ->assertSessionHas('status');
+
+    $response = $this->post('/scp/password/forgot', ['email' => 'reset@example.com']);
+
+    $response->assertSessionHasErrors(['email']);
+    Mail::assertSentCount(1);
 });
