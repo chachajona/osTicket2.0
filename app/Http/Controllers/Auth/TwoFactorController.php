@@ -91,7 +91,7 @@ class TwoFactorController extends Controller
             ]);
         }
 
-        $staff = Staff::find($staffId);
+        $staff = Staff::where('staff_id', $staffId)->where('isactive', 1)->first();
 
         if (! $staff) {
             $request->session()->forget(['2fa.staff_id', '2fa.remember']);

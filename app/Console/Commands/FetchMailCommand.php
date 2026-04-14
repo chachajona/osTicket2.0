@@ -88,16 +88,19 @@ final class FetchMailCommand extends Command
             $processed = 0;
             foreach ($messages as $message) {
                 try {
-                    $this->processMessage($message, $account, $parser, $dryRun);
-                    $processed++;
+                    $wasProcessed = $this->processMessage($message, $account, $parser, $dryRun);
 
                     if (! $dryRun) {
                         $message->setFlag('Seen');
 
-                        if ($account->postfetch === 'delete') {
-                            $message->delete();
-                        } elseif ($account->archivefolder) {
-                            $message->move($account->archivefolder);
+                        if ($wasProcessed) {
+                            $processed++;
+
+                            if ($account->postfetch === 'delete') {
+                                $message->delete();
+                            } elseif ($account->archivefolder) {
+                                $message->move($account->archivefolder);
+                            }
                         }
                     }
                 } catch (\Throwable $e) {
@@ -121,16 +124,19 @@ final class FetchMailCommand extends Command
         return $processed;
     }
 
+    /**
+     * @return bool Whether the message was actually processed (not skipped).
+     */
     private function processMessage(
         Message $message,
         EmailAccount $account,
         EmailParser $parser,
         bool $dryRun
-    ): void {
+    ): bool {
         if ($parser->detectBounce($message)) {
             $this->line('  [bounce] Skipped bounce message.');
 
-            return;
+            return false;
         }
 
         $headers = $parser->parseHeaders($message);
@@ -139,20 +145,20 @@ final class FetchMailCommand extends Command
         if ($fromEmail === '' || ! filter_var($fromEmail, FILTER_VALIDATE_EMAIL)) {
             $this->warn("  [invalid] Message UID {$message->getUid()} has missing/invalid From address; skipped.");
 
-            return;
+            return false;
         }
 
         if ($this->isSystemAddress($fromEmail)) {
             $this->line("  [loop] Skipped message from system address {$fromEmail}");
 
-            return;
+            return false;
         }
 
         if (! empty($headers['message_id'])
             && ThreadEntryEmail::where('mid', $headers['message_id'])->exists()) {
             $this->line("  [duplicate] Already processed Message-ID {$headers['message_id']}");
 
-            return;
+            return false;
         }
 
         $body = $parser->parseBody($message);
@@ -165,7 +171,7 @@ final class FetchMailCommand extends Command
             $mode = $thread ? 'reply to thread #'.$thread->id : 'new ticket';
             $this->line("  [dry-run] Would create {$mode}: \"{$headers['subject']}\" from {$headers['from_email']}");
 
-            return;
+            return true;
         }
 
         if ($thread !== null) {
@@ -173,6 +179,8 @@ final class FetchMailCommand extends Command
         } else {
             $this->createTicket($account, $headers, $body, $attachments);
         }
+
+        return true;
     }
 
     private function findExistingThread(array $messageIds): ?Thread
