@@ -43,9 +43,9 @@ final class PurgeLogsCommand extends Command
         }
 
         if (! $dryRun) {
-            $query->delete();
+            $deleted = $query->delete();
 
-            $this->comment("{$count} log entry(ies) deleted");
+            $this->comment("{$deleted} log entry(ies) deleted");
         } else {
             $this->comment("Would delete {$count} log entry(ies)");
         }

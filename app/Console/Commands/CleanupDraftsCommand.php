@@ -43,9 +43,9 @@ final class CleanupDraftsCommand extends Command
         }
 
         if (! $dryRun) {
-            $query->delete();
+            $deleted = $query->delete();
 
-            $this->comment("{$count} draft(s) deleted");
+            $this->comment("{$deleted} draft(s) deleted");
         } else {
             $this->comment("Would delete {$count} draft(s)");
         }
