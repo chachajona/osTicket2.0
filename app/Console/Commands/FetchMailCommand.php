@@ -55,7 +55,8 @@ final class FetchMailCommand extends Command
             try {
                 $processed = $this->processAccount($account, $parser, $dryRun);
                 $total += $processed;
-                $this->info("Account {$account->email->email}: {$processed} message(s) processed.");
+                $label = $account->email?->email ?? "id:{$account->id}";
+                $this->info("Account {$label}: {$processed} message(s) processed.");
             } catch (\Throwable $e) {
                 $this->error("Account {$account->id} failed: {$e->getMessage()}");
                 Log::error('FetchMailCommand: account error', [
@@ -294,10 +295,20 @@ final class FetchMailCommand extends Command
 
             $this->saveAttachments($attachments, $entry->id);
 
-            Ticket::where('ticket_id', $thread->object_id)
-                ->update(['lastupdate' => now()->format('Y-m-d H:i:s')]);
+            $ticket = Ticket::where('ticket_id', $thread->object_id)->first();
 
-            $this->line("  Appended reply to thread #{$thread->id}");
+            $updates = ['lastupdate' => now()->format('Y-m-d H:i:s')];
+
+            if ($ticket && $ticket->closed !== null) {
+                $updates['status_id'] = 1;
+                $updates['closed'] = null;
+                $updates['isanswered'] = 0;
+            }
+
+            Ticket::where('ticket_id', $thread->object_id)->update($updates);
+
+            $reopened = isset($updates['closed']) ? ' (reopened)' : '';
+            $this->line("  Appended reply to thread #{$thread->id}{$reopened}");
         });
     }
 
@@ -468,7 +479,7 @@ final class FetchMailCommand extends Command
             'host' => $account->host,
             'port' => (int) $account->port,
             'encryption' => $encryption,
-            'validate_cert' => false,
+            'validate_cert' => (bool) env('IMAP_VALIDATE_CERT', false),
             'username' => $account->auth_id,
             'password' => $account->auth_bk,
             'protocol' => strtolower((string) ($account->protocol ?: 'imap')),
