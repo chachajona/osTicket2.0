@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
@@ -17,6 +18,8 @@ use Inertia\Response;
 
 class PasswordResetController extends Controller
 {
+    private const RESET_LINK_THROTTLE_SECONDS = 60;
+
     public function showForgotForm(): Response
     {
         return Inertia::render('Auth/ForgotPassword');
@@ -28,7 +31,21 @@ class PasswordResetController extends Controller
             'email' => ['required', 'email'],
         ]);
 
-        $staff = Staff::where('email', (string) $request->input('email'))
+        $email = trim((string) $request->input('email'));
+        $normalizedEmail = Str::lower($email);
+        $throttleKey = sprintf('password-reset.%s.%s', $normalizedEmail, $request->ip());
+
+        if (RateLimiter::tooManyAttempts($throttleKey, 1)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+
+            return back()->withErrors([
+                'email' => "Please wait {$seconds} seconds before requesting another reset link.",
+            ]);
+        }
+
+        RateLimiter::hit($throttleKey, self::RESET_LINK_THROTTLE_SECONDS);
+
+        $staff = Staff::where('email', $email)
             ->where('isactive', 1)
             ->first();
 
