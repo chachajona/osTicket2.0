@@ -16,7 +16,7 @@ class AuthenticateStaff
                 return response()->json(['message' => 'Unauthenticated.'], 401);
             }
 
-            return redirect()->route('scp.login');
+            return redirect()->guest(route('scp.login'));
         }
 
         return $next($request);
