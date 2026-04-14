@@ -34,7 +34,7 @@ final class CheckOverdueTicketsCommand extends Command
         // can grow to tens of thousands of rows, and loading them all would
         // waste memory and flood the console/log capture. This matches the
         // pattern used by PurgeLogsCommand and CleanupDraftsCommand.
-        $count = (clone $query)->count();
+        $count = $query->count();
 
         if ($count === 0) {
             $this->info('No overdue tickets found.');
