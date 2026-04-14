@@ -175,7 +175,9 @@ final class FetchMailCommand extends Command
 
         $entry = ThreadEntryEmail::whereIn('mid', $messageIds)->first();
 
-        return $entry?->threadEntry?->thread ?? null;
+        $thread = $entry?->threadEntry?->thread;
+
+        return ($thread && $thread->object_type === 'T') ? $thread : null;
     }
 
     private function createTicket(
@@ -199,6 +201,7 @@ final class FetchMailCommand extends Command
 
         DB::connection('legacy')->transaction(function () use ($account, $number, $headers, $body, $attachments) {
             $userId = $this->resolveOrCreateUser($headers['from_email'], $headers['from_name']);
+            $timestamp = now()->format('Y-m-d H:i:s');
 
             $ticket = Ticket::create([
                 'number' => $number,
@@ -208,8 +211,9 @@ final class FetchMailCommand extends Command
                 'email_id' => $account->email_id,
                 'source' => 'Email',
                 'ip_address' => '',
-                'created' => now()->format('Y-m-d H:i:s'),
-                'updated' => now()->format('Y-m-d H:i:s'),
+                'lastupdate' => $timestamp,
+                'created' => $timestamp,
+                'updated' => $timestamp,
             ]);
 
             TicketCdata::updateOrCreate(
