@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'imap' => [
+        'validate_cert' => env('IMAP_VALIDATE_CERT', false),
+    ],
+
 ];
