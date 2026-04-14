@@ -6,6 +6,7 @@ namespace App\Console\Commands;
 
 use App\Models\Attachment;
 use App\Models\EmailAccount;
+use App\Models\EmailModel;
 use App\Models\File;
 use App\Models\FileChunk;
 use App\Models\Thread;
@@ -136,6 +137,12 @@ final class FetchMailCommand extends Command
         $fromEmail = trim($headers['from_email']);
         if ($fromEmail === '' || ! filter_var($fromEmail, FILTER_VALIDATE_EMAIL)) {
             $this->warn("  [invalid] Message UID {$message->getUid()} has missing/invalid From address; skipped.");
+
+            return;
+        }
+
+        if ($this->isSystemAddress($fromEmail)) {
+            $this->line("  [loop] Skipped message from system address {$fromEmail}");
 
             return;
         }
@@ -436,6 +443,15 @@ final class FetchMailCommand extends Command
             'References: '.($headers['references'] ?? ''),
             'Date: '.$headers['date'],
         ]);
+    }
+
+    private function isSystemAddress(string $email): bool
+    {
+        $normalizedEmail = mb_strtolower(trim($email));
+
+        return EmailModel::query()
+            ->whereRaw('LOWER(email) = ?', [$normalizedEmail])
+            ->exists();
     }
 
     private function buildClient(EmailAccount $account): Client
