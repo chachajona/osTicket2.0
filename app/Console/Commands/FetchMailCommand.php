@@ -102,6 +102,8 @@ final class FetchMailCommand extends Command
                                 $message->move($account->archivefolder);
                             }
                         }
+                    } elseif ($wasProcessed) {
+                        $processed++;
                     }
                 } catch (\Throwable $e) {
                     $this->warn("  Skipped message UID {$message->getUid()}: {$e->getMessage()}");
