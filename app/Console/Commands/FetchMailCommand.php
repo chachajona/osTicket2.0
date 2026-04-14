@@ -307,7 +307,7 @@ final class FetchMailCommand extends Command
 
             Ticket::where('ticket_id', $thread->object_id)->update($updates);
 
-            $reopened = isset($updates['closed']) ? ' (reopened)' : '';
+            $reopened = array_key_exists('closed', $updates) ? ' (reopened)' : '';
             $this->line("  Appended reply to thread #{$thread->id}{$reopened}");
         });
     }
@@ -479,7 +479,7 @@ final class FetchMailCommand extends Command
             'host' => $account->host,
             'port' => (int) $account->port,
             'encryption' => $encryption,
-            'validate_cert' => (bool) env('IMAP_VALIDATE_CERT', false),
+            'validate_cert' => (bool) config('services.imap.validate_cert', false),
             'username' => $account->auth_id,
             'password' => $account->auth_bk,
             'protocol' => strtolower((string) ($account->protocol ?: 'imap')),

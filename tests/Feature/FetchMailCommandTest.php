@@ -165,6 +165,93 @@ test('createTicket initializes lastupdate for new email tickets', function () {
     expect($email->mid)->toBe('<new-ticket@example.test>');
 });
 
+test('appendToThread marks reopened tickets in command output', function () {
+    Carbon::setTestNow('2026-04-14 13:00:00');
+
+    DB::connection('legacy')->table('ticket')->insert([
+        'ticket_id' => 55,
+        'number' => '9002',
+        'user_id' => 1,
+        'dept_id' => 9,
+        'status_id' => 2,
+        'email_id' => 7,
+        'source' => 'Email',
+        'ip_address' => '',
+        'isanswered' => 1,
+        'closed' => '2026-04-13 09:00:00',
+        'lastupdate' => '2026-04-13 09:00:00',
+        'created' => '2026-04-13 08:00:00',
+        'updated' => '2026-04-13 09:00:00',
+    ]);
+
+    $threadId = DB::connection('legacy')->table('thread')->insertGetId([
+        'object_id' => 55,
+        'object_type' => 'T',
+        'created' => '2026-04-13 08:00:00',
+    ]);
+
+    $account = new EmailAccount([
+        'email_id' => 7,
+    ]);
+
+    [$command, $buffer] = makeFetchMailCommandWithBuffer();
+
+    callFetchMailCommandPrivateMethod(
+        $command,
+        'appendToThread',
+        [
+            new \App\Models\Thread([
+                'id' => $threadId,
+                'object_id' => 55,
+                'object_type' => 'T',
+            ]),
+            $account,
+            [
+                'from_email' => 'sender@example.test',
+                'from_name' => 'Sender',
+                'subject' => 'Re: Existing ticket',
+                'message_id' => '<reply@example.test>',
+                'in_reply_to' => '<ticket@example.test>',
+                'references' => '<ticket@example.test>',
+                'date' => '2026-04-14 12:59:00',
+            ],
+            [
+                'body' => 'Reply body',
+                'format' => 'text',
+            ],
+            [],
+        ]
+    );
+
+    $ticket = DB::connection('legacy')->table('ticket')->where('ticket_id', 55)->first();
+
+    expect($ticket->status_id)->toBe(1);
+    expect($ticket->closed)->toBeNull();
+    expect($ticket->isanswered)->toBe(0);
+    expect($buffer->fetch())->toContain("Appended reply to thread #{$threadId} (reopened)");
+});
+
+test('buildClient reads validate_cert from config', function () {
+    config()->set('services.imap.validate_cert', true);
+
+    $client = callFetchMailCommandPrivateMethod(
+        makeFetchMailCommand(),
+        'buildClient',
+        [
+            new EmailAccount([
+                'host' => 'imap.example.test',
+                'port' => 993,
+                'encryption' => 'ssl',
+                'auth_id' => 'mailbox@example.test',
+                'auth_bk' => 'secret',
+                'protocol' => 'imap',
+            ]),
+        ]
+    );
+
+    expect($client->validate_cert)->toBeTrue();
+});
+
 function ensureFetchMailLegacyTables(): void
 {
     $schema = Schema::connection('legacy');
@@ -215,10 +302,24 @@ function ensureFetchMailLegacyTables(): void
             $table->unsignedInteger('email_id')->default(0);
             $table->string('source')->default('');
             $table->string('ip_address')->default('');
+            $table->unsignedInteger('isanswered')->default(0);
+            $table->dateTime('closed')->nullable();
             $table->dateTime('lastupdate')->nullable();
             $table->dateTime('created')->nullable();
             $table->dateTime('updated')->nullable();
         });
+    } else {
+        if (! $schema->hasColumn('ticket', 'isanswered')) {
+            $schema->table('ticket', function (Blueprint $table) {
+                $table->unsignedInteger('isanswered')->default(0);
+            });
+        }
+
+        if (! $schema->hasColumn('ticket', 'closed')) {
+            $schema->table('ticket', function (Blueprint $table) {
+                $table->dateTime('closed')->nullable();
+            });
+        }
     }
 
     if (! $schema->hasTable('ticket__cdata')) {
@@ -274,4 +375,13 @@ function makeFetchMailCommand(): FetchMailCommand
     $command->setOutput(new OutputStyle(new ArrayInput([]), new BufferedOutput()));
 
     return $command;
+}
+
+function makeFetchMailCommandWithBuffer(): array
+{
+    $command = new FetchMailCommand();
+    $buffer = new BufferedOutput();
+    $command->setOutput(new OutputStyle(new ArrayInput([]), $buffer));
+
+    return [$command, $buffer];
 }
