@@ -53,6 +53,17 @@ class TwoFactorController extends Controller
             ]);
         }
 
+        $staff = Staff::where('staff_id', $staffId)->where('isactive', 1)->first();
+
+        if (! $staff) {
+            $this->twoFactor->clearToken((int) $staffId);
+            $request->session()->forget(['2fa.staff_id', '2fa.remember']);
+
+            return redirect()->route('scp.login')->withErrors([
+                'code' => 'Your account has been deactivated.',
+            ]);
+        }
+
         $remember = (bool) $request->session()->pull('2fa.remember', false);
         $request->session()->forget('2fa.staff_id');
 
