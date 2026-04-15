@@ -1,4 +1,4 @@
-import { useForm } from '@inertiajs/react';
+import { router, useForm } from '@inertiajs/react';
 import { FormEvent } from 'react';
 
 interface Props {
@@ -17,7 +17,7 @@ export default function TwoFactor({ status }: Props) {
     }
 
     function resend() {
-        post('/scp/2fa/resend');
+        router.post('/scp/2fa/resend');
     }
 
     return (
