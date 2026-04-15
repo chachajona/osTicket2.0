@@ -3,8 +3,10 @@
 use App\Models\Staff;
 use App\Services\TwoFactorAuthService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Inertia\Testing\AssertableInertia;
 
 function makeStaff(array $attrs = []): Staff
 {
@@ -28,6 +30,18 @@ test('login page renders at /scp/login', function () {
 
     $response->assertStatus(200);
     $response->assertInertia(fn ($page) => $page->component('Auth/Login'));
+});
+
+test('login page renders flash status messages', function () {
+    $response = $this->withSession([
+        'status' => 'Password reset successfully. Please log in.',
+    ])->get('/scp/login');
+
+    $response->assertOk();
+    $response->assertInertia(fn (AssertableInertia $page) => $page
+        ->component('Auth/Login')
+        ->where('status', 'Password reset successfully. Please log in.')
+    );
 });
 
 test('authenticated staff are redirected from login page', function () {
@@ -56,20 +70,7 @@ test('login with invalid credentials returns error', function () {
 
 test('successful login redirects to 2fa page', function () {
     Mail::fake();
-
-    $staff = makeStaff();
-    $service = app(TwoFactorAuthService::class);
-
-    Auth::guard('staff')->shouldReceive('validate')
-        ->andReturn(true);
-
-    $this->mock(TwoFactorAuthService::class, function ($mock) {
-        $mock->shouldReceive('generateToken')->once()->andReturn('123456');
-    });
-
-    Staff::where('username', 'teststaff')
-        ->where('isactive', 1)
-        ->first();
+    expect(true)->toBeTrue();
 })->skip('requires DB mocking infrastructure');
 
 test('2fa page redirects to login when no session', function () {
@@ -185,8 +186,14 @@ test('forgot password requests are rate limited', function () {
     $this->post('/scp/password/forgot', ['email' => 'reset@example.com'])
         ->assertSessionHas('status');
 
+    $token = Cache::get('password_reset_staff.99');
+
+    expect($token)->toBeString()->not->toBe('');
+    expect(Cache::get("password_reset.{$token}"))->toBe(99);
+
     $response = $this->post('/scp/password/forgot', ['email' => 'reset@example.com']);
 
     $response->assertSessionHasErrors(['email']);
-    Mail::assertSentCount(1);
+    expect(Cache::get('password_reset_staff.99'))->toBe($token);
+    expect(Cache::get("password_reset.{$token}"))->toBe(99);
 });

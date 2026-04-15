@@ -1,5 +1,12 @@
-import { useForm } from '@inertiajs/react';
+import { useForm, usePage } from '@inertiajs/react';
 import { FormEvent } from 'react';
+
+interface PageProps extends Record<string, unknown> {
+    errors?: {
+        code?: string;
+    };
+    status?: string;
+}
 
 export default function Login() {
     const { data, setData, post, processing, errors } = useForm({
@@ -7,6 +14,8 @@ export default function Login() {
         password: '',
         remember: false,
     });
+    const { props } = usePage<PageProps>();
+    const authMessage = props.errors?.code ?? props.status;
 
     function submit(e: FormEvent) {
         e.preventDefault();
@@ -21,6 +30,12 @@ export default function Login() {
                         <h1 className="text-2xl font-bold tracking-tight text-gray-900">osTicket Staff Portal</h1>
                         <p className="mt-1 text-sm text-gray-500">Sign in to your account</p>
                     </div>
+
+                    {authMessage && (
+                        <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+                            {authMessage}
+                        </div>
+                    )}
 
                     <form onSubmit={submit} className="space-y-5">
                         <div>
