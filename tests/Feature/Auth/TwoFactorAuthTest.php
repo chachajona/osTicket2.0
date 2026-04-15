@@ -3,6 +3,7 @@
 use App\Services\TwoFactorAuthService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Inertia\Testing\AssertableInertia;
 
 test('2fa verify logs in staff with correct code', function () {
     DB::connection('legacy')->table('staff')->insert([
@@ -37,7 +38,29 @@ test('2fa lockout after 3 failed attempts redirects to login with error', functi
     $response = $this->withSession(['2fa.staff_id' => 5])->post('/scp/2fa', ['code' => 'wrong4']);
 
     $response->assertRedirect('/scp/login');
+    $response->assertSessionHasErrors([
+        'code' => 'Too many attempts or code expired. Please log in again.',
+    ]);
     expect($service->hasPendingToken(5))->toBeFalse();
+});
+
+test('2fa lockout feedback is available on the login page inertia props', function () {
+    $service = app(TwoFactorAuthService::class);
+    $service->generateToken(6);
+
+    $this->withSession(['2fa.staff_id' => 6])->post('/scp/2fa', ['code' => 'wrong1']);
+    $this->withSession(['2fa.staff_id' => 6])->post('/scp/2fa', ['code' => 'wrong2']);
+    $this->withSession(['2fa.staff_id' => 6])->post('/scp/2fa', ['code' => 'wrong3']);
+
+    $response = $this->followingRedirects()
+        ->withSession(['2fa.staff_id' => 6])
+        ->post('/scp/2fa', ['code' => 'wrong4']);
+
+    $response->assertOk();
+    $response->assertInertia(fn (AssertableInertia $page) => $page
+        ->component('Auth/Login')
+        ->where('errors.code', 'Too many attempts or code expired. Please log in again.')
+    );
 });
 
 test('2fa verify keeps session active after a non-locking invalid attempt', function () {
