@@ -155,7 +155,7 @@ final class EmailParser
      * Mirrors legacy class.mailparse.php::isBounceNotice().
      * Checks:
      *  1. Auto-Submitted header value "auto-replied" or "auto-generated"
-     *  2. X-Auto-Response-Suppress header
+     *  2. X-Auto-Response-Suppress header value "All"
      *  3. Content-Type multipart/report with report-type=delivery-status
      *  4. From address patterns common in bounce mail
      */
@@ -174,8 +174,9 @@ final class EmailParser
                 return true;
             }
 
-            // X-Auto-Response-Suppress indicates automated system responses
-            if (preg_match('/^X-Auto-Response-Suppress:/im', $raw)) {
+            // Treat only X-Auto-Response-Suppress: All as a bounce indicator.
+            // Outlook commonly sends narrower suppression values on normal mail.
+            if (preg_match('/^X-Auto-Response-Suppress:\s*All\s*$/im', $raw)) {
                 return true;
             }
 
