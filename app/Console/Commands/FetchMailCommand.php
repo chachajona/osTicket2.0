@@ -307,12 +307,14 @@ final class FetchMailCommand extends Command
 
             $ticket = Ticket::where('ticket_id', $thread->object_id)->first();
 
-            $updates = ['lastupdate' => now()->format('Y-m-d H:i:s')];
+            $updates = [
+                'lastupdate' => now()->format('Y-m-d H:i:s'),
+                'isanswered' => 0,
+            ];
 
             if ($ticket && $ticket->closed !== null) {
                 $updates['status_id'] = 1;
                 $updates['closed'] = null;
-                $updates['isanswered'] = 0;
             }
 
             Ticket::where('ticket_id', $thread->object_id)->update($updates);

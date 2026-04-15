@@ -3,6 +3,7 @@
 use App\Console\Commands\FetchMailCommand;
 use App\Models\EmailAccount;
 use App\Models\EmailModel;
+use App\Models\Thread;
 use Illuminate\Console\OutputStyle;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Carbon;
@@ -200,7 +201,7 @@ test('appendToThread marks reopened tickets in command output', function () {
         $command,
         'appendToThread',
         [
-            new \App\Models\Thread([
+            new Thread([
                 'id' => $threadId,
                 'object_id' => 55,
                 'object_type' => 'T',
@@ -229,6 +230,72 @@ test('appendToThread marks reopened tickets in command output', function () {
     expect($ticket->closed)->toBeNull();
     expect($ticket->isanswered)->toBe(0);
     expect($buffer->fetch())->toContain("Appended reply to thread #{$threadId} (reopened)");
+});
+
+test('appendToThread marks open answered tickets as unanswered', function () {
+    Carbon::setTestNow('2026-04-14 14:00:00');
+
+    DB::connection('legacy')->table('ticket')->insert([
+        'ticket_id' => 56,
+        'number' => '9003',
+        'user_id' => 1,
+        'dept_id' => 9,
+        'status_id' => 1,
+        'email_id' => 7,
+        'source' => 'Email',
+        'ip_address' => '',
+        'isanswered' => 1,
+        'closed' => null,
+        'lastupdate' => '2026-04-13 09:00:00',
+        'created' => '2026-04-13 08:00:00',
+        'updated' => '2026-04-13 09:00:00',
+    ]);
+
+    $threadId = DB::connection('legacy')->table('thread')->insertGetId([
+        'object_id' => 56,
+        'object_type' => 'T',
+        'created' => '2026-04-13 08:00:00',
+    ]);
+
+    [$command, $buffer] = makeFetchMailCommandWithBuffer();
+
+    callFetchMailCommandPrivateMethod(
+        $command,
+        'appendToThread',
+        [
+            new Thread([
+                'id' => $threadId,
+                'object_id' => 56,
+                'object_type' => 'T',
+            ]),
+            new EmailAccount([
+                'email_id' => 7,
+            ]),
+            [
+                'from_email' => 'sender@example.test',
+                'from_name' => 'Sender',
+                'subject' => 'Re: Existing open ticket',
+                'message_id' => '<reply-open@example.test>',
+                'in_reply_to' => '<ticket-open@example.test>',
+                'references' => '<ticket-open@example.test>',
+                'date' => '2026-04-14 13:59:00',
+            ],
+            [
+                'body' => 'Follow-up from the user',
+                'format' => 'text',
+            ],
+            [],
+        ]
+    );
+
+    $ticket = DB::connection('legacy')->table('ticket')->where('ticket_id', 56)->first();
+
+    expect($ticket->status_id)->toBe(1);
+    expect($ticket->closed)->toBeNull();
+    expect($ticket->isanswered)->toBe(0);
+    expect($ticket->lastupdate)->toBe('2026-04-14 14:00:00');
+    expect($buffer->fetch())->toContain("Appended reply to thread #{$threadId}")
+        ->not->toContain('(reopened)');
 });
 
 test('buildClient reads validate_cert from config', function () {
@@ -371,16 +438,16 @@ function callFetchMailCommandPrivateMethod(FetchMailCommand $command, string $me
 
 function makeFetchMailCommand(): FetchMailCommand
 {
-    $command = new FetchMailCommand();
-    $command->setOutput(new OutputStyle(new ArrayInput([]), new BufferedOutput()));
+    $command = new FetchMailCommand;
+    $command->setOutput(new OutputStyle(new ArrayInput([]), new BufferedOutput));
 
     return $command;
 }
 
 function makeFetchMailCommandWithBuffer(): array
 {
-    $command = new FetchMailCommand();
-    $buffer = new BufferedOutput();
+    $command = new FetchMailCommand;
+    $buffer = new BufferedOutput;
     $command->setOutput(new OutputStyle(new ArrayInput([]), $buffer));
 
     return [$command, $buffer];
