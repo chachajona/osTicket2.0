@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Mail\PasswordResetLinkMail;
 use App\Models\Staff;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,6 +20,8 @@ use Inertia\Response;
 class PasswordResetController extends Controller
 {
     private const RESET_LINK_THROTTLE_SECONDS = 60;
+
+    private const RESET_TOKEN_LENGTH = 64;
 
     public function showForgotForm(): Response
     {
@@ -45,30 +48,18 @@ class PasswordResetController extends Controller
 
         RateLimiter::hit($throttleKey, self::RESET_LINK_THROTTLE_SECONDS);
 
-        $staff = Staff::where('email', $email)
+        $staff = Staff::whereRaw('LOWER(email) = ?', [$normalizedEmail])
             ->where('isactive', 1)
             ->first();
 
         if ($staff) {
-            $previousToken = Cache::get("password_reset_staff.{$staff->staff_id}");
+            $token = $this->issueResetToken($staff);
 
-            if ($previousToken) {
-                Cache::forget("password_reset.{$previousToken}");
+            if ($token !== null) {
+                Mail::to($staff->email)->queue(
+                    new PasswordResetLinkMail(route('scp.password.reset', ['token' => $token]))
+                );
             }
-
-            $token = Str::random(64);
-
-            Cache::put("password_reset.{$token}", $staff->staff_id, now()->addMinutes(60));
-            Cache::put("password_reset_staff.{$staff->staff_id}", $token, now()->addMinutes(60));
-
-            $resetUrl = route('scp.password.reset', ['token' => $token]);
-
-            Mail::raw(
-                "Reset your osTicket password:\n\n{$resetUrl}\n\nThis link expires in 60 minutes.",
-                fn ($message) => $message
-                    ->to($staff->email)
-                    ->subject('Reset Your Password')
-            );
         }
 
         return back()->with('status', 'If an account exists with that email, a reset link has been sent.');
@@ -76,6 +67,12 @@ class PasswordResetController extends Controller
 
     public function showResetForm(Request $request, string $token): Response|RedirectResponse
     {
+        if (! $this->isValidResetToken($token)) {
+            return redirect()->route('scp.password.request')->withErrors([
+                'email' => 'This password reset link is invalid or has expired.',
+            ]);
+        }
+
         $staffId = Cache::get("password_reset.{$token}");
 
         if (! $staffId) {
@@ -90,11 +87,11 @@ class PasswordResetController extends Controller
     public function resetPassword(Request $request): RedirectResponse
     {
         $request->validate([
-            'token' => ['required', 'string'],
+            'token' => ['required', 'string', 'regex:/^[A-Za-z0-9]{'.self::RESET_TOKEN_LENGTH.'}$/'],
             'password' => ['required', 'confirmed', Password::min(8)],
         ]);
 
-        $token = $request->input('token');
+        $token = (string) $request->input('token');
         $staffId = Cache::pull("password_reset.{$token}");
 
         if (! $staffId) {
@@ -105,11 +102,13 @@ class PasswordResetController extends Controller
 
         Cache::forget("password_reset_staff.{$staffId}");
 
-        $staff = Staff::find($staffId);
+        $staff = Staff::where('staff_id', $staffId)
+            ->where('isactive', 1)
+            ->first();
 
         if (! $staff) {
             throw ValidationException::withMessages([
-                'token' => ['Staff account not found.'],
+                'token' => ['This password reset link is invalid or has expired.'],
             ]);
         }
 
@@ -117,5 +116,30 @@ class PasswordResetController extends Controller
         $staff->save();
 
         return redirect()->route('scp.login')->with('status', 'Password reset successfully. Please log in.');
+    }
+
+    private function issueResetToken(Staff $staff): ?string
+    {
+        $result = Cache::lock("password_reset_staff_lock.{$staff->staff_id}", 5)->get(function () use ($staff): string {
+            $previousToken = Cache::get("password_reset_staff.{$staff->staff_id}");
+
+            if (is_string($previousToken) && $previousToken !== '') {
+                Cache::forget("password_reset.{$previousToken}");
+            }
+
+            $token = Str::random(self::RESET_TOKEN_LENGTH);
+
+            Cache::put("password_reset.{$token}", $staff->staff_id, now()->addMinutes(60));
+            Cache::put("password_reset_staff.{$staff->staff_id}", $token, now()->addMinutes(60));
+
+            return $token;
+        });
+
+        return is_string($result) && $result !== '' ? $result : null;
+    }
+
+    private function isValidResetToken(string $token): bool
+    {
+        return preg_match('/^[A-Za-z0-9]{'.self::RESET_TOKEN_LENGTH.'}$/', $token) === 1;
     }
 }

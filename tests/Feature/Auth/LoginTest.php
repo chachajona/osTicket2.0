@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Auth\PasswordResetController;
+use App\Mail\PasswordResetLinkMail;
 use App\Models\Staff;
 use App\Services\TwoFactorAuthService;
 use Illuminate\Support\Facades\Auth;
@@ -168,6 +170,44 @@ test('forgot password shows generic success message regardless of account existe
     $response->assertSessionHas('status');
 });
 
+test('forgot password queues the reset email for active staff', function () {
+    Mail::fake();
+
+    DB::connection('legacy')->table('staff')->insert([
+        'staff_id' => 98,
+        'username' => 'queuedreset',
+        'firstname' => 'Queued',
+        'lastname' => 'Reset',
+        'email' => 'queued-reset@example.com',
+        'passwd' => bcrypt('password'),
+        'isactive' => 1,
+        'isadmin' => 0,
+        'created' => now(),
+    ]);
+
+    $response = $this->post('/scp/password/forgot', ['email' => 'queued-reset@example.com']);
+
+    $response->assertSessionHas('status');
+    Mail::assertQueued(PasswordResetLinkMail::class);
+});
+
+test('issue reset token returns null when token issuance lock is unavailable', function () {
+    $lock = \Mockery::mock(\Illuminate\Contracts\Cache\Lock::class);
+    $lock->shouldReceive('get')->once()->andReturnFalse();
+
+    Cache::shouldReceive('lock')
+        ->once()
+        ->with('password_reset_staff_lock.121', 5)
+        ->andReturn($lock);
+
+    $method = new ReflectionMethod(PasswordResetController::class, 'issueResetToken');
+    $method->setAccessible(true);
+
+    $token = $method->invoke(new PasswordResetController, makeStaff(['staff_id' => 121]));
+
+    expect($token)->toBeNull();
+});
+
 test('forgot password requests are rate limited', function () {
     Mail::fake();
 
@@ -196,4 +236,39 @@ test('forgot password requests are rate limited', function () {
     $response->assertSessionHasErrors(['email']);
     expect(Cache::get('password_reset_staff.99'))->toBe($token);
     expect(Cache::get("password_reset.{$token}"))->toBe(99);
+});
+
+test('password reset form rejects malformed tokens', function () {
+    $response = $this->get('/scp/password/reset/not-a-valid-token');
+
+    $response->assertRedirect('/scp/password/forgot');
+    $response->assertSessionHasErrors(['email']);
+});
+
+test('inactive staff cannot reset their password with a valid token', function () {
+    DB::connection('legacy')->table('staff')->insert([
+        'staff_id' => 120,
+        'username' => 'inactive-reset',
+        'firstname' => 'Inactive',
+        'lastname' => 'Reset',
+        'email' => 'inactive-reset@example.com',
+        'passwd' => bcrypt('old-password'),
+        'isactive' => 0,
+        'isadmin' => 0,
+        'created' => now(),
+    ]);
+
+    $token = str_repeat('a', 64);
+    Cache::put("password_reset.{$token}", 120, 60);
+    Cache::put('password_reset_staff.120', $token, 60);
+
+    $response = $this->post('/scp/password/reset', [
+        'token' => $token,
+        'password' => 'newpassword123',
+        'password_confirmation' => 'newpassword123',
+    ]);
+
+    $response->assertSessionHasErrors(['token']);
+    expect(Cache::get("password_reset.{$token}"))->toBeNull()
+        ->and(Cache::get('password_reset_staff.120'))->toBeNull();
 });
