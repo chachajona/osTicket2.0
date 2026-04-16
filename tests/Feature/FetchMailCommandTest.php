@@ -16,6 +16,9 @@ beforeEach(function () {
     ensureFetchMailLegacyTables();
 
     foreach ([
+        'attachment',
+        'file_chunk',
+        'file',
         'thread_entry_email',
         'thread_entry',
         'thread',
@@ -319,9 +322,80 @@ test('buildClient reads validate_cert from config', function () {
     expect($client->validate_cert)->toBeTrue();
 });
 
+test('saveAttachments backfills the file chunk when the file row already exists', function () {
+    DB::connection('legacy')->table('file')->insert([
+        'id' => 77,
+        'type' => 'text/plain',
+        'size' => 11,
+        'name' => 'note.txt',
+        'key' => md5('hello world'),
+        'bk' => 'D',
+        'ft' => 'P',
+        'signature' => sha1('hello world'),
+        'created' => '2026-04-14 12:00:00',
+    ]);
+
+    callFetchMailCommandPrivateMethod(
+        makeFetchMailCommand(),
+        'saveAttachments',
+        [[
+            [
+                'name' => 'note.txt',
+                'type' => 'text/plain',
+                'size' => 11,
+                'content' => 'hello world',
+                'inline' => false,
+            ],
+        ], 123]
+    );
+
+    $chunk = DB::connection('legacy')->table('file_chunk')->where('file_id', 77)->first();
+    $attachment = DB::connection('legacy')->table('attachment')->where('object_id', 123)->first();
+
+    expect($chunk)->not->toBeNull();
+    expect($chunk->chunk_id)->toBe(0);
+    expect($chunk->filedata)->toBe('hello world');
+    expect($attachment)->not->toBeNull();
+    expect($attachment->file_id)->toBe(77);
+});
+
 function ensureFetchMailLegacyTables(): void
 {
     $schema = Schema::connection('legacy');
+
+    if (! $schema->hasTable('file')) {
+        $schema->create('file', function (Blueprint $table) {
+            $table->increments('id');
+            $table->string('type')->nullable();
+            $table->unsignedInteger('size')->default(0);
+            $table->string('name')->default('');
+            $table->string('key')->unique();
+            $table->char('bk', 1)->default('D');
+            $table->char('ft', 1)->default('P');
+            $table->string('signature')->nullable();
+            $table->dateTime('created')->nullable();
+        });
+    }
+
+    if (! $schema->hasTable('file_chunk')) {
+        $schema->create('file_chunk', function (Blueprint $table) {
+            $table->unsignedInteger('file_id');
+            $table->unsignedInteger('chunk_id');
+            $table->binary('filedata');
+            $table->primary(['file_id', 'chunk_id']);
+        });
+    }
+
+    if (! $schema->hasTable('attachment')) {
+        $schema->create('attachment', function (Blueprint $table) {
+            $table->increments('id');
+            $table->unsignedInteger('file_id');
+            $table->char('object_type', 1);
+            $table->unsignedInteger('object_id');
+            $table->string('name')->default('');
+            $table->unsignedTinyInteger('inline')->default(0);
+        });
+    }
 
     if (! $schema->hasTable('thread')) {
         $schema->create('thread', function (Blueprint $table) {

@@ -1,8 +1,11 @@
 <?php
 
+use App\Http\Middleware\RequireDepartmentAccess;
 use App\Models\Staff;
 use App\Services\DepartmentPermissionService;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 
 function makeStaffModel(array $attrs = []): Staff
 {
@@ -81,4 +84,17 @@ test('getAccessibleDepartmentIds normalizes numeric strings and avoids duplicate
     $staff = makeStaffModel(['staff_id' => 10, 'dept_id' => 1]);
 
     expect($service->getAccessibleDepartmentIds($staff))->toBe([1, 2]);
+});
+
+test('middleware rejects an explicit dept_id of zero', function () {
+    Route::middleware(['web', RequireDepartmentAccess::class])->get('/test-department-access', function () {
+        return 'ok';
+    });
+
+    $staff = makeStaffModel(['staff_id' => 50, 'dept_id' => 2]);
+    Auth::guard('staff')->login($staff);
+
+    $response = $this->get('/test-department-access?dept_id=0');
+
+    $response->assertForbidden();
 });

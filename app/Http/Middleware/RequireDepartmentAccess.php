@@ -20,10 +20,18 @@ class RequireDepartmentAccess
             return redirect()->route('scp.login');
         }
 
-        $deptId = (int) $request->route($deptIdParam, $request->input($deptIdParam, 0));
+        $rawDeptId = $request->route($deptIdParam, $request->input($deptIdParam));
 
-        if ($deptId === 0) {
+        if ($rawDeptId === null || $rawDeptId === '') {
             return $next($request);
+        }
+
+        $deptId = filter_var($rawDeptId, FILTER_VALIDATE_INT, [
+            'options' => ['min_range' => 1],
+        ]);
+
+        if ($deptId === false) {
+            abort(403, 'Invalid department context.');
         }
 
         if (! $this->service->hasAccessToDepartment($staff, $deptId)) {

@@ -89,6 +89,19 @@
         "profile": "Thông tin cá nhân",
         "language": "Ngôn ngữ"
     },
+    "auth": {
+        "two_factor": {
+            "title": "Xác minh hai yếu tố",
+            "description": "Nhập mã gồm 6 chữ số đã được gửi đến địa chỉ email của bạn.",
+            "code_label": "Mã xác minh",
+            "code_placeholder": "000000",
+            "verify": "Xác minh",
+            "verifying": "Đang xác minh...",
+            "resend": "Gửi lại mã",
+            "resending": "Đang gửi lại...",
+            "back_to_login": "Quay lại đăng nhập"
+        }
+    },
     "actions": {
         "submit": "Đệ trình",
         "cancel": "Hủy bỏ",
