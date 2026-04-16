@@ -120,7 +120,7 @@ class PasswordResetController extends Controller
 
     private function issueResetToken(Staff $staff): ?string
     {
-        return Cache::lock("password_reset_staff_lock.{$staff->staff_id}", 5)->get(function () use ($staff): string {
+        $result = Cache::lock("password_reset_staff_lock.{$staff->staff_id}", 5)->get(function () use ($staff): string {
             $previousToken = Cache::get("password_reset_staff.{$staff->staff_id}");
 
             if (is_string($previousToken) && $previousToken !== '') {
@@ -134,6 +134,8 @@ class PasswordResetController extends Controller
 
             return $token;
         });
+
+        return is_string($result) && $result !== '' ? $result : null;
     }
 
     private function isValidResetToken(string $token): bool

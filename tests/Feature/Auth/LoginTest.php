@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\PasswordResetController;
 use App\Mail\PasswordResetLinkMail;
 use App\Models\Staff;
 use App\Services\TwoFactorAuthService;
@@ -188,6 +189,23 @@ test('forgot password queues the reset email for active staff', function () {
 
     $response->assertSessionHas('status');
     Mail::assertQueued(PasswordResetLinkMail::class);
+});
+
+test('issue reset token returns null when token issuance lock is unavailable', function () {
+    $lock = \Mockery::mock(\Illuminate\Contracts\Cache\Lock::class);
+    $lock->shouldReceive('get')->once()->andReturnFalse();
+
+    Cache::shouldReceive('lock')
+        ->once()
+        ->with('password_reset_staff_lock.121', 5)
+        ->andReturn($lock);
+
+    $method = new ReflectionMethod(PasswordResetController::class, 'issueResetToken');
+    $method->setAccessible(true);
+
+    $token = $method->invoke(new PasswordResetController, makeStaff(['staff_id' => 121]));
+
+    expect($token)->toBeNull();
 });
 
 test('forgot password requests are rate limited', function () {
