@@ -343,13 +343,10 @@ final class FetchMailCommand extends Command
                     ]
                 );
 
-                if ($file->wasRecentlyCreated) {
-                    FileChunk::create([
-                        'file_id' => $file->id,
-                        'chunk_id' => 0,
-                        'filedata' => $att['content'],
-                    ]);
-                }
+                FileChunk::firstOrCreate(
+                    ['file_id' => $file->id, 'chunk_id' => 0],
+                    ['filedata' => $att['content']]
+                );
 
                 Attachment::create([
                     'file_id' => $file->id,

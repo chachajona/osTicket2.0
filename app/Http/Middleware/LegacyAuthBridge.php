@@ -29,18 +29,13 @@ class LegacyAuthBridge
     public function handle(Request $request, Closure $next): Response
     {
         $guard = Auth::guard('staff');
-        $sessionId = $request->cookie('OSTSESSID');
-        $legacyStaffId = $sessionId ? $this->resolveStaffId($sessionId) : null;
 
         if ($guard->check()) {
-            if ($legacyStaffId && (int) $guard->id() !== $legacyStaffId) {
-                $guard->logout();
-                $request->session()->invalidate();
-                $request->session()->regenerateToken();
-            }
-
             return $next($request);
         }
+
+        $sessionId = $request->cookie('OSTSESSID');
+        $legacyStaffId = $sessionId ? $this->resolveStaffId($sessionId) : null;
 
         if ($legacyStaffId) {
             $guard->loginUsingId($legacyStaffId);

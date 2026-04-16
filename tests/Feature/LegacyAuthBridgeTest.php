@@ -78,3 +78,50 @@ test('preserves native Laravel session when no OSTSESSID cookie is present', fun
     $response->assertOk();
     $response->assertJson(['authenticated' => true]);
 });
+
+test('preserves native Laravel session when OSTSESSID belongs to another staff member', function () {
+    DB::connection('legacy')->table('staff')->insert([
+        [
+            'staff_id' => 10,
+            'dept_id' => 1,
+            'username' => 'native-staff',
+            'firstname' => 'Native',
+            'lastname' => 'Staff',
+            'email' => 'native@example.com',
+            'passwd' => bcrypt('password'),
+            'isactive' => 1,
+            'isadmin' => 0,
+            'created' => now(),
+        ],
+        [
+            'staff_id' => 11,
+            'dept_id' => 1,
+            'username' => 'legacy-staff',
+            'firstname' => 'Legacy',
+            'lastname' => 'Staff',
+            'email' => 'legacy@example.com',
+            'passwd' => bcrypt('password'),
+            'isactive' => 1,
+            'isadmin' => 0,
+            'created' => now(),
+        ],
+    ]);
+
+    DB::connection('legacy')->table('session')->insert([
+        'session_id' => 'legacy-session',
+        'user_id' => 11,
+        'session_expire' => now()->addHour(),
+    ]);
+
+    Auth::guard('staff')->loginUsingId(10);
+
+    $response = $this->withUnencryptedCookie('OSTSESSID', 'legacy-session')
+        ->get('/scp/test-auth');
+
+    $response->assertOk();
+    $response->assertJson([
+        'authenticated' => true,
+        'staff_id' => 10,
+        'username' => 'native-staff',
+    ]);
+});

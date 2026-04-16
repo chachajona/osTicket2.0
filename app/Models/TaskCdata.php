@@ -14,6 +14,8 @@ class TaskCdata extends LegacyModel
 
     protected $primaryKey = 'task_id';
 
+    public $incrementing = false;
+
     public function task()
     {
         return $this->belongsTo(Task::class, 'task_id', 'id');

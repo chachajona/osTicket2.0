@@ -89,6 +89,19 @@
         "profile": "Profile",
         "language": "Language"
     },
+    "auth": {
+        "two_factor": {
+            "title": "Two-Factor Verification",
+            "description": "Enter the 6-digit code sent to your email address.",
+            "code_label": "Verification Code",
+            "code_placeholder": "000000",
+            "verify": "Verify",
+            "verifying": "Verifying...",
+            "resend": "Resend code",
+            "resending": "Resending...",
+            "back_to_login": "Back to login"
+        }
+    },
     "actions": {
         "submit": "Submit",
         "cancel": "Cancel",
