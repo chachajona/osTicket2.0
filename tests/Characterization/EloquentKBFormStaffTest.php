@@ -20,6 +20,8 @@ use App\Models\Sla;
 use App\Models\Team;
 
 test('DynamicForm model reads from legacy database', function () {
+    skipIfLegacyTablesMissing(['form']);
+
     $form = DynamicForm::first();
 
     if ($form === null) {
@@ -31,6 +33,8 @@ test('DynamicForm model reads from legacy database', function () {
 });
 
 test('DynamicForm loads fields relation', function () {
+    skipIfLegacyTablesMissing(['form', 'form_field']);
+
     $form = DynamicForm::whereHas('fields')->with('fields')->first();
 
     if ($form === null) {
@@ -42,6 +46,8 @@ test('DynamicForm loads fields relation', function () {
 });
 
 test('FormField model reads from legacy database', function () {
+    skipIfLegacyTablesMissing(['form_field']);
+
     $field = FormField::first();
 
     if ($field === null) {
@@ -53,6 +59,8 @@ test('FormField model reads from legacy database', function () {
 });
 
 test('FormEntry model reads from legacy database', function () {
+    skipIfLegacyTablesMissing(['form_entry']);
+
     $entry = FormEntry::first();
 
     if ($entry === null) {
@@ -64,6 +72,8 @@ test('FormEntry model reads from legacy database', function () {
 });
 
 test('FormEntryValues model reads from legacy database', function () {
+    skipIfLegacyTablesMissing(['form_entry_values']);
+
     $value = FormEntryValues::first();
 
     if ($value === null) {
@@ -74,6 +84,8 @@ test('FormEntryValues model reads from legacy database', function () {
 });
 
 test('DynamicList model reads from legacy database', function () {
+    skipIfLegacyTablesMissing(['list']);
+
     $list = DynamicList::first();
 
     if ($list === null) {
@@ -85,6 +97,8 @@ test('DynamicList model reads from legacy database', function () {
 });
 
 test('ListItem loads list relation', function () {
+    skipIfLegacyTablesMissing(['list_items', 'list']);
+
     $item = ListItem::with('list')->first();
 
     if ($item === null) {
@@ -96,6 +110,8 @@ test('ListItem loads list relation', function () {
 });
 
 test('HelpTopic model reads from legacy database', function () {
+    skipIfLegacyTablesMissing(['help_topic']);
+
     $topic = HelpTopic::first();
 
     if ($topic === null) {
@@ -107,6 +123,8 @@ test('HelpTopic model reads from legacy database', function () {
 });
 
 test('HelpTopic loads department relation', function () {
+    skipIfLegacyTablesMissing(['help_topic', 'department']);
+
     $topic = HelpTopic::whereNotNull('dept_id')->with('department')->first();
 
     if ($topic === null) {
@@ -118,6 +136,8 @@ test('HelpTopic loads department relation', function () {
 });
 
 test('Faq model reads from legacy database', function () {
+    skipIfLegacyTablesMissing(['faq']);
+
     $faq = Faq::first();
 
     if ($faq === null) {
@@ -129,6 +149,8 @@ test('Faq model reads from legacy database', function () {
 });
 
 test('FaqCategory loads faqs relation', function () {
+    skipIfLegacyTablesMissing(['faq_category', 'faq']);
+
     $category = FaqCategory::whereHas('faqs')->with('faqs')->first();
 
     if ($category === null) {
@@ -140,6 +162,8 @@ test('FaqCategory loads faqs relation', function () {
 });
 
 test('Organization model reads from legacy database', function () {
+    skipIfLegacyTablesMissing(['organization']);
+
     $org = Organization::first();
 
     if ($org === null) {
@@ -151,6 +175,8 @@ test('Organization model reads from legacy database', function () {
 });
 
 test('LegacyUser model reads from legacy database', function () {
+    skipIfLegacyTablesMissing(['user']);
+
     $user = LegacyUser::first();
 
     if ($user === null) {
@@ -162,6 +188,8 @@ test('LegacyUser model reads from legacy database', function () {
 });
 
 test('LegacyUser loads defaultEmail relation', function () {
+    skipIfLegacyTablesMissing(['user', 'user_email']);
+
     $user = LegacyUser::with('defaultEmail')->first();
 
     if ($user === null) {
@@ -173,6 +201,8 @@ test('LegacyUser loads defaultEmail relation', function () {
 });
 
 test('Team model reads from legacy database', function () {
+    skipIfLegacyTablesMissing(['team']);
+
     $team = Team::first();
 
     if ($team === null) {
@@ -184,6 +214,8 @@ test('Team model reads from legacy database', function () {
 });
 
 test('Role model reads from legacy database', function () {
+    skipIfLegacyTablesMissing(['role']);
+
     $role = Role::first();
 
     if ($role === null) {
@@ -195,6 +227,8 @@ test('Role model reads from legacy database', function () {
 });
 
 test('Sla model reads from legacy database', function () {
+    skipIfLegacyTablesMissing(['sla']);
+
     $sla = Sla::first();
 
     if ($sla === null) {
@@ -206,6 +240,8 @@ test('Sla model reads from legacy database', function () {
 });
 
 test('Schedule model reads from legacy database', function () {
+    skipIfLegacyTablesMissing(['schedule']);
+
     $schedule = Schedule::first();
 
     if ($schedule === null) {
@@ -217,6 +253,8 @@ test('Schedule model reads from legacy database', function () {
 });
 
 test('EmailModel reads from legacy database', function () {
+    skipIfLegacyTablesMissing(['email']);
+
     $email = EmailModel::first();
 
     if ($email === null) {
@@ -228,6 +266,8 @@ test('EmailModel reads from legacy database', function () {
 });
 
 test('Filter model reads from legacy database', function () {
+    skipIfLegacyTablesMissing(['filter']);
+
     $filter = Filter::first();
 
     if ($filter === null) {
@@ -239,6 +279,8 @@ test('Filter model reads from legacy database', function () {
 });
 
 test('Filter loads rules relation', function () {
+    skipIfLegacyTablesMissing(['filter', 'filter_rule']);
+
     $filter = Filter::whereHas('rules')->with('rules')->first();
 
     if ($filter === null) {
@@ -250,6 +292,8 @@ test('Filter loads rules relation', function () {
 });
 
 test('CannedResponse model reads from legacy database', function () {
+    skipIfLegacyTablesMissing(['canned_response']);
+
     $response = CannedResponse::first();
 
     if ($response === null) {
