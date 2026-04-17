@@ -39,4 +39,9 @@ return [
         'validate_cert' => env('IMAP_VALIDATE_CERT', true),
     ],
 
+    'osticket' => [
+        'secret_salt' => env('OSTICKET_SECRET_SALT'),
+        'config_path' => env('OSTICKET_CONFIG_PATH'),
+    ],
+
 ];
