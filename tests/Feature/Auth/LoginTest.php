@@ -68,6 +68,28 @@ test('login with invalid credentials returns error', function () {
     $response->assertSessionHasErrors(['username']);
 });
 
+test('inactive staff cannot be validated or attempted through the staff guard', function () {
+    DB::connection('legacy')->table('staff')->insert([
+        'staff_id' => 200,
+        'username' => 'inactive-attempt',
+        'firstname' => 'Inactive',
+        'lastname' => 'Attempt',
+        'email' => 'inactive-attempt@example.com',
+        'passwd' => bcrypt('password'),
+        'isactive' => 0,
+        'isadmin' => 0,
+        'created' => now(),
+    ]);
+
+    $credentials = [
+        'username' => 'inactive-attempt',
+        'password' => 'password',
+    ];
+
+    expect(Auth::guard('staff')->validate($credentials))->toBeFalse();
+    expect(Auth::guard('staff')->attempt($credentials))->toBeFalse();
+});
+
 test('successful login redirects to 2fa page', function () {
     Mail::fake();
     expect(true)->toBeTrue();

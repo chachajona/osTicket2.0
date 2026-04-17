@@ -49,6 +49,17 @@ class StaffUserProvider extends EloquentUserProvider
         return $user;
     }
 
+    public function retrieveByCredentials(#[\SensitiveParameter] array $credentials)
+    {
+        $user = parent::retrieveByCredentials($credentials);
+
+        if (! $user || ! $this->isActiveStaff($user)) {
+            return null;
+        }
+
+        return $user;
+    }
+
     public function updateRememberToken(UserContract $user, #[\SensitiveParameter] $token): void
     {
         $user->setRememberToken($token);
