@@ -19,6 +19,10 @@ use Symfony\Component\HttpFoundation\Response;
  * This allows staff logged into the legacy SCP to be automatically
  * authenticated when accessing new Laravel-powered pages.
  *
+ * During the migration this middleware runs in the global `web` stack before
+ * route-level `guest:staff`, so a valid OSTSESSID is treated as a completed
+ * staff login and will bypass the Laravel email-2FA screen.
+ *
  * @see osticket/include/class.session.php
  */
 class LegacyAuthBridge

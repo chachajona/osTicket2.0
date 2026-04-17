@@ -21,6 +21,8 @@ class UserCdata extends LegacyModel
 
     protected $primaryKey = 'user_id';
 
+    public $incrementing = false;
+
     public function user()
     {
         return $this->belongsTo(LegacyUser::class, 'user_id', 'id');

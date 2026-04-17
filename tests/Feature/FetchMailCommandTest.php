@@ -4,6 +4,8 @@ use App\Console\Commands\FetchMailCommand;
 use App\Models\EmailAccount;
 use App\Models\EmailModel;
 use App\Models\Thread;
+use App\Support\OsTicketCrypto;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Console\OutputStyle;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Carbon;
@@ -25,6 +27,7 @@ beforeEach(function () {
         'ticket__cdata',
         'ticket',
         'sequence',
+        'config',
         'user_email',
         'user',
     ] as $table) {
@@ -34,6 +37,8 @@ beforeEach(function () {
 
 afterEach(function () {
     Carbon::setTestNow();
+    config()->set('services.osticket.secret_salt', null);
+    config()->set('services.osticket.config_path', null);
 });
 
 test('findExistingThread ignores task threads', function () {
@@ -322,6 +327,58 @@ test('buildClient reads validate_cert from config', function () {
     expect($client->validate_cert)->toBeTrue();
 });
 
+test('buildClient loads mailbox credentials from namespaced legacy config', function () {
+    $configPath = tempnam(sys_get_temp_dir(), 'ost-config-');
+    file_put_contents($configPath, "<?php\ndefine('SECRET_SALT', 'legacy-secret');\n");
+
+    config()->set('services.osticket.config_path', $configPath);
+
+    $namespace = 'email.7.account.3';
+    $username = 'mailbox@example.test';
+    $password = 'super-secret';
+    $encryptedPassword = app(OsTicketCrypto::class)->encrypt(
+        $password,
+        'legacy-secret',
+        md5($username.$namespace)
+    );
+
+    DB::connection('legacy')->table('config')->insert([
+        [
+            'namespace' => $namespace,
+            'key' => 'username',
+            'value' => $username,
+            'updated' => '2026-04-14 12:00:00',
+        ],
+        [
+            'namespace' => $namespace,
+            'key' => 'passwd',
+            'value' => $encryptedPassword,
+            'updated' => '2026-04-14 12:00:00',
+        ],
+    ]);
+
+    $client = callFetchMailCommandPrivateMethod(
+        makeFetchMailCommand(),
+        'buildClient',
+        [
+            new EmailAccount([
+                'id' => 3,
+                'email_id' => 7,
+                'host' => 'imap.example.test',
+                'port' => 993,
+                'encryption' => 'ssl',
+                'auth_bk' => 'basic',
+                'protocol' => 'imap',
+            ]),
+        ]
+    );
+
+    expect($client->username)->toBe($username);
+    expect($client->password)->toBe($password);
+
+    unlink($configPath);
+});
+
 test('saveAttachments backfills the file chunk when the file row already exists', function () {
     DB::connection('legacy')->table('file')->insert([
         'id' => 77,
@@ -357,6 +414,60 @@ test('saveAttachments backfills the file chunk when the file row already exists'
     expect($chunk->filedata)->toBe('hello world');
     expect($attachment)->not->toBeNull();
     expect($attachment->file_id)->toBe(77);
+});
+
+test('saveAttachments rolls back newly created files when chunk persistence fails', function () {
+    Schema::connection('legacy')->drop('file_chunk');
+
+    callFetchMailCommandPrivateMethod(
+        makeFetchMailCommand(),
+        'saveAttachments',
+        [[
+            [
+                'name' => 'broken.txt',
+                'type' => 'text/plain',
+                'size' => 6,
+                'content' => 'broken',
+                'inline' => false,
+            ],
+        ], 321]
+    );
+
+    expect(DB::connection('legacy')->table('file')->where('key', md5('broken'))->first())->toBeNull();
+    expect(DB::connection('legacy')->table('attachment')->where('object_id', 321)->first())->toBeNull();
+});
+
+test('resolveOrCreateUser retries with a locking read after a unique constraint race', function () {
+    $initialLookup = \Mockery::mock();
+    $initialLookup->shouldReceive('where')->once()->with('address', 'race@example.test')->andReturnSelf();
+    $initialLookup->shouldReceive('first')->once()->andReturnNull();
+
+    $fallbackLookup = \Mockery::mock();
+    $fallbackLookup->shouldReceive('where')->once()->with('address', 'race@example.test')->andReturnSelf();
+    $fallbackLookup->shouldReceive('lockForUpdate')->once()->andReturnSelf();
+    $fallbackLookup->shouldReceive('first')->once()->andReturn((object) ['user_id' => 44]);
+
+    $connection = \Mockery::mock();
+    $connection->shouldReceive('table')->once()->with('user_email')->andReturn($initialLookup);
+    $connection->shouldReceive('transaction')->once()->andThrow(
+        new UniqueConstraintViolationException(
+            'legacy',
+            'insert into "user_email" ("address") values (?)',
+            ['race@example.test'],
+            new \PDOException('duplicate entry', '23000')
+        )
+    );
+    $connection->shouldReceive('table')->once()->with('user_email')->andReturn($fallbackLookup);
+
+    DB::shouldReceive('connection')->once()->with('legacy')->andReturn($connection);
+
+    $userId = callFetchMailCommandPrivateMethod(
+        makeFetchMailCommand(),
+        'resolveOrCreateUser',
+        ['race@example.test', 'Race Winner']
+    );
+
+    expect($userId)->toBe(44);
 });
 
 function ensureFetchMailLegacyTables(): void
@@ -477,6 +588,17 @@ function ensureFetchMailLegacyTables(): void
             $table->unsignedInteger('increment')->default(1);
             $table->unsignedInteger('padding')->default(0);
             $table->dateTime('updated')->nullable();
+        });
+    }
+
+    if (! $schema->hasTable('config')) {
+        $schema->create('config', function (Blueprint $table) {
+            $table->increments('id');
+            $table->string('namespace', 64);
+            $table->string('key', 64);
+            $table->text('value');
+            $table->timestamp('updated')->useCurrent();
+            $table->unique(['namespace', 'key']);
         });
     }
 

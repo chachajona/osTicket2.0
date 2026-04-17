@@ -21,6 +21,8 @@ class OrganizationCdata extends LegacyModel
 
     protected $primaryKey = 'org_id';
 
+    public $incrementing = false;
+
     public function organization()
     {
         return $this->belongsTo(Organization::class, 'org_id', 'id');

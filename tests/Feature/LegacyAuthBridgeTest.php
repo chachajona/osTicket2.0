@@ -125,3 +125,31 @@ test('preserves native Laravel session when OSTSESSID belongs to another staff m
         'username' => 'native-staff',
     ]);
 });
+
+test('valid legacy session bypasses the Laravel 2fa guest flow', function () {
+    DB::connection('legacy')->table('staff')->insert([
+        'staff_id' => 1011,
+        'dept_id' => 1,
+        'username' => 'legacy-2fa',
+        'firstname' => 'Legacy',
+        'lastname' => 'TwoFactor',
+        'email' => 'legacy-2fa@example.com',
+        'passwd' => bcrypt('password'),
+        'isactive' => 1,
+        'isadmin' => 0,
+        'created' => now(),
+    ]);
+
+    DB::connection('legacy')->table('session')->insert([
+        'session_id' => 'legacy-2fa-session',
+        'user_id' => 1011,
+        'session_expire' => now()->addHour(),
+    ]);
+
+    $response = $this
+        ->withSession(['2fa.staff_id' => 1011])
+        ->withUnencryptedCookie('OSTSESSID', 'legacy-2fa-session')
+        ->get('/scp/2fa');
+
+    $response->assertRedirect('/scp');
+});

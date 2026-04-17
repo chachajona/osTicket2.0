@@ -43,7 +43,15 @@ final class PurgeLogsCommand extends Command
         }
 
         if (! $dryRun) {
-            $deleted = $query->delete();
+            $deleted = 0;
+
+            (clone $query)
+                ->select('log_id')
+                ->orderBy('log_id')
+                ->chunkById(1000, function ($logs) use (&$deleted): void {
+                    $logIds = $logs->pluck('log_id');
+                    $deleted += Syslog::query()->whereIn('log_id', $logIds)->delete();
+                }, 'log_id');
 
             $this->comment("{$deleted} log entry(ies) deleted");
         } else {
