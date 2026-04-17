@@ -122,6 +122,26 @@ test('provider-hydrated remember token does not break later staff saves', functi
     expect(Staff::on('legacy')->findOrFail(44)->firstname)->toBe('Updated');
 });
 
+test('inactive staff cannot be restored from session or remember token', function () {
+    DB::connection('legacy')->table('staff')->insert([
+        'staff_id' => 45,
+        'username' => 'staff45',
+        'firstname' => 'Inactive',
+        'lastname' => 'Restore',
+        'email' => 'inactive-restore@example.com',
+        'passwd' => bcrypt('password'),
+        'isactive' => 0,
+        'isadmin' => 0,
+        'created' => now(),
+    ]);
+
+    $provider = Auth::guard('staff')->getProvider();
+    $provider->updateRememberToken(Staff::on('legacy')->findOrFail(45), 'remember-token-45');
+
+    expect($provider->retrieveById(45))->toBeNull();
+    expect($provider->retrieveByToken(45, 'remember-token-45'))->toBeNull();
+});
+
 test('2fa verify keeps session active after a non-locking invalid attempt', function () {
     $service = app(TwoFactorAuthService::class);
     $service->generateToken(9);

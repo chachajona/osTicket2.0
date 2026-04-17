@@ -21,16 +21,18 @@ class StaffUserProvider extends EloquentUserProvider
     {
         $user = parent::retrieveById($identifier);
 
-        if ($user) {
-            $this->hydrateRememberToken($user);
+        if (! $user || ! $this->isActiveStaff($user)) {
+            return null;
         }
+
+        $this->hydrateRememberToken($user);
 
         return $user;
     }
 
     public function retrieveByToken($identifier, #[\SensitiveParameter] $token)
     {
-        $user = parent::retrieveById($identifier);
+        $user = $this->retrieveById($identifier);
 
         if (! $user) {
             return null;
@@ -65,6 +67,11 @@ class StaffUserProvider extends EloquentUserProvider
     private function getStoredRememberToken(mixed $identifier): mixed
     {
         return $this->cache->get($this->rememberTokenCacheKey($identifier));
+    }
+
+    private function isActiveStaff(UserContract $user): bool
+    {
+        return (int) $user->getAttribute('isactive') === 1;
     }
 
     private function rememberTokenCacheKey(mixed $identifier): string
