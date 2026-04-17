@@ -14,6 +14,8 @@ use App\Models\Syslog;
 use App\Models\Translation;
 
 test('Lock model reads from legacy database', function () {
+    skipIfLegacyTablesMissing(['lock']);
+
     $lock = Lock::first();
 
     if ($lock === null) {
@@ -25,6 +27,8 @@ test('Lock model reads from legacy database', function () {
 });
 
 test('ApiKey model reads from legacy database', function () {
+    skipIfLegacyTablesMissing(['api_key']);
+
     $key = ApiKey::first();
 
     if ($key === null) {
@@ -36,6 +40,8 @@ test('ApiKey model reads from legacy database', function () {
 });
 
 test('Session model reads from legacy database', function () {
+    skipIfLegacyTablesMissing(['session']);
+
     $session = Session::first();
 
     if ($session === null) {
@@ -47,6 +53,8 @@ test('Session model reads from legacy database', function () {
 });
 
 test('Plugin model reads from legacy database', function () {
+    skipIfLegacyTablesMissing(['plugin']);
+
     $plugin = Plugin::first();
 
     if ($plugin === null) {
@@ -58,6 +66,8 @@ test('Plugin model reads from legacy database', function () {
 });
 
 test('Plugin loads instances relation', function () {
+    skipIfLegacyTablesMissing(['plugin', 'plugin_instance']);
+
     $plugin = Plugin::whereHas('instances')->with('instances')->first();
 
     if ($plugin === null) {
@@ -69,6 +79,8 @@ test('Plugin loads instances relation', function () {
 });
 
 test('PluginInstance model reads from legacy database', function () {
+    skipIfLegacyTablesMissing(['plugin_instance']);
+
     $instance = PluginInstance::first();
 
     if ($instance === null) {
@@ -80,6 +92,8 @@ test('PluginInstance model reads from legacy database', function () {
 });
 
 test('PluginInstance loads plugin relation', function () {
+    skipIfLegacyTablesMissing(['plugin_instance', 'plugin']);
+
     $instance = PluginInstance::with('plugin')->first();
 
     if ($instance === null) {
@@ -91,6 +105,8 @@ test('PluginInstance loads plugin relation', function () {
 });
 
 test('Sequence model reads from legacy database', function () {
+    skipIfLegacyTablesMissing(['sequence']);
+
     $sequence = Sequence::first();
 
     if ($sequence === null) {
@@ -102,6 +118,8 @@ test('Sequence model reads from legacy database', function () {
 });
 
 test('Translation model reads from legacy database', function () {
+    skipIfLegacyTablesMissing(['translation']);
+
     $translation = Translation::first();
 
     if ($translation === null) {
@@ -113,6 +131,8 @@ test('Translation model reads from legacy database', function () {
 });
 
 test('Draft model reads from legacy database', function () {
+    skipIfLegacyTablesMissing(['draft']);
+
     $draft = Draft::first();
 
     if ($draft === null) {
@@ -124,6 +144,8 @@ test('Draft model reads from legacy database', function () {
 });
 
 test('Note model reads from legacy database', function () {
+    skipIfLegacyTablesMissing(['note']);
+
     $note = Note::first();
 
     if ($note === null) {
@@ -135,6 +157,8 @@ test('Note model reads from legacy database', function () {
 });
 
 test('Syslog model reads from legacy database', function () {
+    skipIfLegacyTablesMissing(['syslog']);
+
     $entry = Syslog::first();
 
     if ($entry === null) {
@@ -146,6 +170,8 @@ test('Syslog model reads from legacy database', function () {
 });
 
 test('Event model reads from legacy database', function () {
+    skipIfLegacyTablesMissing(['event']);
+
     $event = Event::first();
 
     if ($event === null) {
@@ -157,6 +183,8 @@ test('Event model reads from legacy database', function () {
 });
 
 test('Search model reads from legacy database', function () {
+    skipIfLegacyTablesMissing(['_search']);
+
     $result = Search::first();
 
     if ($result === null) {

@@ -15,7 +15,8 @@ export default function Login() {
         remember: false,
     });
     const { props } = usePage<PageProps>();
-    const authMessage = props.errors?.code ?? props.status;
+    const authError = props.errors?.code;
+    const statusMessage = props.status;
 
     function submit(e: FormEvent) {
         e.preventDefault();
@@ -31,9 +32,15 @@ export default function Login() {
                         <p className="mt-1 text-sm text-gray-500">Sign in to your account</p>
                     </div>
 
-                    {authMessage && (
+                    {statusMessage && (
+                        <div className="mb-4 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">
+                            {statusMessage}
+                        </div>
+                    )}
+
+                    {authError && (
                         <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
-                            {authMessage}
+                            {authError}
                         </div>
                     )}
 

@@ -4,11 +4,11 @@ use App\Http\Controllers\Auth\PasswordResetController;
 use App\Mail\PasswordResetLinkMail;
 use App\Models\Staff;
 use App\Services\TwoFactorAuthService;
+use Illuminate\Contracts\Cache\Lock;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
-use Inertia\Testing\AssertableInertia;
 
 function makeStaff(array $attrs = []): Staff
 {
@@ -28,22 +28,20 @@ function makeStaff(array $attrs = []): Staff
 }
 
 test('login page renders at /scp/login', function () {
-    $response = $this->get('/scp/login');
+    $response = $this->withHeaders(inertiaHeaders())->get('/scp/login');
 
     $response->assertStatus(200);
-    $response->assertInertia(fn ($page) => $page->component('Auth/Login'));
+    $response->assertJsonPath('component', 'Auth/Login');
 });
 
 test('login page renders flash status messages', function () {
     $response = $this->withSession([
         'status' => 'Password reset successfully. Please log in.',
-    ])->get('/scp/login');
+    ])->withHeaders(inertiaHeaders())->get('/scp/login');
 
     $response->assertOk();
-    $response->assertInertia(fn (AssertableInertia $page) => $page
-        ->component('Auth/Login')
-        ->where('status', 'Password reset successfully. Please log in.')
-    );
+    $response->assertJsonPath('component', 'Auth/Login');
+    $response->assertJsonPath('props.status', 'Password reset successfully. Please log in.');
 });
 
 test('authenticated staff are redirected from login page', function () {
@@ -70,6 +68,28 @@ test('login with invalid credentials returns error', function () {
     $response->assertSessionHasErrors(['username']);
 });
 
+test('inactive staff cannot be validated or attempted through the staff guard', function () {
+    DB::connection('legacy')->table('staff')->insert([
+        'staff_id' => 200,
+        'username' => 'inactive-attempt',
+        'firstname' => 'Inactive',
+        'lastname' => 'Attempt',
+        'email' => 'inactive-attempt@example.com',
+        'passwd' => bcrypt('password'),
+        'isactive' => 0,
+        'isadmin' => 0,
+        'created' => now(),
+    ]);
+
+    $credentials = [
+        'username' => 'inactive-attempt',
+        'password' => 'password',
+    ];
+
+    expect(Auth::guard('staff')->validate($credentials))->toBeFalse();
+    expect(Auth::guard('staff')->attempt($credentials))->toBeFalse();
+});
+
 test('successful login redirects to 2fa page', function () {
     Mail::fake();
     expect(true)->toBeTrue();
@@ -83,10 +103,11 @@ test('2fa page redirects to login when no session', function () {
 
 test('2fa page renders when session has staff_id', function () {
     $response = $this->withSession(['2fa.staff_id' => 1])
+        ->withHeaders(inertiaHeaders())
         ->get('/scp/2fa');
 
     $response->assertStatus(200);
-    $response->assertInertia(fn ($page) => $page->component('Auth/TwoFactor'));
+    $response->assertJsonPath('component', 'Auth/TwoFactor');
 });
 
 test('2fa verify without session redirects to login', function () {
@@ -143,17 +164,19 @@ test('authenticated staff can access scp dashboard', function () {
 
     $staff = Staff::on('legacy')->find(1);
 
-    $response = $this->actingAs($staff, 'staff')->get('/scp');
+    $response = $this->actingAs($staff, 'staff')
+        ->withHeaders(inertiaHeaders())
+        ->get('/scp');
 
     $response->assertStatus(200);
-    $response->assertInertia(fn ($page) => $page->component('Dashboard'));
+    $response->assertJsonPath('component', 'Dashboard');
 });
 
 test('forgot password page renders', function () {
-    $response = $this->get('/scp/password/forgot');
+    $response = $this->withHeaders(inertiaHeaders())->get('/scp/password/forgot');
 
     $response->assertStatus(200);
-    $response->assertInertia(fn ($page) => $page->component('Auth/ForgotPassword'));
+    $response->assertJsonPath('component', 'Auth/ForgotPassword');
 });
 
 test('forgot password requires valid email', function () {
@@ -192,7 +215,7 @@ test('forgot password queues the reset email for active staff', function () {
 });
 
 test('issue reset token returns null when token issuance lock is unavailable', function () {
-    $lock = \Mockery::mock(\Illuminate\Contracts\Cache\Lock::class);
+    $lock = Mockery::mock(Lock::class);
     $lock->shouldReceive('get')->once()->andReturnFalse();
 
     Cache::shouldReceive('lock')

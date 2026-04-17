@@ -1,9 +1,10 @@
 <?php
 
+use App\Models\Staff;
 use App\Services\TwoFactorAuthService;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Inertia\Testing\AssertableInertia;
 
 test('2fa verify logs in staff with correct code', function () {
     DB::connection('legacy')->table('staff')->insert([
@@ -53,14 +54,92 @@ test('2fa lockout feedback is available on the login page inertia props', functi
     $this->withSession(['2fa.staff_id' => 6])->post('/scp/2fa', ['code' => 'wrong3']);
 
     $response = $this->followingRedirects()
+        ->withHeaders(inertiaHeaders())
         ->withSession(['2fa.staff_id' => 6])
         ->post('/scp/2fa', ['code' => 'wrong4']);
 
     $response->assertOk();
-    $response->assertInertia(fn (AssertableInertia $page) => $page
-        ->component('Auth/Login')
-        ->where('errors.code', 'Too many attempts or code expired. Please log in again.')
-    );
+    $response->assertJsonPath('component', 'Auth/Login');
+    $response->assertJsonPath('props.errors.code', 'Too many attempts or code expired. Please log in again.');
+});
+
+test('2fa remember me stores a reusable staff remember token', function () {
+    DB::connection('legacy')->table('staff')->insert([
+        'staff_id' => 43,
+        'username' => 'staff43',
+        'firstname' => 'Remember',
+        'lastname' => 'Token',
+        'email' => 'remember@example.com',
+        'passwd' => bcrypt('password'),
+        'isactive' => 1,
+        'isadmin' => 0,
+        'created' => now(),
+    ]);
+
+    $service = app(TwoFactorAuthService::class);
+    $code = $service->generateToken(43);
+
+    $response = $this->withSession([
+        '2fa.staff_id' => 43,
+        '2fa.remember' => true,
+    ])->post('/scp/2fa', ['code' => $code]);
+
+    $response->assertRedirect('/scp');
+
+    $provider = Auth::guard('staff')->getProvider();
+    $staff = $provider->retrieveById(43);
+    $rememberToken = $staff?->getRememberToken();
+    $rememberCookieName = Auth::guard('staff')->getRecallerName();
+
+    expect($rememberToken)->toBeString()->not->toBe('');
+    expect($provider->retrieveByToken(43, $rememberToken))->not->toBeNull();
+    $response->assertCookie($rememberCookieName);
+});
+
+test('provider-hydrated remember token does not break later staff saves', function () {
+    DB::connection('legacy')->table('staff')->insert([
+        'staff_id' => 44,
+        'username' => 'staff44',
+        'firstname' => 'Hydrated',
+        'lastname' => 'Remember',
+        'email' => 'hydrate@example.com',
+        'passwd' => bcrypt('password'),
+        'isactive' => 1,
+        'isadmin' => 0,
+        'created' => now(),
+    ]);
+
+    $provider = Auth::guard('staff')->getProvider();
+    $provider->updateRememberToken(Staff::on('legacy')->findOrFail(44), 'remember-token-44');
+
+    $staff = $provider->retrieveById(44);
+
+    expect($staff?->getRememberToken())->toBe('remember-token-44');
+
+    $staff->firstname = 'Updated';
+    $staff->save();
+
+    expect(Staff::on('legacy')->findOrFail(44)->firstname)->toBe('Updated');
+});
+
+test('inactive staff cannot be restored from session or remember token', function () {
+    DB::connection('legacy')->table('staff')->insert([
+        'staff_id' => 45,
+        'username' => 'staff45',
+        'firstname' => 'Inactive',
+        'lastname' => 'Restore',
+        'email' => 'inactive-restore@example.com',
+        'passwd' => bcrypt('password'),
+        'isactive' => 0,
+        'isadmin' => 0,
+        'created' => now(),
+    ]);
+
+    $provider = Auth::guard('staff')->getProvider();
+    $provider->updateRememberToken(Staff::on('legacy')->findOrFail(45), 'remember-token-45');
+
+    expect($provider->retrieveById(45))->toBeNull();
+    expect($provider->retrieveByToken(45, 'remember-token-45'))->toBeNull();
 });
 
 test('2fa verify keeps session active after a non-locking invalid attempt', function () {
