@@ -15,6 +15,7 @@ use App\Models\ThreadEntryEmail;
 use App\Models\Ticket;
 use App\Models\TicketCdata;
 use App\Services\EmailParser;
+use App\Support\LegacyEmailAccountCredentialsResolver;
 use Illuminate\Console\Command;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
@@ -326,35 +327,39 @@ final class FetchMailCommand extends Command
 
     private function saveAttachments(array $attachments, int $threadEntryId): void
     {
+        $connection = DB::connection('legacy');
+
         foreach ($attachments as $att) {
             try {
-                $hash = md5($att['content']);
+                $connection->transaction(function () use ($att, $threadEntryId): void {
+                    $hash = md5($att['content']);
 
-                $file = File::firstOrCreate(
-                    ['key' => $hash],
-                    [
-                        'type' => $att['type'],
-                        'size' => $att['size'],
+                    $file = File::firstOrCreate(
+                        ['key' => $hash],
+                        [
+                            'type' => $att['type'],
+                            'size' => $att['size'],
+                            'name' => $att['name'],
+                            'bk' => 'D',
+                            'ft' => 'P',
+                            'signature' => sha1($att['content']),
+                            'created' => now()->format('Y-m-d H:i:s'),
+                        ]
+                    );
+
+                    FileChunk::firstOrCreate(
+                        ['file_id' => $file->id, 'chunk_id' => 0],
+                        ['filedata' => $att['content']]
+                    );
+
+                    Attachment::create([
+                        'file_id' => $file->id,
+                        'object_type' => 'H',
+                        'object_id' => $threadEntryId,
                         'name' => $att['name'],
-                        'bk' => 'D',
-                        'ft' => 'P',
-                        'signature' => sha1($att['content']),
-                        'created' => now()->format('Y-m-d H:i:s'),
-                    ]
-                );
-
-                FileChunk::firstOrCreate(
-                    ['file_id' => $file->id, 'chunk_id' => 0],
-                    ['filedata' => $att['content']]
-                );
-
-                Attachment::create([
-                    'file_id' => $file->id,
-                    'object_type' => 'H',
-                    'object_id' => $threadEntryId,
-                    'name' => $att['name'],
-                    'inline' => $att['inline'] ? 1 : 0,
-                ]);
+                        'inline' => $att['inline'] ? 1 : 0,
+                    ]);
+                });
             } catch (\Throwable $e) {
                 Log::warning('FetchMailCommand: failed to save attachment', [
                     'name' => $att['name'],
@@ -433,11 +438,11 @@ final class FetchMailCommand extends Command
                 return (int) $userId;
             });
         } catch (UniqueConstraintViolationException) {
-            // Savepoint has already rolled back; the losing worker's user row
-            // is gone and we can safely re-query user_email to pick up the
-            // row inserted by the winner without leaking any state.
+            // Use a locking read so MySQL does not reuse the outer
+            // transaction's consistent-read snapshot under REPEATABLE READ.
             $userEmail = $connection->table('user_email')
                 ->where('address', $email)
+                ->lockForUpdate()
                 ->first();
 
             if ($userEmail) {
@@ -481,6 +486,7 @@ final class FetchMailCommand extends Command
             'tls' => 'tls',
             default => false,
         };
+        $credentials = app(LegacyEmailAccountCredentialsResolver::class)->resolve($account);
 
         $manager = new ClientManager([]);
 
@@ -489,8 +495,8 @@ final class FetchMailCommand extends Command
             'port' => (int) $account->port,
             'encryption' => $encryption,
             'validate_cert' => (bool) config('services.imap.validate_cert', false),
-            'username' => $account->auth_id,
-            'password' => $account->auth_bk,
+            'username' => $credentials['username'],
+            'password' => $credentials['password'],
             'protocol' => strtolower((string) ($account->protocol ?: 'imap')),
         ]);
     }

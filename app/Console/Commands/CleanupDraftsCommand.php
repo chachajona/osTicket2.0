@@ -43,7 +43,15 @@ final class CleanupDraftsCommand extends Command
         }
 
         if (! $dryRun) {
-            $deleted = $query->delete();
+            $deleted = 0;
+
+            (clone $query)
+                ->select('id')
+                ->orderBy('id')
+                ->chunkById(1000, function ($drafts) use (&$deleted): void {
+                    $draftIds = $drafts->pluck('id');
+                    $deleted += Draft::query()->whereIn('id', $draftIds)->delete();
+                });
 
             $this->comment("{$deleted} draft(s) deleted");
         } else {
