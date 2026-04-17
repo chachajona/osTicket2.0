@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Staff;
 use App\Services\TwoFactorAuthService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -93,6 +94,32 @@ test('2fa remember me stores a reusable staff remember token', function () {
     expect($rememberToken)->toBeString()->not->toBe('');
     expect($provider->retrieveByToken(43, $rememberToken))->not->toBeNull();
     $response->assertCookie($rememberCookieName);
+});
+
+test('provider-hydrated remember token does not break later staff saves', function () {
+    DB::connection('legacy')->table('staff')->insert([
+        'staff_id' => 44,
+        'username' => 'staff44',
+        'firstname' => 'Hydrated',
+        'lastname' => 'Remember',
+        'email' => 'hydrate@example.com',
+        'passwd' => bcrypt('password'),
+        'isactive' => 1,
+        'isadmin' => 0,
+        'created' => now(),
+    ]);
+
+    $provider = Auth::guard('staff')->getProvider();
+    $provider->updateRememberToken(Staff::on('legacy')->findOrFail(44), 'remember-token-44');
+
+    $staff = $provider->retrieveById(44);
+
+    expect($staff?->getRememberToken())->toBe('remember-token-44');
+
+    $staff->firstname = 'Updated';
+    $staff->save();
+
+    expect(Staff::on('legacy')->findOrFail(44)->firstname)->toBe('Updated');
 });
 
 test('2fa verify keeps session active after a non-locking invalid attempt', function () {
