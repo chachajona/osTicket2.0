@@ -3,6 +3,9 @@
 use Illuminate\Support\Facades\DB;
 
 test('captures staff with department from legacy DB', function () {
+    skipIfLegacyTablesMissing(['staff', 'department']);
+    skipIfLegacyColumnsMissing('staff', ['role_id']);
+
     $staff = DB::connection('legacy')->selectOne("
         SELECT s.staff_id, s.dept_id, s.role_id, s.username,
                s.firstname, s.lastname, s.email, s.isactive, s.isadmin,
@@ -19,13 +22,25 @@ test('captures staff with department from legacy DB', function () {
         json_encode($staff, JSON_PRETTY_PRINT)
     );
 
+    if ($staff === null) {
+        $this->markTestSkipped('No staff found in legacy database.');
+    }
+
     expect($staff)->not->toBeNull();
     expect($staff->staff_id)->toBeInt();
     expect($staff->username)->not->toBeEmpty();
 });
 
 test('captures staff department access from legacy DB', function () {
-    $staffId = DB::connection('legacy')->selectOne("SELECT staff_id FROM ost_staff LIMIT 1")->staff_id;
+    skipIfLegacyTablesMissing(['staff', 'staff_dept_access', 'department']);
+
+    $staff = DB::connection('legacy')->selectOne("SELECT staff_id FROM ost_staff LIMIT 1");
+
+    if ($staff === null) {
+        $this->markTestSkipped('No staff found in legacy database.');
+    }
+
+    $staffId = $staff->staff_id;
 
     $access = DB::connection('legacy')->select("
         SELECT a.staff_id, a.dept_id, a.role_id,

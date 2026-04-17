@@ -9,6 +9,8 @@ use App\Models\QueueSort;
 use App\Models\QueueSorts;
 
 test('Queue model reads from legacy database', function () {
+    skipIfLegacyTablesMissing(['queue']);
+
     $queue = Queue::first();
 
     if ($queue === null) {
@@ -20,6 +22,8 @@ test('Queue model reads from legacy database', function () {
 });
 
 test('Queue loads children relation', function () {
+    skipIfLegacyTablesMissing(['queue']);
+
     $queue = Queue::whereHas('children')->with('children')->first();
 
     if ($queue === null) {
@@ -31,6 +35,8 @@ test('Queue loads children relation', function () {
 });
 
 test('Queue loads parent relation', function () {
+    skipIfLegacyTablesMissing(['queue']);
+
     $queue = Queue::whereNotNull('parent_id')->with('parent')->first();
 
     if ($queue === null) {
@@ -42,6 +48,8 @@ test('Queue loads parent relation', function () {
 });
 
 test('QueueColumn model reads from legacy database', function () {
+    skipIfLegacyTablesMissing(['queue_column']);
+
     $column = QueueColumn::first();
 
     if ($column === null) {
@@ -53,6 +61,8 @@ test('QueueColumn model reads from legacy database', function () {
 });
 
 test('QueueColumn loads queue relation', function () {
+    skipIfLegacyTablesMissing(['queue_column', 'queue']);
+
     $column = QueueColumn::with('queue')->first();
 
     if ($column === null) {
@@ -64,6 +74,8 @@ test('QueueColumn loads queue relation', function () {
 });
 
 test('QueueColumns pivot model reads from legacy database', function () {
+    skipIfLegacyTablesMissing(['queue_columns']);
+
     $pivot = QueueColumns::first();
 
     if ($pivot === null) {
@@ -74,6 +86,8 @@ test('QueueColumns pivot model reads from legacy database', function () {
 });
 
 test('QueueConfig model reads from legacy database', function () {
+    skipIfLegacyTablesMissing(['queue_config']);
+
     $config = QueueConfig::first();
 
     if ($config === null) {
@@ -84,6 +98,8 @@ test('QueueConfig model reads from legacy database', function () {
 });
 
 test('QueueExport model reads from legacy database', function () {
+    skipIfLegacyTablesMissing(['queue_export']);
+
     $export = QueueExport::first();
 
     if ($export === null) {
@@ -95,6 +111,8 @@ test('QueueExport model reads from legacy database', function () {
 });
 
 test('QueueSort model reads from legacy database', function () {
+    skipIfLegacyTablesMissing(['queue_sort']);
+
     $sort = QueueSort::first();
 
     if ($sort === null) {
@@ -106,6 +124,8 @@ test('QueueSort model reads from legacy database', function () {
 });
 
 test('QueueSorts pivot model reads from legacy database', function () {
+    skipIfLegacyTablesMissing(['queue_sorts']);
+
     $pivot = QueueSorts::first();
 
     if ($pivot === null) {

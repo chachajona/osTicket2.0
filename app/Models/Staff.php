@@ -34,6 +34,8 @@ class Staff extends LegacyModel implements Authenticatable
 {
     use HasRoles;
 
+    private ?string $rememberToken = null;
+
     /**
      * The guard name for spatie/laravel-permission.
      */
@@ -110,7 +112,7 @@ class Staff extends LegacyModel implements Authenticatable
      */
     public function getRememberToken(): ?string
     {
-        return null;
+        return $this->rememberToken;
     }
 
     /**
@@ -118,7 +120,7 @@ class Staff extends LegacyModel implements Authenticatable
      */
     public function setRememberToken($value): void
     {
-        // Legacy table has no remember_token column
+        $this->rememberToken = is_string($value) && $value !== '' ? $value : null;
     }
 
     /**
@@ -126,7 +128,7 @@ class Staff extends LegacyModel implements Authenticatable
      */
     public function getRememberTokenName(): string
     {
-        return '';
+        return 'remember_token';
     }
 
     /**
