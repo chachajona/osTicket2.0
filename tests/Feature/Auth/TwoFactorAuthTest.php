@@ -1,9 +1,9 @@
 <?php
 
 use App\Services\TwoFactorAuthService;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Inertia\Testing\AssertableInertia;
 
 test('2fa verify logs in staff with correct code', function () {
     DB::connection('legacy')->table('staff')->insert([
@@ -53,14 +53,46 @@ test('2fa lockout feedback is available on the login page inertia props', functi
     $this->withSession(['2fa.staff_id' => 6])->post('/scp/2fa', ['code' => 'wrong3']);
 
     $response = $this->followingRedirects()
+        ->withHeaders(inertiaHeaders())
         ->withSession(['2fa.staff_id' => 6])
         ->post('/scp/2fa', ['code' => 'wrong4']);
 
     $response->assertOk();
-    $response->assertInertia(fn (AssertableInertia $page) => $page
-        ->component('Auth/Login')
-        ->where('errors.code', 'Too many attempts or code expired. Please log in again.')
-    );
+    $response->assertJsonPath('component', 'Auth/Login');
+    $response->assertJsonPath('props.errors.code', 'Too many attempts or code expired. Please log in again.');
+});
+
+test('2fa remember me stores a reusable staff remember token', function () {
+    DB::connection('legacy')->table('staff')->insert([
+        'staff_id' => 43,
+        'username' => 'staff43',
+        'firstname' => 'Remember',
+        'lastname' => 'Token',
+        'email' => 'remember@example.com',
+        'passwd' => bcrypt('password'),
+        'isactive' => 1,
+        'isadmin' => 0,
+        'created' => now(),
+    ]);
+
+    $service = app(TwoFactorAuthService::class);
+    $code = $service->generateToken(43);
+
+    $response = $this->withSession([
+        '2fa.staff_id' => 43,
+        '2fa.remember' => true,
+    ])->post('/scp/2fa', ['code' => $code]);
+
+    $response->assertRedirect('/scp');
+
+    $provider = Auth::guard('staff')->getProvider();
+    $staff = $provider->retrieveById(43);
+    $rememberToken = $staff?->getRememberToken();
+    $rememberCookieName = Auth::guard('staff')->getRecallerName();
+
+    expect($rememberToken)->toBeString()->not->toBe('');
+    expect($provider->retrieveByToken(43, $rememberToken))->not->toBeNull();
+    $response->assertCookie($rememberCookieName);
 });
 
 test('2fa verify keeps session active after a non-locking invalid attempt', function () {

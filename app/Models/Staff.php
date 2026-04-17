@@ -110,7 +110,9 @@ class Staff extends LegacyModel implements Authenticatable
      */
     public function getRememberToken(): ?string
     {
-        return null;
+        $token = $this->getAttribute($this->getRememberTokenName());
+
+        return is_string($token) && $token !== '' ? $token : null;
     }
 
     /**
@@ -118,7 +120,7 @@ class Staff extends LegacyModel implements Authenticatable
      */
     public function setRememberToken($value): void
     {
-        // Legacy table has no remember_token column
+        $this->setAttribute($this->getRememberTokenName(), $value);
     }
 
     /**
@@ -126,7 +128,7 @@ class Staff extends LegacyModel implements Authenticatable
      */
     public function getRememberTokenName(): string
     {
-        return '';
+        return 'remember_token';
     }
 
     /**
