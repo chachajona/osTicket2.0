@@ -22,6 +22,17 @@ abstract class TestCase extends BaseTestCase
 
             $legacy = Schema::connection('legacy');
             $legacyConnection = DB::connection('legacy');
+            $osticket2 = Schema::connection('osticket2');
+            $osticket2Connection = DB::connection('osticket2');
+
+            // Clean up tables left behind by older test runs before the
+            // prefix changed from osticket2_ to scp_.
+            foreach ([
+                'osticket2_staff_two_factor',
+                'osticket2_staff_auth_migrations',
+            ] as $staleTable) {
+                $legacyConnection->statement("drop table if exists {$staleTable}");
+            }
 
             $this->ensureLegacyTable($legacy, 'staff', function (Blueprint $table) {
                 $table->unsignedInteger('staff_id')->autoIncrement();
@@ -90,7 +101,27 @@ abstract class TestCase extends BaseTestCase
                 $table->primary(['permission_id', 'role_id']);
             });
 
+            $this->ensureLegacyTable($osticket2, 'staff_two_factor', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('staff_id')->unique();
+                $table->text('two_factor_secret')->nullable();
+                $table->text('two_factor_recovery_codes')->nullable();
+                $table->timestamp('two_factor_confirmed_at')->nullable();
+                $table->timestamps();
+            });
+
+            $this->ensureLegacyTable($osticket2, 'staff_auth_migrations', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('staff_id')->unique();
+                $table->timestamp('migrated_at')->nullable();
+                $table->timestamp('must_upgrade_after')->nullable();
+                $table->string('upgrade_method', 32)->nullable();
+                $table->timestamps();
+            });
+
             foreach ([
+                'staff_auth_migrations',
+                'staff_two_factor',
                 'role_has_permissions',
                 'model_has_roles',
                 'model_has_permissions',
@@ -100,6 +131,12 @@ abstract class TestCase extends BaseTestCase
                 'session',
                 'staff',
             ] as $table) {
+                if (in_array($table, ['staff_two_factor', 'staff_auth_migrations'], true)) {
+                    $osticket2Connection->table($table)->delete();
+
+                    continue;
+                }
+
                 $legacyConnection->table($table)->delete();
             }
         }
