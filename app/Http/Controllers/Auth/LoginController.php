@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\Staff;
 use App\Services\TwoFactorAuthService;
+use App\Services\TwoFactorAppChallengeService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,7 +17,10 @@ use Inertia\Response;
 
 class LoginController extends Controller
 {
-    public function __construct(private readonly TwoFactorAuthService $twoFactor) {}
+    public function __construct(
+        private readonly TwoFactorAuthService $twoFactor,
+        private readonly TwoFactorAppChallengeService $appChallenge,
+    ) {}
 
     public function showLogin(): Response
     {
@@ -57,6 +61,16 @@ class LoginController extends Controller
         RateLimiter::clear($throttleKey);
 
         $staff->rehashPasswordIfNeeded($credentials['password']);
+        $this->ensureDashboardIsTheFallbackIntendedUrl($request);
+
+        if ($staff->hasTotpEnabled()) {
+            $this->twoFactor->clearToken($staff->staff_id);
+            $this->appChallenge->begin($staff->staff_id);
+            $request->session()->put('2fa_app.staff_id', $staff->staff_id);
+            $request->session()->put('2fa_app.remember', $request->boolean('remember'));
+
+            return redirect()->route('scp.2fa-app');
+        }
 
         $code = $this->twoFactor->generateToken($staff->staff_id);
 
@@ -79,6 +93,7 @@ class LoginController extends Controller
 
         if ($staff) {
             $this->twoFactor->clearToken($staff->staff_id);
+            $this->appChallenge->clear($staff->staff_id);
         }
 
         Auth::guard('staff')->logout();
@@ -86,5 +101,14 @@ class LoginController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route('scp.login');
+    }
+
+    private function ensureDashboardIsTheFallbackIntendedUrl(Request $request): void
+    {
+        $intended = $request->session()->get('url.intended');
+
+        if (! is_string($intended) || rtrim($intended, '/') === rtrim(url('/'), '/')) {
+            $request->session()->put('url.intended', route('scp.dashboard'));
+        }
     }
 }

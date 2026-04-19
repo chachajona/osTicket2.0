@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use App\Auth\StaffTwoFactorAuthenticatable;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Traits\HasRoles;
 
@@ -33,6 +35,7 @@ use Spatie\Permission\Traits\HasRoles;
 class Staff extends LegacyModel implements Authenticatable
 {
     use HasRoles;
+    use StaffTwoFactorAuthenticatable;
 
     private ?string $rememberToken = null;
 
@@ -73,6 +76,14 @@ class Staff extends LegacyModel implements Authenticatable
     public function assignedTickets()
     {
         return $this->hasMany(Ticket::class, 'staff_id', 'staff_id');
+    }
+
+    /**
+     * @return HasOne<StaffAuthMigration, $this>
+     */
+    public function authMigration(): HasOne
+    {
+        return $this->hasOne(StaffAuthMigration::class, 'staff_id', 'staff_id');
     }
 
     /**
@@ -143,5 +154,15 @@ class Staff extends LegacyModel implements Authenticatable
             $this->passwd = Hash::make($plainPassword);
             $this->save();
         }
+    }
+
+    public function hasTotpEnabled(): bool
+    {
+        return $this->hasEnabledTwoFactorAuthentication();
+    }
+
+    public function isMigrated(): bool
+    {
+        return ! is_null($this->loadMissing('authMigration')->authMigration?->migrated_at);
     }
 }

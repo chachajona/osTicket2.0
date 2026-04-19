@@ -68,9 +68,10 @@ class TwoFactorController extends Controller
         $request->session()->forget('2fa.staff_id');
 
         Auth::guard('staff')->loginUsingId($staffId, $remember);
+        $intendedUrl = $this->resolveIntendedUrl($request);
         $request->session()->regenerate();
 
-        return redirect()->intended('/scp');
+        return redirect()->to($intendedUrl);
     }
 
     public function resend(Request $request): RedirectResponse
@@ -111,5 +112,16 @@ class TwoFactorController extends Controller
         RateLimiter::hit($rateLimitKey, 60);
 
         return back()->with('status', 'A new verification code has been sent to your email.');
+    }
+
+    private function resolveIntendedUrl(Request $request): string
+    {
+        $intendedUrl = $request->session()->pull('url.intended');
+
+        if (! is_string($intendedUrl) || rtrim($intendedUrl, '/') === rtrim(url('/'), '/')) {
+            return route('scp.dashboard');
+        }
+
+        return $intendedUrl;
     }
 }
