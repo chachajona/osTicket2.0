@@ -92,6 +92,13 @@ class StaffTwoFactorService
             && $this->provider->verify($staff->two_factor_secret, $code);
     }
 
+    public function hasMatchingRecoveryCode(Staff $staff, string $code): bool
+    {
+        return collect($staff->recoveryCodes())->contains(
+            fn (string $storedCode): bool => hash_equals($storedCode, $code)
+        );
+    }
+
     public function consumeRecoveryCode(Staff $staff, string $code): bool
     {
         $matchingCode = collect($staff->recoveryCodes())->first(

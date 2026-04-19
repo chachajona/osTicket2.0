@@ -45,12 +45,10 @@ Route::prefix('scp')->name('scp.')->group(function () {
             Route::post('/account/security/two-factor/enable', [TwoFactorSecurityController::class, 'enable'])->name('account.security.two-factor.enable');
             Route::post('/account/security/two-factor/confirm', [TwoFactorSecurityController::class, 'confirm'])->name('account.security.two-factor.confirm');
             Route::get('/account/security/two-factor/recovery-codes', [TwoFactorSecurityController::class, 'recoveryCodes'])->name('account.security.two-factor.recovery-codes');
+            Route::get('/account/security/two-factor/qr-code', [TwoFactorSecurityController::class, 'qrCode'])->name('account.security.two-factor.qr-code');
             Route::post('/account/security/two-factor/regenerate-codes', [TwoFactorSecurityController::class, 'regenerateRecoveryCodes'])->name('account.security.two-factor.regenerate-codes');
             Route::delete('/account/security/two-factor', [TwoFactorSecurityController::class, 'disable'])->name('account.security.two-factor.disable');
         });
-
-        Route::get('/account/security/two-factor/qr-code', [TwoFactorSecurityController::class, 'qrCode'])
-            ->name('account.security.two-factor.qr-code');
 
         Route::get('/', function () {
             return Inertia::render('Dashboard');

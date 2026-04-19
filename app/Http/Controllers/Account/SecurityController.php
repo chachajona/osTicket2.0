@@ -15,16 +15,17 @@ class SecurityController extends Controller
         /** @var Staff $staff */
         $staff = $request->user('staff');
         $staff->loadMissing(['twoFactorCredential', 'authMigration']);
+        $isPendingTwoFactorSetup = ! is_null($staff->two_factor_secret) && is_null($staff->two_factor_confirmed_at);
 
         return Inertia::render('Account/Security/Index', [
             'twoFactor' => [
                 'enabled' => $staff->hasTotpEnabled(),
-                'pending' => ! is_null($staff->two_factor_secret) && is_null($staff->two_factor_confirmed_at),
+                'pending' => $isPendingTwoFactorSetup,
                 'confirmedAt' => $staff->two_factor_confirmed_at?->toIso8601String(),
                 'recoveryCodesCount' => count($staff->recoveryCodes()),
-                'qrCodeSvg' => $staff->two_factor_secret ? $staff->twoFactorQrCodeSvg() : null,
-                'qrCodeUrl' => $staff->two_factor_secret ? $staff->twoFactorQrCodeUrl() : null,
-                'setupKey' => $staff->two_factor_secret,
+                'qrCodeSvg' => $isPendingTwoFactorSetup ? $staff->twoFactorQrCodeSvg() : null,
+                'qrCodeUrl' => $isPendingTwoFactorSetup ? $staff->twoFactorQrCodeUrl() : null,
+                'setupKey' => $isPendingTwoFactorSetup ? $staff->two_factor_secret : null,
             ],
             'migration' => [
                 'isMigrated' => $staff->isMigrated(),

@@ -6,6 +6,7 @@ use App\Models\StaffTwoFactorCredential;
 use App\Services\StaffTwoFactorService;
 use App\Services\TwoFactorAppChallengeService;
 use App\Services\TwoFactorAuthService;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
@@ -89,6 +90,40 @@ test('confirming two-factor marks the staff member as migrated', function () {
     $this->travelBack();
 });
 
+test('security page only exposes setup secret while two-factor confirmation is pending', function () {
+    $staff = createLegacyStaff();
+    $service = app(StaffTwoFactorService::class);
+    $service->enable($staff);
+
+    $pendingResponse = $this->actingAs($staff->fresh(), 'staff')
+        ->withHeaders(inertiaHeaders())
+        ->get('/scp/account/security');
+
+    $pendingResponse->assertOk();
+
+    $pendingTwoFactor = Arr::get($pendingResponse->json(), 'props.twoFactor');
+
+    expect($pendingTwoFactor)
+        ->not->toBeNull()
+        ->and($pendingTwoFactor['pending'])->toBeTrue()
+        ->and($pendingTwoFactor['setupKey'])->toBeString()->not->toBe('')
+        ->and($pendingTwoFactor['qrCodeSvg'])->toBeString()->not->toBe('')
+        ->and($pendingTwoFactor['qrCodeUrl'])->toBeString()->not->toBe('');
+
+    $service->confirm($staff->fresh(), app(Google2FA::class)->getCurrentOtp((string) $staff->fresh()->two_factor_secret));
+
+    $confirmedResponse = $this->actingAs($staff->fresh(), 'staff')
+        ->withHeaders(inertiaHeaders())
+        ->get('/scp/account/security');
+
+    $confirmedResponse->assertOk();
+    $confirmedResponse->assertJsonPath('props.twoFactor.pending', false);
+    $confirmedResponse->assertJsonPath('props.twoFactor.enabled', true);
+    $confirmedResponse->assertJsonPath('props.twoFactor.setupKey', null);
+    $confirmedResponse->assertJsonPath('props.twoFactor.qrCodeSvg', null);
+    $confirmedResponse->assertJsonPath('props.twoFactor.qrCodeUrl', null);
+});
+
 test('login routes totp-enrolled staff to the app challenge', function () {
     $this->travelTo(now());
     Mail::fake();
@@ -162,6 +197,98 @@ test('totp challenge accepts and rotates a recovery code', function () {
         ->and($replacementCodes)->not->toContain($recoveryCode);
 
     $this->travelBack();
+});
+
+test('expired totp challenge does not consume a recovery code', function () {
+    $this->travelTo(now());
+
+    $staff = createLegacyStaff();
+    $service = app(StaffTwoFactorService::class);
+    $service->enable($staff);
+    $service->confirm($staff->fresh(), app(Google2FA::class)->getCurrentOtp((string) $staff->fresh()->two_factor_secret));
+
+    $recoveryCode = $staff->fresh()->recoveryCodes()[0];
+    app(TwoFactorAppChallengeService::class)->begin($staff->staff_id);
+
+    $this->travel(361)->seconds();
+
+    $response = $this->withSession([
+        '2fa_app.staff_id' => $staff->staff_id,
+        'url.intended' => '/scp',
+    ])->post('/scp/2fa-app', [
+        'code' => $recoveryCode,
+    ]);
+
+    $response->assertRedirect('/scp/login');
+    $response->assertSessionHasErrors([
+        'code' => 'Too many attempts or code expired. Please log in again.',
+    ]);
+
+    expect($staff->fresh()->recoveryCodes())->toContain($recoveryCode);
+
+    $this->travelBack();
+});
+
+test('recovery code is not consumed when challenge expires during verification', function () {
+    $staff = createLegacyStaff();
+    $service = app(StaffTwoFactorService::class);
+    $service->enable($staff);
+    $service->confirm($staff->fresh(), app(Google2FA::class)->getCurrentOtp((string) $staff->fresh()->two_factor_secret));
+
+    $recoveryCode = $staff->fresh()->recoveryCodes()[0];
+
+    $challenge = \Mockery::mock(TwoFactorAppChallengeService::class);
+    $challenge->shouldReceive('hasActiveChallenge')
+        ->once()
+        ->with($staff->staff_id)
+        ->andReturnTrue();
+    $challenge->shouldReceive('validateAttempt')
+        ->once()
+        ->with($staff->staff_id, true)
+        ->andReturn(TwoFactorAppChallengeService::STATUS_EXPIRED);
+
+    $this->instance(TwoFactorAppChallengeService::class, $challenge);
+
+    $response = $this->withSession([
+        '2fa_app.staff_id' => $staff->staff_id,
+        'url.intended' => '/scp',
+    ])->post('/scp/2fa-app', [
+        'code' => $recoveryCode,
+    ]);
+
+    $response->assertRedirect('/scp/login');
+    $response->assertSessionHasErrors([
+        'code' => 'Too many attempts or code expired. Please log in again.',
+    ]);
+
+    expect($staff->fresh()->recoveryCodes())->toContain($recoveryCode);
+});
+
+test('qr code endpoint requires a confirmed password and hides confirmed setup material', function () {
+    $staff = createLegacyStaff();
+    $service = app(StaffTwoFactorService::class);
+    $service->enable($staff);
+
+    $redirectResponse = $this->actingAs($staff->fresh(), 'staff')
+        ->get('/scp/account/security/two-factor/qr-code');
+
+    $redirectResponse->assertRedirect('/scp/account/security/confirm-password');
+
+    $pendingResponse = $this->actingAs($staff->fresh(), 'staff')
+        ->withSession(['auth.password_confirmed_at' => now()->timestamp])
+        ->get('/scp/account/security/two-factor/qr-code');
+
+    $pendingResponse->assertOk();
+    $pendingResponse->assertJsonStructure(['svg', 'url']);
+
+    $service->confirm($staff->fresh(), app(Google2FA::class)->getCurrentOtp((string) $staff->fresh()->two_factor_secret));
+
+    $confirmedResponse = $this->actingAs($staff->fresh(), 'staff')
+        ->withSession(['auth.password_confirmed_at' => now()->timestamp])
+        ->get('/scp/account/security/two-factor/qr-code');
+
+    $confirmedResponse->assertOk();
+    expect($confirmedResponse->json())->toBe([]);
 });
 
 test('non-enrolled staff continue to the email otp flow', function () {

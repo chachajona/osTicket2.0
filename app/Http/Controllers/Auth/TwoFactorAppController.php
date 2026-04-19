@@ -59,8 +59,13 @@ class TwoFactorAppController extends Controller
         }
 
         $code = trim($validated['code']);
-        $isValid = $this->twoFactor->hasValidOneTimePassword($staff, $code)
-            || $this->twoFactor->consumeRecoveryCode($staff, $code);
+        $usesRecoveryCode = false;
+        $isValid = $this->twoFactor->hasValidOneTimePassword($staff, $code);
+
+        if (! $isValid) {
+            $usesRecoveryCode = $this->twoFactor->hasMatchingRecoveryCode($staff, $code);
+            $isValid = $usesRecoveryCode;
+        }
 
         $status = $this->challenge->validateAttempt($staffId, $isValid);
 
@@ -79,6 +84,10 @@ class TwoFactorAppController extends Controller
             throw ValidationException::withMessages([
                 'code' => ['Invalid authentication code or recovery code.'],
             ]);
+        }
+
+        if ($usesRecoveryCode) {
+            $this->twoFactor->consumeRecoveryCode($staff, $code);
         }
 
         $remember = (bool) $request->session()->pull('2fa_app.remember', false);
