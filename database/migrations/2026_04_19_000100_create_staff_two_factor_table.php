@@ -8,7 +8,13 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::connection('osticket2')->create('staff_two_factor', function (Blueprint $table): void {
+        $schema = Schema::connection('osticket2');
+
+        if ($schema->hasTable('staff_two_factor')) {
+            return;
+        }
+
+        $schema->create('staff_two_factor', function (Blueprint $table): void {
             $table->id();
             $table->unsignedBigInteger('staff_id')->unique();
             $table->text('two_factor_secret')->nullable();
@@ -20,6 +26,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::connection('osticket2')->dropIfExists('staff_two_factor');
+        // The osTicket-side table may already exist before this migration runs.
+        // Rolling back should not drop shared legacy data.
     }
 };

@@ -8,7 +8,13 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::connection('osticket2')->create('staff_auth_migrations', function (Blueprint $table): void {
+        $schema = Schema::connection('osticket2');
+
+        if ($schema->hasTable('staff_auth_migrations')) {
+            return;
+        }
+
+        $schema->create('staff_auth_migrations', function (Blueprint $table): void {
             $table->id();
             $table->unsignedBigInteger('staff_id')->unique();
             $table->timestamp('migrated_at')->nullable();
@@ -20,6 +26,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::connection('osticket2')->dropIfExists('staff_auth_migrations');
+        // The osTicket-side table may already exist before this migration runs.
+        // Rolling back should not drop shared legacy data.
     }
 };
