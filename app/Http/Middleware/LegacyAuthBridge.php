@@ -19,32 +19,27 @@ use Symfony\Component\HttpFoundation\Response;
  * This allows staff logged into the legacy SCP to be automatically
  * authenticated when accessing new Laravel-powered pages.
  *
+ * During the migration this middleware runs in the global `web` stack before
+ * route-level `guest:staff`, so a valid OSTSESSID is treated as a completed
+ * staff login and will bypass the Laravel email-2FA screen.
+ *
  * @see osticket/include/class.session.php
  */
 class LegacyAuthBridge
 {
     /**
      * Handle an incoming request.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Closure  $next
-     * @return \Symfony\Component\HttpFoundation\Response
      */
     public function handle(Request $request, Closure $next): Response
     {
         $guard = Auth::guard('staff');
-        $sessionId = $request->cookie('OSTSESSID');
-        $legacyStaffId = $sessionId ? $this->resolveStaffId($sessionId) : null;
 
         if ($guard->check()) {
-            if (! $legacyStaffId || (int) $guard->id() !== $legacyStaffId) {
-                $guard->logout();
-                $request->session()->invalidate();
-                $request->session()->regenerateToken();
-            }
-
             return $next($request);
         }
+
+        $sessionId = $request->cookie('OSTSESSID');
+        $legacyStaffId = $sessionId ? $this->resolveStaffId($sessionId) : null;
 
         if ($legacyStaffId) {
             $guard->loginUsingId($legacyStaffId);
@@ -60,16 +55,13 @@ class LegacyAuthBridge
      * and extracts the staff ID. First checks the user_id column directly,
      * then falls back to parsing the serialized session_data for the
      * _auth.staff.id value.
-     *
-     * @param  string  $sessionId
-     * @return int|null
      */
     private function resolveStaffId(string $sessionId): ?int
     {
         $session = DB::connection('legacy')
             ->table('session')
             ->where('session_id', $sessionId)
-            ->whereRaw('session_expire > NOW()')
+            ->where('session_expire', '>', now())
             ->first(['user_id', 'session_data']);
 
         if (! $session) {
@@ -88,9 +80,6 @@ class LegacyAuthBridge
      *
      * osTicket uses PHP's session serialization format (pipe-delimited keys)
      * where the _auth section contains: _auth|a:1:{s:5:"staff";a:3:{s:2:"id";i:2;...}}
-     *
-     * @param  string|null  $data
-     * @return int|null
      */
     private function extractStaffIdFromSessionData(?string $data): ?int
     {
@@ -118,9 +107,6 @@ class LegacyAuthBridge
 
     /**
      * Verify that a staff ID exists and the account is active.
-     *
-     * @param  int  $staffId
-     * @return int|null
      */
     private function verifyStaffExists(int $staffId): ?int
     {

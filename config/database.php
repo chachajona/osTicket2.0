@@ -3,6 +3,29 @@
 use Illuminate\Support\Str;
 use Pdo\Mysql;
 
+$legacy = env('LEGACY_DB_DRIVER', 'mysql') === 'sqlite'
+    ? [
+        'driver' => 'sqlite',
+        'url' => env('DB_URL'),
+        'database' => env('DB_DATABASE', ':memory:'),
+        'prefix' => 'ost_',
+        'foreign_key_constraints' => false,
+    ]
+    : [
+        'driver' => 'mysql',
+        'host' => env('LEGACY_DB_HOST', '127.0.0.1'),
+        'port' => env('LEGACY_DB_PORT', '3307'),
+        'database' => env('LEGACY_DB_DATABASE', 'osticketdb_sbb'),
+        'username' => env('LEGACY_DB_USERNAME', 'root'),
+        'password' => env('LEGACY_DB_PASSWORD', ''),
+        'unix_socket' => env('DB_SOCKET', ''),
+        'charset' => 'utf8mb4',
+        'collation' => 'utf8mb4_unicode_ci',
+        'prefix' => env('LEGACY_DB_PREFIX', 'ost_'),
+        'prefix_indexes' => true,
+        'strict' => true,
+    ];
+
 return [
 
     /*
@@ -44,20 +67,11 @@ return [
             'transaction_mode' => 'DEFERRED',
         ],
 
-        'legacy' => [
-            'driver' => 'mysql',
-            'host' => env('LEGACY_DB_HOST', '127.0.0.1'),
-            'port' => env('LEGACY_DB_PORT', '3307'),
-            'database' => env('LEGACY_DB_DATABASE', 'osticketdb_sbb'),
-            'username' => env('LEGACY_DB_USERNAME', 'root'),
-            'password' => env('LEGACY_DB_PASSWORD', ''),
-            'unix_socket' => env('DB_SOCKET', ''),
-            'charset' => 'utf8mb4',
-            'collation' => 'utf8mb4_unicode_ci',
-            'prefix' => env('LEGACY_DB_PREFIX', 'ost_'),
-            'prefix_indexes' => true,
-            'strict' => true,
-        ],
+        'legacy' => $legacy,
+
+        'osticket2' => array_merge($legacy, [
+            'prefix' => env('OSTICKET2_DB_PREFIX', 'scp_'),
+        ]),
 
         'mysql' => [
             'driver' => 'mysql',

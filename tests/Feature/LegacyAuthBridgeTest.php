@@ -1,8 +1,6 @@
 <?php
 
-use App\Http\Middleware\LegacyAuthBridge;
 use App\Models\Staff;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -25,7 +23,7 @@ test('authenticates staff from valid legacy session', function () {
     $session = DB::connection('legacy')
         ->table('session')
         ->where('user_id', '>', 0)
-        ->whereRaw('session_expire > NOW()')
+        ->where('session_expire', '>', now())
         ->first();
 
     if (! $session) {
@@ -51,7 +49,7 @@ test('authenticates staff from valid legacy session', function () {
 test('rejects expired legacy session', function () {
     $session = DB::connection('legacy')
         ->table('session')
-        ->whereRaw('session_expire < NOW()')
+        ->where('session_expire', '<', now())
         ->first();
 
     if (! $session) {
@@ -65,7 +63,7 @@ test('rejects expired legacy session', function () {
     $response->assertJson(['authenticated' => false]);
 });
 
-test('logs out staff when legacy session is missing', function () {
+test('preserves native Laravel session when no OSTSESSID cookie is present', function () {
     $staff = Staff::where('isactive', 1)->first();
     if (! $staff) {
         $this->markTestSkipped('No active staff found.');
@@ -73,9 +71,85 @@ test('logs out staff when legacy session is missing', function () {
 
     Auth::guard('staff')->loginUsingId($staff->staff_id);
 
-    // No OSTSESSID cookie — middleware should invalidate the Laravel session
+    // No OSTSESSID cookie — middleware should NOT invalidate a native Laravel session
+    // (staff authenticated via Laravel login+2FA flow won't have an OSTSESSID cookie)
     $response = $this->get('/scp/test-auth');
 
     $response->assertOk();
-    $response->assertJson(['authenticated' => false]);
+    $response->assertJson(['authenticated' => true]);
+});
+
+test('preserves native Laravel session when OSTSESSID belongs to another staff member', function () {
+    DB::connection('legacy')->table('staff')->insert([
+        [
+            'staff_id' => 10,
+            'dept_id' => 1,
+            'username' => 'native-staff',
+            'firstname' => 'Native',
+            'lastname' => 'Staff',
+            'email' => 'native@example.com',
+            'passwd' => bcrypt('password'),
+            'isactive' => 1,
+            'isadmin' => 0,
+            'created' => now(),
+        ],
+        [
+            'staff_id' => 11,
+            'dept_id' => 1,
+            'username' => 'legacy-staff',
+            'firstname' => 'Legacy',
+            'lastname' => 'Staff',
+            'email' => 'legacy@example.com',
+            'passwd' => bcrypt('password'),
+            'isactive' => 1,
+            'isadmin' => 0,
+            'created' => now(),
+        ],
+    ]);
+
+    DB::connection('legacy')->table('session')->insert([
+        'session_id' => 'legacy-session',
+        'user_id' => 11,
+        'session_expire' => now()->addHour(),
+    ]);
+
+    Auth::guard('staff')->loginUsingId(10);
+
+    $response = $this->withUnencryptedCookie('OSTSESSID', 'legacy-session')
+        ->get('/scp/test-auth');
+
+    $response->assertOk();
+    $response->assertJson([
+        'authenticated' => true,
+        'staff_id' => 10,
+        'username' => 'native-staff',
+    ]);
+});
+
+test('valid legacy session bypasses the Laravel 2fa guest flow', function () {
+    DB::connection('legacy')->table('staff')->insert([
+        'staff_id' => 1011,
+        'dept_id' => 1,
+        'username' => 'legacy-2fa',
+        'firstname' => 'Legacy',
+        'lastname' => 'TwoFactor',
+        'email' => 'legacy-2fa@example.com',
+        'passwd' => bcrypt('password'),
+        'isactive' => 1,
+        'isadmin' => 0,
+        'created' => now(),
+    ]);
+
+    DB::connection('legacy')->table('session')->insert([
+        'session_id' => 'legacy-2fa-session',
+        'user_id' => 1011,
+        'session_expire' => now()->addHour(),
+    ]);
+
+    $response = $this
+        ->withSession(['2fa.staff_id' => 1011])
+        ->withUnencryptedCookie('OSTSESSID', 'legacy-2fa-session')
+        ->get('/scp/2fa');
+
+    $response->assertRedirect('/scp');
 });

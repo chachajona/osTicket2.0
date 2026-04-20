@@ -207,3 +207,126 @@ Ran `php artisan benchmark:dynamic-forms --iterations=100` on real database. Tic
 
 ## Documentation Created
 - `docs/models.md` — full relationship map for all 65+ models grouped by domain
+
+# Task 2 — Artisan Commands for Cron Jobs
+
+## Created Commands
+1. **FetchMailCommand** (`tickets:fetch-mail`)
+   - Signature: `tickets:fetch-mail {--dry-run}`
+   - Stub implementation for Task 3
+   - Scheduled: every 5 minutes
+
+2. **CheckOverdueTicketsCommand** (`tickets:check-overdue`)
+   - Signature: `tickets:check-overdue {--dry-run}`
+   - Queries: `isoverdue=0 AND closed IS NULL AND duedate < now()`
+   - Updates: `isoverdue='1'` for overdue tickets
+   - Scheduled: every 5 minutes
+
+3. **PurgeLogsCommand** (`system:purge-logs`)
+   - Signature: `system:purge-logs {--dry-run} {--days=90}`
+   - Queries Syslog model where `created < NOW() - INTERVAL {days} DAY`
+   - Scheduled: daily at 03:00
+
+4. **CleanupDraftsCommand** (`drafts:cleanup`)
+   - Signature: `drafts:cleanup {--dry-run} {--days=30}`
+   - Queries Draft model where `created < NOW() - INTERVAL {days} DAY`
+   - Scheduled: daily
+
+5. **CleanupFilesCommand** (`files:cleanup`)
+   - Signature: `files:cleanup {--dry-run}`
+   - Queries: File where `id NOT IN (SELECT file_id FROM attachment)`
+   - Note: File table PK is `id`, not `file_id`
+   - Scheduled: weekly
+
+## Database Schema Discoveries
+
+### ost_ticket Table
+- Primary key: `ticket_id`
+- Status tracking: `status_id` (not just `status`)
+- Overdue flag: `isoverdue` (0 = not overdue, 1 = overdue)
+- Closure tracking: `closed` field (NULL when open, populated when closed)
+
+### ost_file Table
+- Primary key: `id` (not `file_id`)
+- Columns: id, ft, bk, type, size, key, signature, name, attrs, created
+- File chunks: `file_chunk` with `(file_id, chunk_id)` composite PK
+
+### ost_attachment Table
+- Primary key: `id`
+- Foreign key: `file_id` references `ost_file.id`
+- Links files to objects (tickets, etc.)
+
+## Command Pattern in Laravel
+- All commands extend `Illuminate\Console\Command`
+- Signature: `protected $signature = 'command:name {--option}'`
+- Option access: `$this->option('option-name')`
+- Dry-run pattern: Check `$this->option('dry-run')` before destructive operations
+- Output: Use `$this->info()`, `$this->line()`, `$this->comment()` for CLI feedback
+- Status codes: Return `self::SUCCESS` or `self::FAILURE`
+
+## Schedule Registration
+All commands registered in `routes/console.php`:
+- Every 5 minutes: `->everyFiveMinutes()`
+- Daily: `->daily()`
+- Daily at specific time: `->dailyAt('HH:MM')`
+- Weekly: `->weekly()`
+
+## Testing Results
+- All 5 commands tested with `--dry-run` flag
+- All queries validated against actual database
+- Dry-run mode lists what would be changed without persisting
+- No errors in final implementation
+
+# Task 3 — Email-to-Ticket Pipeline
+
+## Package Installed
+- `webklex/laravel-imap` ^6.2 — wraps PHP IMAP extension into a clean OO API
+
+## EmailAccount Table Schema
+- `type` column: `'mailbox'` for IMAP fetch accounts, `'smtp'` for outgoing
+- `active` column: 1 = enabled, 0 = disabled
+- `host` can be empty string for disabled accounts; must filter `host != ''`
+- `postfetch` column: `'delete'` to delete after processing; otherwise archive if `archivefolder` is set
+- `auth_id` = username, `auth_bk` = password
+- `protocol` = 'IMAP' (uppercase in DB)
+- `encryption` values: 'ssl', 'tls', '' (none)
+
+## thread_entry_email Is the Key for Thread Matching
+- `ost_thread_entry_email.mid` stores the Message-ID of each email sent/received
+- Thread matching: look up `In-Reply-To` and `References` header values in `thread_entry_email.mid`
+- If found → reply to existing thread; otherwise → create new ticket
+
+## thread_entry Column Notes
+- `type` = 'M' for user messages, 'R' for staff response, 'N' for internal note
+- `staff_id` = 0 for user-originated messages
+- `poster` = display name of sender
+- `source` = 'Email' for email-originated entries
+- `format` = 'html' or 'text' depending on email body
+
+## Ticket Table Notes
+- `source` = 'Email' for email-created tickets
+- `email_id` FK to ost_email to track which mailbox received it
+- `lastupdate` used to track last message time (not `lastmessage`/`lastresponse` in this schema)
+
+## Sequence Table Notes
+- `id=1` is the General Ticket sequence
+- `padding=0` means no zero-padding in this installation (use raw number)
+- `next` + `increment` atomically updated with `lockForUpdate()`
+
+## File Storage Pattern
+- `ost_file.key` used for deduplication (md5 hash of content)
+- `ost_file.ft` = 'P' for permanently stored files
+- `ost_attachment.object_type` = 'H' for thread entry attachments
+- `ost_attachment.object_id` = thread_entry.id
+
+## Bounce Detection Patterns
+- `Auto-Submitted: auto-replied|auto-generated` header
+- `X-Auto-Response-Suppress` header
+- `Content-Type: multipart/report; report-type=delivery-status`
+- `Content-Type: message/delivery-status`
+- From address matching `/^(mailer-daemon|postmaster|noreply|no-reply)@/i`
+
+## User Resolution
+- Check `ost_user_email.address` first to find existing user
+- If not found, create `ost_user` + `ost_user_email` rows
+- `ost_user.default_email_id` can be 0 initially (update later if needed)

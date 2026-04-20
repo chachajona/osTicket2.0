@@ -26,4 +26,6 @@ class TicketCdata extends LegacyModel
      * @var string
      */
     protected $primaryKey = 'ticket_id';
+
+    public $incrementing = false;
 }

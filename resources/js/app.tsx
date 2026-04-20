@@ -1,5 +1,6 @@
 import { createInertiaApp } from '@inertiajs/react';
 import { createRoot } from 'react-dom/client';
+import './i18n';
 
 createInertiaApp({
     resolve: (name) => {
