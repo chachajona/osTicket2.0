@@ -126,17 +126,21 @@ export default function SecurityIndex({ twoFactor, migration, revealedRecoveryCo
                                             <label htmlFor="code" className="block text-sm font-medium text-gray-700">
                                                 Confirm with a code from your app
                                             </label>
-                                            <input
-                                                id="code"
-                                                type="text"
-                                                autoComplete="one-time-code"
-                                                value={confirmForm.data.code}
-                                                onChange={(event) => confirmForm.setData('code', event.target.value)}
-                                                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                            />
-                                            {confirmForm.errors.code && (
-                                                <p className="mt-1 text-xs text-red-600">{confirmForm.errors.code}</p>
-                                            )}
+                                             <input
+                                                 id="code"
+                                                 type="text"
+                                                 inputMode="numeric"
+                                                 pattern="[0-9]*"
+                                                 maxLength={6}
+                                                 autoComplete="one-time-code"
+                                                 aria-invalid={!!confirmForm.errors.code}
+                                                 value={confirmForm.data.code}
+                                                 onChange={(event) => confirmForm.setData('code', event.target.value)}
+                                                 className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                             />
+                                             {confirmForm.errors.code && (
+                                                 <p role="alert" className="mt-1 text-xs text-red-600">{confirmForm.errors.code}</p>
+                                             )}
                                         </div>
 
                                         <button

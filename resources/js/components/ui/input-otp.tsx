@@ -19,6 +19,8 @@ function InputOTP({
         "cn-input-otp flex items-center has-disabled:opacity-50",
         containerClassName
       )}
+      inputMode="numeric"
+      pattern="[0-9]*"
       spellCheck={false}
       className={cn("disabled:cursor-not-allowed", className)}
       {...props}
