@@ -42,6 +42,7 @@ class HandleInertiaRequests extends Middleware
                 'throttle' => fn () => [
                     'attemptsRemaining' => $request->session()->get('throttle.attemptsRemaining'),
                     'secondsUntilRetry' => $request->session()->get('throttle.secondsUntilRetry'),
+                    'username' => $request->session()->get('throttle.username'),
                 ],
             ],
         ];

@@ -56,8 +56,7 @@ export function AuthLayout({
 }: AuthLayoutProps) {
     const { props } = usePage<SharedProps>();
     const status = props.status;
-    const generalError =
-        props.errors?.username || props.errors?.code || props.errors?.email;
+    const generalError = props.errors?.general || props.errors?._;
     const year = new Date().getFullYear();
 
     return (

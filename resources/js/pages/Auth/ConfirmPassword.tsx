@@ -70,11 +70,7 @@ export default function ConfirmPassword() {
                                 disabled={processing}
                             />
                             <FieldError
-                                errors={
-                                    errors.password
-                                        ? [{ message: errors.password }]
-                                        : undefined
-                                }
+                                errors={errors.password}
                             />
                         </FieldContent>
                     </Field>

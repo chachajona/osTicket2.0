@@ -17,11 +17,16 @@ interface SharedProps extends Record<string, unknown> {
         throttle?: {
             secondsUntilRetry?: number | null;
             attemptsRemaining?: number | null;
+            username?: string | null;
         };
     };
 }
 
 type FormSubmitHandler = NonNullable<React.ComponentProps<"form">["onSubmit"]>;
+
+function normalizeUsername(value: string | null | undefined): string {
+    return value?.trim().toLowerCase() ?? "";
+}
 
 export default function Login() {
     const { data, setData, post, processing, errors } = useForm({
@@ -32,8 +37,14 @@ export default function Login() {
     const { props } = usePage<SharedProps>();
     const lockedFor = props.auth?.throttle?.secondsUntilRetry ?? 0;
     const attemptsRemaining = props.auth?.throttle?.attemptsRemaining;
+    const throttledUsername = normalizeUsername(
+        props.auth?.throttle?.username,
+    );
+    const currentUsername = normalizeUsername(data.username);
+    const isCurrentUsernameThrottled =
+        throttledUsername !== "" && throttledUsername === currentUsername;
     const remaining = useCountdown(lockedFor);
-    const locked = remaining > 0;
+    const locked = isCurrentUsernameThrottled && remaining > 0;
 
     const submit: FormSubmitHandler = (event) => {
         event.preventDefault();
@@ -76,7 +87,7 @@ export default function Login() {
                 <FieldGroup className="gap-6">
                     <Field
                         data-invalid={!!errors.username}
-                        data-disabled={processing || locked}
+                        data-disabled={processing}
                     >
                         <FieldLabel
                             htmlFor="username"
@@ -96,15 +107,9 @@ export default function Login() {
                                 onChange={(e) =>
                                     setData("username", e.target.value)
                                 }
-                                disabled={processing || locked}
+                                disabled={processing}
                             />
-                            <FieldError
-                                errors={
-                                    errors.username
-                                        ? [{ message: errors.username }]
-                                        : undefined
-                                }
-                            />
+                            <FieldError errors={errors.username} />
                         </FieldContent>
                     </Field>
 
@@ -140,13 +145,10 @@ export default function Login() {
                                 disabled={processing || locked}
                             />
                             <FieldError
-                                errors={
-                                    errors.password
-                                        ? [{ message: errors.password }]
-                                        : undefined
-                                }
+                                errors={errors.password}
                             />
                             {!locked &&
+                                isCurrentUsernameThrottled &&
                                 typeof attemptsRemaining === "number" &&
                                 attemptsRemaining < 5 &&
                                 attemptsRemaining > 0 && (

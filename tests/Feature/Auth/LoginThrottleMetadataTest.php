@@ -24,6 +24,7 @@ it(
 
         $response->assertRedirect('/scp/login');
         $response->assertSessionHas('throttle.attemptsRemaining', 4);
+        $response->assertSessionHas('throttle.username', 'tester');
         $response->assertSessionMissing('throttle.secondsUntilRetry');
     }
 );
@@ -45,4 +46,5 @@ it('flashes a countdown after exceeding the limit', function () {
     ]);
 
     $response->assertSessionHas('throttle.secondsUntilRetry', fn($value) => $value > 0 && $value <= 300);
+    $response->assertSessionHas('throttle.username', 'tester');
 });

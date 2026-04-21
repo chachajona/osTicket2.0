@@ -5,11 +5,12 @@ import { useEffect, useState } from "react";
  * Returns 0 when finished. Resetting `seconds` restarts the countdown.
  */
 export function useCountdown(seconds: number): number {
-    const [remaining, setRemaining] = useState(seconds);
+    const normalizedSeconds = Math.max(0, Math.floor(seconds));
+    const [remaining, setRemaining] = useState(normalizedSeconds);
 
     useEffect(() => {
-        setRemaining(seconds);
-        if (seconds <= 0) return;
+        setRemaining(normalizedSeconds);
+        if (normalizedSeconds <= 0) return;
         const id = window.setInterval(() => {
             setRemaining((s) => {
                 if (s <= 1) {
@@ -20,14 +21,15 @@ export function useCountdown(seconds: number): number {
             });
         }, 1000);
         return () => window.clearInterval(id);
-    }, [seconds]);
+    }, [normalizedSeconds]);
 
     return remaining;
 }
 
 export function formatCountdown(seconds: number): string {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
+    const normalizedSeconds = Math.max(0, Math.floor(seconds));
+    const m = Math.floor(normalizedSeconds / 60);
+    const s = normalizedSeconds % 60;
     if (m === 0) return `${s}s`;
     return `${m}m ${s.toString().padStart(2, "0")}s`;
 }

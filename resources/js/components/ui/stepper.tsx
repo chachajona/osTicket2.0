@@ -44,7 +44,7 @@ function Stepper({ steps, current, className }: StepperProps) {
                         </span>
                         <span
                             className={cn(
-                                "hidden text-sm sm:inline",
+                                "sr-only text-sm sm:inline sm:not-sr-only",
                                 status === "current"
                                     ? "font-medium text-gray-900"
                                     : "text-gray-500",
