@@ -34,6 +34,21 @@ test('login page renders at /scp/login', function () {
     $response->assertJsonPath('component', 'Auth/Login');
 });
 
+test('root redirects guests to the login page', function () {
+    $response = $this->get('/');
+
+    $response->assertRedirect('/scp/login');
+});
+
+test('root redirects authenticated staff to the dashboard', function () {
+    $staff = makeStaff();
+    Auth::guard('staff')->login($staff);
+
+    $response = $this->get('/');
+
+    $response->assertRedirect('/scp');
+});
+
 test('login page renders flash status messages', function () {
     $response = $this->withSession([
         'status' => 'Password reset successfully. Please log in.',

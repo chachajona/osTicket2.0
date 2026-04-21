@@ -1,72 +1,93 @@
-import { useForm } from '@inertiajs/react';
-import { FormEvent } from 'react';
+import { Link, useForm } from "@inertiajs/react";
 
-interface Props {
-    status?: string;
-}
+import { AuthLayout } from "@/layouts/AuthLayout";
+import {
+    Field,
+    FieldContent,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 
-export default function ForgotPassword({ status }: Props) {
+type FormSubmitHandler = NonNullable<React.ComponentProps<"form">["onSubmit"]>;
+
+export default function ForgotPassword() {
     const { data, setData, post, processing, errors } = useForm({
-        email: '',
+        email: "",
     });
 
-    function submit(e: FormEvent) {
-        e.preventDefault();
-        post('/scp/password/forgot');
-    }
+    const submit: FormSubmitHandler = (event) => {
+        event.preventDefault();
+        post("/scp/password/forgot");
+    };
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-gray-50">
-            <div className="w-full max-w-md">
-                <div className="rounded-2xl bg-white px-8 py-10 shadow-lg">
-                    <div className="mb-8 text-center">
-                        <h1 className="text-2xl font-bold tracking-tight text-gray-900">Forgot Password</h1>
-                        <p className="mt-1 text-sm text-gray-500">
-                            Enter your email and we'll send you a reset link.
-                        </p>
-                    </div>
-
-                    {status && (
-                        <div className="mb-4 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">
-                            {status}
-                        </div>
-                    )}
-
-                    <form onSubmit={submit} className="space-y-5">
-                        <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                                Email Address
-                            </label>
-                            <input
+        <AuthLayout
+            title="Recover your access."
+            subtitle="Enter the email on file and we'll send a secure, single-use link to reset your password."
+            tag="Recovery · Email"
+            eyebrowAccent="pink"
+            sectionIndex="02"
+            footer={
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                    <Link href="/scp/login" className="auth-link-btn">
+                        ← Back to login
+                    </Link>
+                    <span className="auth-caption text-muted-foreground">
+                        One-time link
+                    </span>
+                </div>
+            }
+        >
+            <form onSubmit={submit} noValidate>
+                <FieldGroup className="gap-6">
+                    <Field
+                        data-invalid={!!errors.email}
+                        data-disabled={processing}
+                    >
+                        <FieldLabel
+                            htmlFor="email"
+                            className="auth-caption mb-2 text-muted-foreground"
+                        >
+                            Email address
+                        </FieldLabel>
+                        <FieldContent>
+                            <Input
                                 id="email"
+                                name="email"
                                 type="email"
                                 autoComplete="email"
                                 autoFocus
+                                placeholder="you@company.com"
+                                aria-invalid={!!errors.email}
                                 value={data.email}
-                                onChange={(e) => setData('email', e.target.value)}
-                                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                onChange={(event) =>
+                                    setData("email", event.target.value)
+                                }
+                                disabled={processing}
                             />
-                            {errors.email && (
-                                <p className="mt-1 text-xs text-red-600">{errors.email}</p>
-                            )}
-                        </div>
+                            <FieldError
+                                errors={
+                                    errors.email
+                                        ? [{ message: errors.email }]
+                                        : undefined
+                                }
+                            />
+                        </FieldContent>
+                    </Field>
+                </FieldGroup>
 
-                        <button
-                            type="submit"
-                            disabled={processing}
-                            className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
-                        >
-                            {processing ? 'Sending…' : 'Send Reset Link'}
-                        </button>
-                    </form>
-
-                    <div className="mt-4 text-center">
-                        <a href="/scp/login" className="text-sm text-gray-500 hover:underline">
-                            Back to login
-                        </a>
-                    </div>
+                <div className="mt-8">
+                    <button
+                        type="submit"
+                        disabled={processing}
+                        className="auth-submit"
+                    >
+                        {processing ? "Sending link…" : "Send Reset Link →"}
+                    </button>
                 </div>
-            </div>
-        </div>
+            </form>
+        </AuthLayout>
     );
 }

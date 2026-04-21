@@ -3,8 +3,10 @@
 namespace App\Models;
 
 use App\Auth\StaffTwoFactorAuthenticatable;
+use Database\Factories\StaffFactory;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -34,6 +36,8 @@ use Spatie\Permission\Traits\HasRoles;
  */
 class Staff extends LegacyModel implements Authenticatable
 {
+    /** @use HasFactory<StaffFactory> */
+    use HasFactory;
     use HasRoles;
     use StaffTwoFactorAuthenticatable;
 
@@ -57,6 +61,11 @@ class Staff extends LegacyModel implements Authenticatable
      * @var string
      */
     protected $primaryKey = 'staff_id';
+
+    protected static function newFactory(): StaffFactory
+    {
+        return StaffFactory::new();
+    }
 
     /**
      * Get the department this staff member belongs to.

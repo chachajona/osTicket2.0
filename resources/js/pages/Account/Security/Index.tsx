@@ -1,5 +1,4 @@
 import { Link, useForm, usePage } from '@inertiajs/react';
-import type { FormEvent } from 'react';
 
 interface TwoFactorState {
     enabled: boolean;
@@ -24,6 +23,8 @@ interface PageProps extends Record<string, unknown> {
     revealedRecoveryCodes: string[];
 }
 
+type FormSubmitHandler = NonNullable<React.ComponentProps<"form">["onSubmit"]>;
+
 export default function SecurityIndex({ twoFactor, migration, revealedRecoveryCodes }: PageProps) {
     const { props } = usePage<PageProps>();
     const enableForm = useForm({ force: false });
@@ -31,25 +32,25 @@ export default function SecurityIndex({ twoFactor, migration, revealedRecoveryCo
     const regenerateForm = useForm({});
     const disableForm = useForm({});
 
-    function enableTwoFactor(event: FormEvent) {
+    const enableTwoFactor: FormSubmitHandler = (event) => {
         event.preventDefault();
         enableForm.post('/scp/account/security/two-factor/enable');
-    }
+    };
 
-    function confirmTwoFactor(event: FormEvent) {
+    const confirmTwoFactor: FormSubmitHandler = (event) => {
         event.preventDefault();
         confirmForm.post('/scp/account/security/two-factor/confirm');
-    }
+    };
 
-    function regenerateCodes(event: FormEvent) {
+    const regenerateCodes: FormSubmitHandler = (event) => {
         event.preventDefault();
         regenerateForm.post('/scp/account/security/two-factor/regenerate-codes');
-    }
+    };
 
-    function disableTwoFactor(event: FormEvent) {
+    const disableTwoFactor: FormSubmitHandler = (event) => {
         event.preventDefault();
         disableForm.delete('/scp/account/security/two-factor');
-    }
+    };
 
     return (
         <div className="min-h-screen bg-gray-50 px-4 py-10">
