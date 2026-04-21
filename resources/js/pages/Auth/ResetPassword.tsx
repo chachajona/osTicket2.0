@@ -73,11 +73,7 @@ export default function ResetPassword({ token }: Props) {
                                 disabled={processing}
                             />
                             <FieldError
-                                errors={
-                                    errors.password
-                                        ? [{ message: errors.password }]
-                                        : undefined
-                                }
+                                errors={errors.password}
                             />
                         </FieldContent>
                     </Field>
@@ -109,16 +105,7 @@ export default function ResetPassword({ token }: Props) {
                                 disabled={processing}
                             />
                             <FieldError
-                                errors={
-                                    errors.password_confirmation
-                                        ? [
-                                              {
-                                                  message:
-                                                      errors.password_confirmation,
-                                              },
-                                          ]
-                                        : undefined
-                                }
+                                errors={errors.password_confirmation}
                             />
                         </FieldContent>
                     </Field>

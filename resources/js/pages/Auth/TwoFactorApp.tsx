@@ -22,7 +22,7 @@ type FormSubmitHandler = NonNullable<React.ComponentProps<"form">["onSubmit"]>;
 type Mode = "app" | "recovery";
 
 export default function TwoFactorApp() {
-    const { data, setData, post, processing, errors } = useForm({
+    const { data, setData, post, processing, errors, clearErrors } = useForm({
         code: "",
     });
     const [mode, setMode] = useState<Mode>("app");
@@ -59,6 +59,7 @@ export default function TwoFactorApp() {
                 onValueChange={(value) => {
                     setMode(value as Mode);
                     setData("code", "");
+                    clearErrors("code");
                 }}
                 className="gap-6"
             >
@@ -118,8 +119,8 @@ export default function TwoFactorApp() {
                                     </InputOTP>
                                     <FieldError
                                         errors={
-                                            errors.code && mode === "app"
-                                                ? [{ message: errors.code }]
+                                            mode === "app"
+                                                ? errors.code
                                                 : undefined
                                         }
                                     />
@@ -160,8 +161,8 @@ export default function TwoFactorApp() {
                                     />
                                     <FieldError
                                         errors={
-                                            errors.code && mode === "recovery"
-                                                ? [{ message: errors.code }]
+                                            mode === "recovery"
+                                                ? errors.code
                                                 : undefined
                                         }
                                     />

@@ -68,11 +68,7 @@ export default function ForgotPassword() {
                                 disabled={processing}
                             />
                             <FieldError
-                                errors={
-                                    errors.email
-                                        ? [{ message: errors.email }]
-                                        : undefined
-                                }
+                                errors={errors.email}
                             />
                         </FieldContent>
                     </Field>

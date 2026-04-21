@@ -8,6 +8,7 @@ use App\Services\TwoFactorAuthService;
 use App\Services\TwoFactorAppChallengeService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
@@ -126,17 +127,23 @@ class LoginController extends Controller
 
     private function throttleKeyFor(Request $request): string
     {
-        return 'login.'.$request->input('username').'.'.$request->ip();
+        return 'login.'.$this->normalizedThrottleUsername($request).'.'.$request->ip();
     }
 
     private function flashThrottleMetadata(Request $request, string $throttleKey): void
     {
         $remainingAttempts = RateLimiter::remaining($throttleKey, self::MAX_LOGIN_ATTEMPTS);
 
-        $request->session()->flash('throttle.attemptsRemaining', $remainingAttempts);
+        $request->session()->flash('throttle.username', $this->normalizedThrottleUsername($request));
+        $request->session()->flash('throttle.attemptsRemaining', max(0, $remainingAttempts));
 
         if ($remainingAttempts <= 0) {
             $request->session()->flash('throttle.secondsUntilRetry', RateLimiter::availableIn($throttleKey));
         }
+    }
+
+    private function normalizedThrottleUsername(Request $request): string
+    {
+        return Str::lower(trim((string) $request->input('username')));
     }
 }

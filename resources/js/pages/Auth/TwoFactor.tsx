@@ -111,11 +111,7 @@ export default function TwoFactor({ status }: Props) {
                                 </InputOTPGroup>
                             </InputOTP>
                             <FieldError
-                                errors={
-                                    errors.code
-                                        ? [{ message: errors.code }]
-                                        : undefined
-                                }
+                                errors={errors.code}
                             />
                         </FieldContent>
                     </Field>
