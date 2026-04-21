@@ -69,7 +69,7 @@ class PasswordResetController extends Controller
     {
         if (! $this->isValidResetToken($token)) {
             return redirect()->route('scp.password.request')->withErrors([
-                'email' => 'This password reset link is invalid or has expired.',
+                'general' => 'This password reset link is invalid or has expired.',
             ]);
         }
 
@@ -77,7 +77,7 @@ class PasswordResetController extends Controller
 
         if (! $staffId) {
             return redirect()->route('scp.password.request')->withErrors([
-                'email' => 'This password reset link is invalid or has expired.',
+                'general' => 'This password reset link is invalid or has expired.',
             ]);
         }
 

@@ -164,6 +164,22 @@ test('password reset link is invalid after expiry', function () {
     $response = $this->get('/scp/password/reset/expired-token-xyz');
 
     $response->assertRedirect('/scp/password/forgot');
+    $response->assertSessionHasErrors([
+        'general' => 'This password reset link is invalid or has expired.',
+    ]);
+});
+
+test('invalid password reset link feedback is available on the forgot password page inertia props', function () {
+    $response = $this->followingRedirects()
+        ->withHeaders(inertiaHeaders())
+        ->get('/scp/password/reset/expired-token-xyz');
+
+    $response->assertOk();
+    $response->assertJsonPath('component', 'Auth/ForgotPassword');
+    $response->assertJsonPath(
+        'props.errors.general',
+        'This password reset link is invalid or has expired.',
+    );
 });
 
 test('password reset requires matching passwords', function () {
