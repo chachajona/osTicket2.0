@@ -40,7 +40,7 @@ test('2fa lockout after 3 failed attempts redirects to login with error', functi
 
     $response->assertRedirect('/scp/login');
     $response->assertSessionHasErrors([
-        'code' => 'Too many attempts or code expired. Please log in again.',
+        'general' => 'Too many attempts or code expired. Please log in again.',
     ]);
     expect($service->hasPendingToken(5))->toBeFalse();
 });
@@ -60,7 +60,7 @@ test('2fa lockout feedback is available on the login page inertia props', functi
 
     $response->assertOk();
     $response->assertJsonPath('component', 'Auth/Login');
-    $response->assertJsonPath('props.errors.code', 'Too many attempts or code expired. Please log in again.');
+    $response->assertJsonPath('props.errors.general', 'Too many attempts or code expired. Please log in again.');
 });
 
 test('2fa remember me stores a reusable staff remember token', function () {

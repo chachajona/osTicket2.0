@@ -221,7 +221,7 @@ test('expired totp challenge does not consume a recovery code', function () {
 
     $response->assertRedirect('/scp/login');
     $response->assertSessionHasErrors([
-        'code' => 'Too many attempts or code expired. Please log in again.',
+        'general' => 'Too many attempts or code expired. Please log in again.',
     ]);
 
     expect($staff->fresh()->recoveryCodes())->toContain($recoveryCode);
@@ -258,7 +258,7 @@ test('recovery code is not consumed when challenge expires during verification',
 
     $response->assertRedirect('/scp/login');
     $response->assertSessionHasErrors([
-        'code' => 'Too many attempts or code expired. Please log in again.',
+        'general' => 'Too many attempts or code expired. Please log in again.',
     ]);
 
     expect($staff->fresh()->recoveryCodes())->toContain($recoveryCode);
