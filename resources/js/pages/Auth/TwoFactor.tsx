@@ -16,14 +16,9 @@ import {
     InputOTPSlot,
 } from "@/components/ui/input-otp";
 
-interface Props {
-    status?: string;
-    errors?: { code?: string };
-}
-
 type FormSubmitHandler = NonNullable<React.ComponentProps<"form">["onSubmit"]>;
 
-export default function TwoFactor({ status }: Props) {
+export default function TwoFactor() {
     const { t } = useTranslation();
     const { data, setData, post, processing, errors } = useForm({
         code: "",
@@ -55,25 +50,20 @@ export default function TwoFactor({ status }: Props) {
             eyebrowAccent="indigo"
             sectionIndex="05"
             footer={
-                <div className="flex flex-col gap-4">
-                    {status && (
-                        <p className="auth-caption text-[#15803d]">{status}</p>
-                    )}
-                    <div className="flex flex-wrap items-center justify-between gap-4">
-                        <Link href="/scp/login" className="auth-link-btn">
-                            ← {t("auth.two_factor.back_to_login")}
-                        </Link>
-                        <button
-                            type="button"
-                            onClick={resend}
-                            disabled={processing || isResending}
-                            className="auth-link-btn disabled:opacity-50"
-                        >
-                            {isResending
-                                ? t("auth.two_factor.resending")
-                                : t("auth.two_factor.resend")}
-                        </button>
-                    </div>
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                    <Link href="/scp/login" className="auth-link-btn">
+                        ← {t("auth.two_factor.back_to_login")}
+                    </Link>
+                    <button
+                        type="button"
+                        onClick={resend}
+                        disabled={processing || isResending}
+                        className="auth-link-btn disabled:opacity-50"
+                    >
+                        {isResending
+                            ? t("auth.two_factor.resending")
+                            : t("auth.two_factor.resend")}
+                    </button>
                 </div>
             }
         >
