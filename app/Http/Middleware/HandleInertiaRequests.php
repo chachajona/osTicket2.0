@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Staff;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -35,16 +36,38 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        /** @var Staff|null $staff */
+        $staff = $request->user('staff');
+
         return [
             ...parent::share($request),
             'status' => fn () => $request->session()->get('status'),
-            'auth' => [
-                'throttle' => fn () => [
+            'auth' => fn () => [
+                'staff' => $staff
+                    ? [
+                        'id' => $staff->staff_id,
+                        'name' => trim(($staff->firstname ?? '').' '.($staff->lastname ?? '')) ?: $staff->username,
+                        'username' => $staff->username,
+                        'migrationBanner' => $this->shouldShowMigrationBanner($staff),
+                    ]
+                    : null,
+                'throttle' => [
                     'attemptsRemaining' => $request->session()->get('throttle.attemptsRemaining'),
                     'secondsUntilRetry' => $request->session()->get('throttle.secondsUntilRetry'),
                     'username' => $request->session()->get('throttle.username'),
                 ],
             ],
         ];
+    }
+
+    private function shouldShowMigrationBanner(Staff $staff): bool
+    {
+        $migration = $staff->loadMissing('authMigration')->authMigration;
+
+        if (! $migration || is_null($migration->migrated_at)) {
+            return false;
+        }
+
+        return is_null($migration->dismissed_migration_banner_at) && ! $staff->hasTotpEnabled();
     }
 }

@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Account\SecurityController;
+use App\Http\Controllers\Account\MigrationBannerController;
+use App\Http\Controllers\Account\TwoFactorWizardController;
 use App\Http\Controllers\Account\TwoFactorSecurityController;
 use App\Http\Controllers\Auth\ConfirmPasswordController;
 use App\Http\Controllers\Auth\LoginController;
@@ -44,8 +46,10 @@ Route::prefix('scp')->name('scp.')->group(function () {
         Route::get('/account/security', [SecurityController::class, 'show'])->name('account.security');
         Route::get('/account/security/confirm-password', [ConfirmPasswordController::class, 'show'])->name('password.confirm');
         Route::post('/account/security/confirm-password', [ConfirmPasswordController::class, 'store'])->name('password.confirm.store');
+        Route::post('/account/migration-banner/dismiss', [MigrationBannerController::class, 'dismiss'])->name('account.migration-banner.dismiss');
 
         Route::middleware(RequirePassword::using('scp.password.confirm'))->group(function () {
+            Route::get('/account/security/two-factor', [TwoFactorWizardController::class, 'show'])->name('account.security.two-factor.show');
             Route::post('/account/security/two-factor/enable', [TwoFactorSecurityController::class, 'enable'])->name('account.security.two-factor.enable');
             Route::post('/account/security/two-factor/confirm', [TwoFactorSecurityController::class, 'confirm'])->name('account.security.two-factor.confirm');
             Route::get('/account/security/two-factor/recovery-codes', [TwoFactorSecurityController::class, 'recoveryCodes'])->name('account.security.two-factor.recovery-codes');

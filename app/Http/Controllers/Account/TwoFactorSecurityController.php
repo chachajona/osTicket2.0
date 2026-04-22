@@ -8,6 +8,7 @@ use App\Services\StaffTwoFactorService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Redirector;
 
 class TwoFactorSecurityController extends Controller
 {
@@ -22,8 +23,7 @@ class TwoFactorSecurityController extends Controller
 
         $this->twoFactor->enable($staff, $request->boolean('force'));
 
-        return redirect()
-            ->route('scp.account.security')
+        return $this->securityRedirect($request, 2)
             ->with('status', 'Two-factor authentication setup started. Scan the QR code and confirm a code to finish.');
     }
 
@@ -46,6 +46,7 @@ class TwoFactorSecurityController extends Controller
     {
         $validated = $request->validate([
             'code' => ['required', 'string'],
+            'return_to_wizard' => ['nullable', 'boolean'],
         ]);
 
         /** @var Staff $staff */
@@ -61,8 +62,7 @@ class TwoFactorSecurityController extends Controller
             ],
         );
 
-        return redirect()
-            ->route('scp.account.security')
+        return $this->securityRedirect($request, 4)
             ->with('status', 'Two-factor authentication enabled.')
             ->with('two_factor_recovery_codes', $staff->fresh()->recoveryCodes());
     }
@@ -109,5 +109,14 @@ class TwoFactorSecurityController extends Controller
         return redirect()
             ->route('scp.account.security')
             ->with('status', 'Two-factor authentication disabled.');
+    }
+
+    private function securityRedirect(Request $request, int $wizardStep): Redirector|RedirectResponse
+    {
+        if ($request->boolean('return_to_wizard')) {
+            return redirect()->route('scp.account.security.two-factor.show', ['step' => $wizardStep]);
+        }
+
+        return redirect()->route('scp.account.security');
     }
 }
