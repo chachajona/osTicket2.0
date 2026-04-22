@@ -60,12 +60,12 @@ export function AuthLayout({
     const year = new Date().getFullYear();
 
     return (
-        <div className="auth-theme relative min-h-screen bg-background text-foreground antialiased">
+        <div className="auth-theme relative flex min-h-screen flex-col bg-background text-foreground antialiased">
             <div className="auth-mesh" aria-hidden />
             <div className="auth-grain" aria-hidden />
 
             {/* Top bar — 3-column grid, uppercase micro meta. */}
-            <header className="relative z-10 mx-auto grid w-full max-w-[1240px] grid-cols-3 items-center gap-4 px-6 py-5 sm:px-10">
+            <header className="relative z-10 mx-auto grid w-full max-w-310 grid-cols-3 items-center gap-4 px-6 py-5 sm:px-10">
                 <span className="auth-caption text-foreground">
                     osTicket<span className="text-muted-foreground"> · Staff Console</span>
                 </span>
@@ -81,19 +81,19 @@ export function AuthLayout({
                 </a>
             </header>
 
-            <div className="relative z-10 mx-auto w-full max-w-[1240px] px-6 sm:px-10">
+            <div className="relative z-10 mx-auto w-full max-w-310 px-6 sm:px-10">
                 <div className="h-px w-full bg-border" />
             </div>
 
             {/* Editorial grid: 12-col on desktop, stacked on mobile. */}
-            <main className="relative z-10 mx-auto grid w-full max-w-[1240px] grid-cols-12 gap-6 px-6 py-12 sm:px-10 sm:py-16 lg:gap-10 lg:py-20">
+            <main className="relative z-10 mx-auto grid w-full max-w-310 flex-1 grid-cols-12 gap-6 px-6 py-12 sm:px-10 sm:py-16 lg:gap-10 lg:py-20">
                 {/* Left rail — section number + meta caption. */}
                 <aside className="col-span-12 lg:col-span-3 lg:pt-4">
                     <div className="auth-rise flex items-start gap-3" style={rise(0)}>
-                        <span className="font-sans text-[10px] font-medium leading-[15px] tracking-[0.1em] text-muted-foreground">
+                        <span className="font-sans text-[10px] font-medium leading-3.75 tracking-widest text-muted-foreground">
                             {sectionIndex}
                         </span>
-                        <div className="mt-[6px] h-px w-6 bg-foreground" />
+                        <div className="mt-1.5 h-px w-6 bg-foreground" />
                         <span className="auth-caption text-muted-foreground">
                             {tag ?? "Authentication"}
                         </span>
@@ -115,8 +115,8 @@ export function AuthLayout({
                     <h1
                         className={cn(
                             "auth-rise mt-5 font-sans font-medium text-foreground",
-                            "text-[44px] leading-[1] tracking-[-0.04em]",
-                            "sm:text-[64px] sm:leading-[1]",
+                            "text-[44px] leading-none tracking-[-0.04em]",
+                            "sm:text-[64px] sm:leading-none",
                             "lg:text-[80px] lg:leading-[0.96] lg:tracking-[-0.05em]",
                         )}
                         style={rise(120)}
@@ -126,14 +126,14 @@ export function AuthLayout({
 
                     {subtitle && (
                         <p
-                            className="auth-rise mt-6 max-w-[560px] font-sans text-sm leading-[22.75px] text-muted-foreground"
+                            className="auth-rise mt-6 max-w-140 font-sans text-sm leading-[22.75px] text-muted-foreground"
                             style={rise(200)}
                         >
                             {subtitle}
                         </p>
                     )}
 
-                    <div className="mt-8 w-full max-w-[560px] space-y-3">
+                    <div className="mt-8 w-full max-w-140 space-y-3">
                         {status && (
                             <Alert
                                 variant="success"
@@ -160,7 +160,7 @@ export function AuthLayout({
 
                     {/* Gradient border shell card */}
                     <div
-                        className="auth-rise mt-6 w-full max-w-[560px]"
+                        className="auth-rise mt-6 w-full max-w-140"
                         style={rise(340)}
                     >
                         <div className="auth-shell">
@@ -177,7 +177,7 @@ export function AuthLayout({
 
                     {footer && (
                         <div
-                            className="auth-rise mt-6 max-w-[560px]"
+                            className="auth-rise mt-6 max-w-140"
                             style={rise(440)}
                         >
                             {footer}
@@ -186,11 +186,11 @@ export function AuthLayout({
                 </section>
             </main>
 
-            <div className="relative z-10 mx-auto w-full max-w-[1240px] px-6 sm:px-10">
+            <div className="relative z-10 mx-auto w-full max-w-310 px-6 sm:px-10">
                 <div className="h-px w-full bg-border" />
             </div>
 
-            <footer className="relative z-10 mx-auto grid w-full max-w-[1240px] grid-cols-3 items-center gap-4 px-6 py-5 sm:px-10">
+            <footer className="relative z-10 mx-auto grid w-full max-w-310 grid-cols-3 items-center gap-4 px-6 py-5 sm:px-10">
                 <span className="auth-caption text-muted-foreground">
                     © {year} · osticket.com
                 </span>
