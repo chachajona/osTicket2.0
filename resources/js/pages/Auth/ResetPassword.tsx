@@ -1,74 +1,126 @@
-import { useForm } from '@inertiajs/react';
-import { FormEvent } from 'react';
+import { Link, useForm } from "@inertiajs/react";
+
+import { AuthLayout } from "@/layouts/AuthLayout";
+import {
+    Field,
+    FieldContent,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 
 interface Props {
     token: string;
 }
 
+type FormSubmitHandler = NonNullable<React.ComponentProps<"form">["onSubmit"]>;
+
 export default function ResetPassword({ token }: Props) {
     const { data, setData, post, processing, errors } = useForm({
         token,
-        password: '',
-        password_confirmation: '',
+        password: "",
+        password_confirmation: "",
     });
 
-    function submit(e: FormEvent) {
-        e.preventDefault();
-        post('/scp/password/reset');
-    }
+    const submit: FormSubmitHandler = (event) => {
+        event.preventDefault();
+        post("/scp/password/reset");
+    };
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-gray-50">
-            <div className="w-full max-w-md">
-                <div className="rounded-2xl bg-white px-8 py-10 shadow-lg">
-                    <div className="mb-8 text-center">
-                        <h1 className="text-2xl font-bold tracking-tight text-gray-900">Reset Password</h1>
-                        <p className="mt-1 text-sm text-gray-500">Enter your new password below.</p>
-                    </div>
-
-                    <form onSubmit={submit} className="space-y-5">
-                        <div>
-                            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                                New Password
-                            </label>
-                            <input
+        <AuthLayout
+            title="Set a new password."
+            subtitle="Choose something long, unique, and memorable. You'll be signed back in right after."
+            tag="Recovery · New credential"
+            eyebrowAccent="indigo"
+            sectionIndex="03"
+            footer={
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                    <Link href="/scp/login" className="auth-link-btn">
+                        ← Back to login
+                    </Link>
+                    <span className="auth-caption text-muted-foreground">
+                        Credential update
+                    </span>
+                </div>
+            }
+        >
+            <form onSubmit={submit} noValidate>
+                <FieldGroup className="gap-6">
+                    <Field
+                        data-invalid={!!errors.password}
+                        data-disabled={processing}
+                    >
+                        <FieldLabel
+                            htmlFor="password"
+                            className="auth-caption mb-2 text-muted-foreground"
+                        >
+                            New password
+                        </FieldLabel>
+                        <FieldContent>
+                            <Input
                                 id="password"
+                                name="password"
                                 type="password"
                                 autoComplete="new-password"
                                 autoFocus
+                                aria-invalid={!!errors.password}
                                 value={data.password}
-                                onChange={(e) => setData('password', e.target.value)}
-                                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                onChange={(event) =>
+                                    setData("password", event.target.value)
+                                }
+                                disabled={processing}
                             />
-                            {errors.password && (
-                                <p className="mt-1 text-xs text-red-600">{errors.password}</p>
-                            )}
-                        </div>
+                            <FieldError
+                                errors={errors.password}
+                            />
+                        </FieldContent>
+                    </Field>
 
-                        <div>
-                            <label htmlFor="password_confirmation" className="block text-sm font-medium text-gray-700">
-                                Confirm Password
-                            </label>
-                            <input
+                    <Field
+                        data-invalid={!!errors.password_confirmation}
+                        data-disabled={processing}
+                    >
+                        <FieldLabel
+                            htmlFor="password_confirmation"
+                            className="auth-caption mb-2 text-muted-foreground"
+                        >
+                            Confirm password
+                        </FieldLabel>
+                        <FieldContent>
+                            <Input
                                 id="password_confirmation"
+                                name="password_confirmation"
                                 type="password"
                                 autoComplete="new-password"
+                                aria-invalid={!!errors.password_confirmation}
                                 value={data.password_confirmation}
-                                onChange={(e) => setData('password_confirmation', e.target.value)}
-                                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                onChange={(event) =>
+                                    setData(
+                                        "password_confirmation",
+                                        event.target.value,
+                                    )
+                                }
+                                disabled={processing}
                             />
-                        </div>
+                            <FieldError
+                                errors={errors.password_confirmation}
+                            />
+                        </FieldContent>
+                    </Field>
+                </FieldGroup>
 
-                        <button
-                            type="submit"
-                            disabled={processing}
-                            className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
-                        >
-                            {processing ? 'Resetting…' : 'Reset Password'}
-                        </button>
-                    </form>
+                <div className="mt-8">
+                    <button
+                        type="submit"
+                        disabled={processing}
+                        className="auth-submit"
+                    >
+                        {processing ? "Resetting…" : "Set New Password →"}
+                    </button>
                 </div>
-            </div>
-        </div>
+            </form>
+        </AuthLayout>
     );
 }

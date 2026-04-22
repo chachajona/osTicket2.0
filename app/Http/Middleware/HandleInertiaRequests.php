@@ -38,6 +38,13 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'status' => fn () => $request->session()->get('status'),
+            'auth' => [
+                'throttle' => fn () => [
+                    'attemptsRemaining' => $request->session()->get('throttle.attemptsRemaining'),
+                    'secondsUntilRetry' => $request->session()->get('throttle.secondsUntilRetry'),
+                    'username' => $request->session()->get('throttle.username'),
+                ],
+            ],
         ];
     }
 }

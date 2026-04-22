@@ -13,7 +13,11 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', function () {
-    return Inertia::render('Welcome');
+    if (Auth::guard('staff')->check()) {
+        return redirect()->route('scp.dashboard');
+    }
+
+    return redirect()->route('scp.login');
 });
 
 Route::prefix('scp')->name('scp.')->group(function () {

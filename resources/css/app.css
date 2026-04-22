@@ -3,6 +3,11 @@
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/manrope";
 @import "@fontsource-variable/montserrat";
+@import "@fontsource/instrument-serif/400.css";
+@import "@fontsource/instrument-serif/400-italic.css";
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/inter-tight";
+@import "@fontsource-variable/geist-mono";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -88,6 +93,10 @@
 @theme inline {
     --font-sans: 'Manrope Variable', sans-serif;
     --font-heading: 'Montserrat Variable', sans-serif;
+    --font-serif: 'Instrument Serif', ui-serif, georgia, 'Times New Roman', serif;
+    --font-display: 'Inter Tight Variable', 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+    --font-body: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: 'Geist Mono Variable', ui-monospace, sfmono-regular, menlo, monaco, consolas, monospace;
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -138,4 +147,282 @@
   html {
     @apply font-sans;
     }
+}
+
+/* Editorial light auth theme — scoped to .auth-theme only, does not leak.
+ * Palette: warm cream surface on white, black foreground, gradient accents
+ * (orange #F97316 → pink #EC4899 → indigo #6366F1). Inter-only typography. */
+.auth-theme {
+    --background: #ffffff;
+    --foreground: #18181b;
+    --surface: #f4f2eb;
+    --card: #f4f2eb;
+    --card-foreground: #18181b;
+    --popover: #ffffff;
+    --popover-foreground: #18181b;
+    --primary: #18181b;
+    --primary-foreground: #ffffff;
+    --secondary: #f4f2eb;
+    --secondary-foreground: #18181b;
+    --muted: #f4f2eb;
+    --muted-foreground: #52525b;
+    --accent: #f97316;
+    --accent-foreground: #18181b;
+    --destructive: #dc2626;
+    --border: #e2e0d8;
+    --input: #ffffff;
+    --ring: #18181b;
+    --radius: 0.25rem;
+    color-scheme: light;
+    font-family: "Inter Variable", Inter, ui-sans-serif, system-ui, sans-serif;
+    font-feature-settings: "ss01", "cv11";
+}
+
+.auth-theme ::selection {
+    background: rgba(249, 115, 22, 0.28);
+    color: #18181b;
+}
+
+/* Editorial gradient — orange → pink → indigo. Used for border shells,
+ * underlines, accent flourishes. */
+.auth-gradient {
+    background: linear-gradient(
+        to right bottom,
+        #fb923c 0%,
+        #ec4899 55%,
+        #6366f1 100%
+    );
+}
+
+/* Horizontal gradient variant — for rules, accent bars. */
+.auth-gradient-h {
+    background: linear-gradient(
+        to right,
+        #fb923c 0%,
+        #ec4899 55%,
+        #6366f1 100%
+    );
+}
+
+/* Gradient border shell — 1px outer + cream inner. Wrap .auth-shell around
+ * a child with class .auth-shell-inner to get a hairline gradient frame. */
+.auth-shell {
+    padding: 1px;
+    border-radius: 10px;
+    background: linear-gradient(
+        to right bottom,
+        #fb923c 0%,
+        #ec4899 55%,
+        #6366f1 100%
+    );
+    box-shadow:
+        rgba(236, 72, 153, 0.10) 0 10px 15px -3px,
+        rgba(236, 72, 153, 0.10) 0 4px 6px -4px,
+        rgba(0, 0, 0, 0.04) 0 2px 8px -2px;
+}
+
+.auth-shell-inner {
+    border-radius: 9px;
+    background: var(--surface);
+}
+
+/* Warm corner gradient mesh — decorative wash behind the hero. */
+.auth-mesh {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background:
+        radial-gradient(
+            55% 40% at 92% 8%,
+            rgba(249, 115, 22, 0.20) 0%,
+            rgba(249, 115, 22, 0) 70%
+        ),
+        radial-gradient(
+            50% 35% at 8% 100%,
+            rgba(99, 102, 241, 0.14) 0%,
+            rgba(99, 102, 241, 0) 70%
+        ),
+        radial-gradient(
+            40% 30% at 60% 60%,
+            rgba(236, 72, 153, 0.10) 0%,
+            rgba(236, 72, 153, 0) 70%
+        );
+}
+
+/* Paper grain — subtle dot texture for tactile warmth. */
+.auth-grain {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.6;
+    mix-blend-mode: multiply;
+    background-image: radial-gradient(
+        rgba(24, 24, 27, 0.05) 0.5px,
+        transparent 0.5px
+    );
+    background-size: 3px 3px;
+}
+
+/* Ruler — thin border with gradient partial accent. */
+.auth-rule {
+    position: relative;
+    height: 1px;
+    background: var(--border);
+}
+
+.auth-rule::before {
+    content: "";
+    position: absolute;
+    inset: 0 70% 0 0;
+    background: linear-gradient(to right, #fb923c 0%, #ec4899 100%);
+}
+
+@keyframes auth-rise {
+    0% {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .auth-rise {
+        animation: auth-rise 0.55s cubic-bezier(0.4, 0, 0.2, 1) both;
+    }
+}
+
+/* Eyebrow caption — micro uppercase with dot. */
+.auth-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: "Inter Variable", Inter, ui-sans-serif, system-ui, sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    line-height: 15px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--foreground);
+}
+
+.auth-eyebrow::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    background: currentcolor;
+    flex-shrink: 0;
+}
+
+.auth-eyebrow[data-accent="orange"]::before { background: #f97316; }
+.auth-eyebrow[data-accent="pink"]::before { background: #ec4899; }
+.auth-eyebrow[data-accent="indigo"]::before { background: #6366f1; }
+.auth-eyebrow[data-accent="gradient"]::before {
+    background: linear-gradient(135deg, #fb923c, #ec4899, #6366f1);
+}
+
+/* Tiny caption — uppercase label, used for metadata. */
+.auth-caption {
+    font-family: "Inter Variable", Inter, ui-sans-serif, system-ui, sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    line-height: 15px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+}
+
+/* Secondary button — tracked uppercase underline. */
+.auth-link-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-bottom: 2px;
+    border-bottom: 1px solid currentcolor;
+    font-family: "Inter Variable", Inter, ui-sans-serif, system-ui, sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--foreground);
+    transition: color 150ms ease, border-color 150ms ease;
+}
+
+.auth-link-btn:hover {
+    color: #be185d;
+    border-color: #be185d;
+}
+
+/* Primary submit — black pill with gradient hover accent. */
+.auth-submit {
+    display: inline-flex;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 12px 20px;
+    border-radius: 3px;
+    background: var(--primary);
+    color: var(--primary-foreground);
+    font-family: "Inter Variable", Inter, ui-sans-serif, system-ui, sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    transition: background 200ms ease, transform 150ms ease;
+    box-shadow:
+        rgba(24, 24, 27, 0.1) 0 2px 4px -2px,
+        rgba(24, 24, 27, 0.05) 0 1px 2px 0;
+}
+
+.auth-submit:hover:not(:disabled) {
+    background: linear-gradient(
+        to right,
+        #18181b 0%,
+        #3b1a3d 50%,
+        #18181b 100%
+    );
+}
+
+.auth-submit:active:not(:disabled) {
+    transform: scale(0.99);
+}
+
+.auth-submit:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Inputs inside auth-theme — clean cream-bordered with orange focus. */
+.auth-theme [data-slot="input"] {
+    height: 44px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--input);
+    padding: 0 14px;
+    font-size: 14px;
+    color: var(--foreground);
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.auth-theme [data-slot="input"]:hover {
+    border-color: #cbc8bd;
+}
+
+.auth-theme [data-slot="input"]:focus-visible {
+    outline: none;
+    border-color: #18181b;
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.18);
+}
+
+.auth-theme [data-slot="input"][aria-invalid="true"] {
+    border-color: var(--destructive);
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
 }

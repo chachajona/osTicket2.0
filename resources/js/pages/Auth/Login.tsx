@@ -1,110 +1,219 @@
-import { useForm, usePage } from '@inertiajs/react';
-import { FormEvent } from 'react';
+import { Link, useForm, usePage } from "@inertiajs/react";
 
-interface PageProps extends Record<string, unknown> {
-    errors?: {
-        code?: string;
+import { AuthLayout } from "@/layouts/AuthLayout";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+    Field,
+    FieldContent,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { useCountdown, formatCountdown } from "@/hooks/use-countdown";
+
+interface SharedProps extends Record<string, unknown> {
+    auth?: {
+        throttle?: {
+            secondsUntilRetry?: number | null;
+            attemptsRemaining?: number | null;
+            username?: string | null;
+        };
     };
-    status?: string;
+}
+
+type FormSubmitHandler = NonNullable<React.ComponentProps<"form">["onSubmit"]>;
+
+function normalizeUsername(value: string | null | undefined): string {
+    return value?.trim().toLowerCase() ?? "";
 }
 
 export default function Login() {
     const { data, setData, post, processing, errors } = useForm({
-        username: '',
-        password: '',
+        username: "",
+        password: "",
         remember: false,
     });
-    const { props } = usePage<PageProps>();
-    const authError = props.errors?.code;
-    const statusMessage = props.status;
+    const { props } = usePage<SharedProps>();
+    const lockedFor = props.auth?.throttle?.secondsUntilRetry ?? 0;
+    const attemptsRemaining = props.auth?.throttle?.attemptsRemaining;
+    const throttledUsername = normalizeUsername(
+        props.auth?.throttle?.username,
+    );
+    const currentUsername = normalizeUsername(data.username);
+    const isCurrentUsernameThrottled =
+        throttledUsername !== "" && throttledUsername === currentUsername;
+    const remaining = useCountdown(lockedFor);
+    const locked = isCurrentUsernameThrottled && remaining > 0;
 
-    function submit(e: FormEvent) {
-        e.preventDefault();
-        post('/scp/login');
-    }
+    const submit: FormSubmitHandler = (event) => {
+        event.preventDefault();
+        post("/scp/login");
+    };
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-gray-50">
-            <div className="w-full max-w-md">
-                <div className="rounded-2xl bg-white px-8 py-10 shadow-lg">
-                    <div className="mb-8 text-center">
-                        <h1 className="text-2xl font-bold tracking-tight text-gray-900">osTicket Staff Portal</h1>
-                        <p className="mt-1 text-sm text-gray-500">Sign in to your account</p>
-                    </div>
-
-                    {statusMessage && (
-                        <div className="mb-4 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">
-                            {statusMessage}
-                        </div>
-                    )}
-
-                    {authError && (
-                        <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
-                            {authError}
-                        </div>
-                    )}
-
-                    <form onSubmit={submit} className="space-y-5">
-                        <div>
-                            <label htmlFor="username" className="block text-sm font-medium text-gray-700">
-                                Username
-                            </label>
-                            <input
+        <AuthLayout
+            title="Sign in to the console."
+            subtitle="Access the osTicket staff support panel with your credentials. Two-factor authentication may be required."
+            tag="Login · Staff"
+            eyebrowAccent="orange"
+            sectionIndex="01"
+            footer={
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                    <Link
+                        href="/scp/password/forgot"
+                        className="auth-link-btn"
+                    >
+                        Forgot password
+                    </Link>
+                    <span className="auth-caption text-muted-foreground">
+                        Session · Restricted
+                    </span>
+                </div>
+            }
+        >
+            {locked && (
+                <Alert
+                    variant="warning"
+                    className="mb-6 border-[#fcd34d] bg-[#fffbeb]"
+                >
+                    <AlertDescription className="auth-caption text-[#92400e]">
+                        Rate limit reached. Retry in{" "}
+                        {formatCountdown(remaining)}.
+                    </AlertDescription>
+                </Alert>
+            )}
+            <form onSubmit={submit} noValidate>
+                <FieldGroup className="gap-6">
+                    <Field
+                        data-invalid={!!errors.username}
+                        data-disabled={processing}
+                    >
+                        <FieldLabel
+                            htmlFor="username"
+                            className="auth-caption mb-2 text-muted-foreground"
+                        >
+                            Username
+                        </FieldLabel>
+                        <FieldContent>
+                            <Input
                                 id="username"
+                                name="username"
                                 type="text"
                                 autoComplete="username"
                                 autoFocus
+                                aria-invalid={!!errors.username}
                                 value={data.username}
-                                onChange={(e) => setData('username', e.target.value)}
-                                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                onChange={(e) =>
+                                    setData("username", e.target.value)
+                                }
+                                disabled={processing}
                             />
-                            {errors.username && (
-                                <p className="mt-1 text-xs text-red-600">{errors.username}</p>
-                            )}
-                        </div>
+                            <FieldError errors={errors.username} />
+                        </FieldContent>
+                    </Field>
 
-                        <div>
-                            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                    <Field
+                        data-invalid={!!errors.password}
+                        data-disabled={processing || locked}
+                    >
+                        <div className="flex items-center justify-between">
+                            <FieldLabel
+                                htmlFor="password"
+                                className="auth-caption text-muted-foreground"
+                            >
                                 Password
-                            </label>
-                            <input
+                            </FieldLabel>
+                            <Link
+                                href="/scp/password/forgot"
+                                className="auth-caption text-muted-foreground transition-colors hover:text-[#ec4899]"
+                            >
+                                Forgot →
+                            </Link>
+                        </div>
+                        <FieldContent className="mt-2">
+                            <Input
                                 id="password"
+                                name="password"
                                 type="password"
                                 autoComplete="current-password"
+                                aria-invalid={!!errors.password}
                                 value={data.password}
-                                onChange={(e) => setData('password', e.target.value)}
-                                className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                onChange={(e) =>
+                                    setData("password", e.target.value)
+                                }
+                                disabled={processing || locked}
                             />
-                            {errors.password && (
-                                <p className="mt-1 text-xs text-red-600">{errors.password}</p>
-                            )}
-                        </div>
+                            <FieldError
+                                errors={errors.password}
+                            />
+                            {!locked &&
+                                isCurrentUsernameThrottled &&
+                                typeof attemptsRemaining === "number" &&
+                                attemptsRemaining < 5 &&
+                                attemptsRemaining > 0 && (
+                                    <p className="auth-caption mt-1 text-[#b45309]">
+                                        {attemptsRemaining} attempt
+                                        {attemptsRemaining === 1 ? "" : "s"}{" "}
+                                        remaining before lockout
+                                    </p>
+                                )}
+                        </FieldContent>
+                    </Field>
 
-                        <div className="flex items-center justify-between">
-                            <label className="flex items-center gap-2 text-sm text-gray-600">
-                                <input
-                                    type="checkbox"
-                                    checked={data.remember}
-                                    onChange={(e) => setData('remember', e.target.checked)}
-                                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                />
-                                Remember me
-                            </label>
-                            <a href="/scp/password/forgot" className="text-sm text-blue-600 hover:underline">
-                                Forgot password?
-                            </a>
-                        </div>
-
-                        <button
-                            type="submit"
-                            disabled={processing}
-                            className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+                    <Field
+                        orientation="horizontal"
+                        className="items-center gap-3"
+                        data-disabled={processing || locked}
+                    >
+                        <label className="relative flex cursor-pointer items-center">
+                            <input
+                                id="remember"
+                                name="remember"
+                                type="checkbox"
+                                checked={data.remember}
+                                onChange={(e) =>
+                                    setData("remember", e.target.checked)
+                                }
+                                disabled={processing || locked}
+                                className="peer sr-only"
+                            />
+                            <span
+                                className="flex h-[18px] w-[18px] items-center justify-center rounded-[3px] border border-border bg-background text-transparent transition-all peer-checked:border-foreground peer-checked:bg-foreground peer-checked:text-background peer-focus-visible:ring-2 peer-focus-visible:ring-[#f97316]/40 peer-disabled:opacity-50"
+                                aria-hidden
+                            >
+                                <svg
+                                    className="h-3 w-3"
+                                    viewBox="0 0 12 12"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2.5"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                >
+                                    <path d="M2.5 6.5 L5 9 L9.5 3.5" />
+                                </svg>
+                            </span>
+                        </label>
+                        <FieldLabel
+                            htmlFor="remember"
+                            className="cursor-pointer text-sm font-normal text-foreground"
                         >
-                            {processing ? 'Signing in…' : 'Sign in'}
-                        </button>
-                    </form>
+                            Keep me signed in on this device
+                        </FieldLabel>
+                    </Field>
+                </FieldGroup>
+
+                <div className="mt-8">
+                    <button
+                        type="submit"
+                        disabled={processing || locked}
+                        className="auth-submit"
+                    >
+                        {processing ? "Authenticating…" : "Enter Console →"}
+                    </button>
                 </div>
-            </div>
-        </div>
+            </form>
+        </AuthLayout>
     );
 }

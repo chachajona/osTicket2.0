@@ -8,6 +8,7 @@ use App\Services\TwoFactorAuthService;
 use App\Services\TwoFactorAppChallengeService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
@@ -17,6 +18,10 @@ use Inertia\Response;
 
 class LoginController extends Controller
 {
+    private const MAX_LOGIN_ATTEMPTS = 5;
+
+    private const LOGIN_THROTTLE_SECONDS = 300;
+
     public function __construct(
         private readonly TwoFactorAuthService $twoFactor,
         private readonly TwoFactorAppChallengeService $appChallenge,
@@ -38,13 +43,15 @@ class LoginController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        $throttleKey = 'login.' . $request->input('username') . '.' . $request->ip();
+        $throttleKey = $this->throttleKeyFor($request);
 
-        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+        if (RateLimiter::tooManyAttempts($throttleKey, self::MAX_LOGIN_ATTEMPTS)) {
+            $this->flashThrottleMetadata($request, $throttleKey);
             $seconds = RateLimiter::availableIn($throttleKey);
+
             throw ValidationException::withMessages([
-                'username' => __('auth.throttle', ['seconds' => $seconds, 'minutes' => ceil($seconds / 60)]),
-            ]);
+                'username' => [__('auth.throttle', ['seconds' => $seconds, 'minutes' => ceil($seconds / 60)])],
+            ])->status(429);
         }
 
         $staff = Staff::where('username', $credentials['username'])
@@ -52,7 +59,9 @@ class LoginController extends Controller
             ->first();
 
         if (! $staff || ! Auth::guard('staff')->validate($credentials)) {
-            RateLimiter::hit($throttleKey, 300);
+            RateLimiter::hit($throttleKey, self::LOGIN_THROTTLE_SECONDS);
+            $this->flashThrottleMetadata($request, $throttleKey);
+
             throw ValidationException::withMessages([
                 'username' => [__('auth.failed')],
             ]);
@@ -76,7 +85,7 @@ class LoginController extends Controller
 
         Mail::raw(
             "Your osTicket login code is: {$code}\n\nThis code expires in 6 minutes.",
-            fn ($message) => $message
+            fn($message) => $message
                 ->to($staff->email)
                 ->subject('Your Login Verification Code')
         );
@@ -105,10 +114,36 @@ class LoginController extends Controller
 
     private function ensureDashboardIsTheFallbackIntendedUrl(Request $request): void
     {
-        $intended = $request->session()->get('url.intended');
+        $session = $request->session();
+        $intendedUrl = $session->get('url.intended');
+        $applicationRootUrl = rtrim($request->root(), '/');
 
-        if (! is_string($intended) || rtrim($intended, '/') === rtrim(url('/'), '/')) {
-            $request->session()->put('url.intended', route('scp.dashboard'));
+        if (is_string($intendedUrl) && rtrim($intendedUrl, '/') !== $applicationRootUrl) {
+            return;
         }
+
+        $session->put('url.intended', route('scp.dashboard'));
+    }
+
+    private function throttleKeyFor(Request $request): string
+    {
+        return 'login.'.$this->normalizedThrottleUsername($request).'.'.$request->ip();
+    }
+
+    private function flashThrottleMetadata(Request $request, string $throttleKey): void
+    {
+        $remainingAttempts = RateLimiter::remaining($throttleKey, self::MAX_LOGIN_ATTEMPTS);
+
+        $request->session()->flash('throttle.username', $this->normalizedThrottleUsername($request));
+        $request->session()->flash('throttle.attemptsRemaining', max(0, $remainingAttempts));
+
+        if ($remainingAttempts <= 0) {
+            $request->session()->flash('throttle.secondsUntilRetry', RateLimiter::availableIn($throttleKey));
+        }
+    }
+
+    private function normalizedThrottleUsername(Request $request): string
+    {
+        return Str::lower(trim((string) $request->input('username')));
     }
 }

@@ -37,7 +37,7 @@ class TwoFactorAppController extends Controller
             $request->session()->forget(['2fa_app.staff_id', '2fa_app.remember']);
 
             return redirect()->route('scp.login')->withErrors([
-                'code' => 'Too many attempts or code expired. Please log in again.',
+                'general' => 'Too many attempts or code expired. Please log in again.',
             ]);
         }
 
@@ -54,7 +54,7 @@ class TwoFactorAppController extends Controller
             $request->session()->forget(['2fa_app.staff_id', '2fa_app.remember']);
 
             return redirect()->route('scp.login')->withErrors([
-                'code' => 'Your account is no longer available for app-based authentication.',
+                'general' => 'Your account is no longer available for app-based authentication.',
             ]);
         }
 
@@ -77,7 +77,7 @@ class TwoFactorAppController extends Controller
                 $request->session()->forget(['2fa_app.staff_id', '2fa_app.remember']);
 
                 return redirect()->route('scp.login')->withErrors([
-                    'code' => 'Too many attempts or code expired. Please log in again.',
+                    'general' => 'Too many attempts or code expired. Please log in again.',
                 ]);
             }
 

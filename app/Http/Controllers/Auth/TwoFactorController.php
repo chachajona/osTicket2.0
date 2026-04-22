@@ -44,7 +44,7 @@ class TwoFactorController extends Controller
                 $request->session()->forget(['2fa.staff_id', '2fa.remember']);
 
                 return redirect()->route('scp.login')->withErrors([
-                    'code' => 'Too many attempts or code expired. Please log in again.',
+                    'general' => 'Too many attempts or code expired. Please log in again.',
                 ]);
             }
 
@@ -60,7 +60,7 @@ class TwoFactorController extends Controller
             $request->session()->forget(['2fa.staff_id', '2fa.remember']);
 
             return redirect()->route('scp.login')->withErrors([
-                'code' => 'Your account has been deactivated.',
+                'general' => 'Your account has been deactivated.',
             ]);
         }
 
