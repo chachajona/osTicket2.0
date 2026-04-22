@@ -1,4 +1,9 @@
-import { Link, useForm, usePage } from '@inertiajs/react';
+import { Link, router, useForm, usePage } from '@inertiajs/react';
+
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import Sessions from '@/pages/Account/Security/Sessions';
 
 interface TwoFactorState {
     enabled: boolean;
@@ -27,20 +32,8 @@ type FormSubmitHandler = NonNullable<React.ComponentProps<"form">["onSubmit"]>;
 
 export default function SecurityIndex({ twoFactor, migration, revealedRecoveryCodes }: PageProps) {
     const { props } = usePage<PageProps>();
-    const enableForm = useForm({ force: false });
-    const confirmForm = useForm({ code: '' });
     const regenerateForm = useForm({});
     const disableForm = useForm({});
-
-    const enableTwoFactor: FormSubmitHandler = (event) => {
-        event.preventDefault();
-        enableForm.post('/scp/account/security/two-factor/enable');
-    };
-
-    const confirmTwoFactor: FormSubmitHandler = (event) => {
-        event.preventDefault();
-        confirmForm.post('/scp/account/security/two-factor/confirm');
-    };
 
     const regenerateCodes: FormSubmitHandler = (event) => {
         event.preventDefault();
@@ -68,123 +61,101 @@ export default function SecurityIndex({ twoFactor, migration, revealedRecoveryCo
                 </div>
 
                 {props.status && (
-                    <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-                        {props.status}
-                    </div>
+                    <Alert className="rounded-xl border-green-200 bg-green-50 text-green-700">
+                        <AlertDescription className="text-green-700">
+                            {props.status}
+                        </AlertDescription>
+                    </Alert>
                 )}
 
                 <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
                     <section className="rounded-2xl bg-white p-6 shadow-sm">
-                        <div className="flex items-start justify-between gap-4">
-                            <div>
-                                <h2 className="text-lg font-semibold text-gray-900">Authenticator app</h2>
-                                <p className="mt-1 text-sm text-gray-500">
-                                    {twoFactor.enabled
-                                        ? 'App-based two-factor authentication is enabled for your account.'
-                                        : 'Enable TOTP to finish your Laravel-native authentication upgrade.'}
-                                </p>
-                            </div>
-                            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${twoFactor.enabled ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                                {twoFactor.enabled ? 'Enabled' : twoFactor.pending ? 'Pending confirmation' : 'Not enabled'}
-                            </span>
-                        </div>
+                        <Tabs defaultValue="two-factor" className="gap-6">
+                            <TabsList variant="line" className="w-full justify-start gap-6 border-b border-border p-0">
+                                <TabsTrigger value="two-factor" className="px-0 pb-3">
+                                    Two-factor
+                                </TabsTrigger>
+                                <TabsTrigger value="sessions" className="px-0 pb-3">
+                                    Sessions
+                                </TabsTrigger>
+                            </TabsList>
 
-                        {!twoFactor.pending && !twoFactor.enabled && (
-                            <form onSubmit={enableTwoFactor} className="mt-6">
-                                <button
-                                    type="submit"
-                                    disabled={enableForm.processing}
-                                    className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
-                                >
-                                    {enableForm.processing ? 'Starting…' : 'Enable two-factor'}
-                                </button>
-                            </form>
-                        )}
-
-                        {(twoFactor.pending || twoFactor.enabled) && (
-                            <div className="mt-6 space-y-5">
-                                {twoFactor.qrCodeSvg && (
-                                    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                                        <p className="text-sm font-medium text-gray-700">Scan this QR code with your authenticator app.</p>
-                                        <div
-                                            className="mt-4 flex justify-center rounded-lg bg-white p-4"
-                                            dangerouslySetInnerHTML={{ __html: twoFactor.qrCodeSvg }}
-                                        />
-                                    </div>
-                                )}
-
-                                {twoFactor.setupKey && (
-                                    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                                        <p className="text-sm font-medium text-gray-700">Manual setup key</p>
-                                        <p className="mt-2 break-all font-mono text-sm text-gray-900">{twoFactor.setupKey}</p>
-                                    </div>
-                                )}
-
-                                {!twoFactor.enabled && (
-                                    <form onSubmit={confirmTwoFactor} className="space-y-3">
-                                        <div>
-                                            <label htmlFor="code" className="block text-sm font-medium text-gray-700">
-                                                Confirm with a code from your app
-                                            </label>
-                                             <input
-                                                 id="code"
-                                                 type="text"
-                                                 inputMode="numeric"
-                                                 pattern="[0-9]*"
-                                                 maxLength={6}
-                                                 autoComplete="one-time-code"
-                                                 aria-invalid={!!confirmForm.errors.code}
-                                                 value={confirmForm.data.code}
-                                                 onChange={(event) => confirmForm.setData('code', event.target.value)}
-                                                 className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                             />
-                                             {confirmForm.errors.code && (
-                                                 <p role="alert" className="mt-1 text-xs text-red-600">{confirmForm.errors.code}</p>
-                                             )}
+                            <TabsContent value="two-factor" className="mt-0">
+                                <div className="space-y-4">
+                                    <div className="rounded-xl border border-gray-200 p-4">
+                                        <div className="flex items-start justify-between gap-4">
+                                            <div>
+                                                <h2 className="text-lg font-semibold text-gray-900">Authenticator app</h2>
+                                                <p className="mt-1 text-sm text-gray-500">
+                                                    {twoFactor.enabled
+                                                        ? 'App-based two-factor authentication is enabled for your account.'
+                                                        : twoFactor.pending
+                                                          ? 'Setup started. Return to the wizard to finish verifying your app.'
+                                                          : 'Enable TOTP to finish your Laravel-native authentication upgrade.'}
+                                                </p>
+                                            </div>
+                                            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${twoFactor.enabled ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                                                {twoFactor.enabled ? 'Enabled' : twoFactor.pending ? 'Pending confirmation' : 'Not enabled'}
+                                            </span>
                                         </div>
 
-                                        <button
-                                            type="submit"
-                                            disabled={confirmForm.processing}
-                                            className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800 disabled:opacity-50"
-                                        >
-                                            {confirmForm.processing ? 'Confirming…' : 'Confirm setup'}
-                                        </button>
-                                    </form>
-                                )}
-
-                                {twoFactor.enabled && (
-                                    <div className="flex flex-wrap gap-3">
-                                        <Link
-                                            href="/scp/account/security/confirm-password"
-                                            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                                        >
-                                            Confirm password
-                                        </Link>
-
-                                        <form onSubmit={regenerateCodes}>
-                                            <button
-                                                type="submit"
-                                                disabled={regenerateForm.processing}
-                                                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-                                            >
-                                                {regenerateForm.processing ? 'Regenerating…' : 'Regenerate recovery codes'}
-                                            </button>
-                                        </form>
-
-                                        <form onSubmit={disableTwoFactor}>
-                                            <button
-                                                type="submit"
-                                                disabled={disableForm.processing}
-                                                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
-                                            >
-                                                {disableForm.processing ? 'Disabling…' : 'Disable two-factor'}
-                                            </button>
-                                        </form>
+                                        {twoFactor.confirmedAt && (
+                                            <p className="mt-3 text-xs text-gray-500">
+                                                Confirmed {new Date(twoFactor.confirmedAt).toLocaleString()}
+                                            </p>
+                                        )}
+                                        <p className="mt-1 text-xs text-gray-500">
+                                            {twoFactor.recoveryCodesCount} recovery codes remaining
+                                        </p>
                                     </div>
-                                )}
-                            </div>
-                        )}
+
+                                    {revealedRecoveryCodes.length > 0 && (
+                                        <Alert variant="warning" className="rounded-xl border-amber-200 bg-amber-50">
+                                            <AlertDescription className="text-amber-900">
+                                                New recovery codes: <span className="font-mono">{revealedRecoveryCodes.join(' · ')}</span>. Save them somewhere safe.
+                                            </AlertDescription>
+                                        </Alert>
+                                    )}
+
+                                    <div className="flex flex-wrap gap-3">
+                                        <Button
+                                            type="button"
+                                            onClick={() => router.get('/scp/account/security/two-factor')}
+                                        >
+                                            {twoFactor.enabled || twoFactor.pending ? 'Manage 2FA' : 'Enable 2FA'}
+                                        </Button>
+
+                                        {twoFactor.enabled && (
+                                            <>
+                                                <form onSubmit={regenerateCodes}>
+                                                    <Button
+                                                        variant="outline"
+                                                        type="submit"
+                                                        disabled={regenerateForm.processing}
+                                                    >
+                                                        {regenerateForm.processing ? 'Regenerating…' : 'Regenerate recovery codes'}
+                                                    </Button>
+                                                </form>
+
+                                                <form onSubmit={disableTwoFactor}>
+                                                    <Button
+                                                        variant="destructive"
+                                                        type="submit"
+                                                        disabled={disableForm.processing}
+                                                    >
+                                                        {disableForm.processing ? 'Disabling…' : 'Disable 2FA'}
+                                                    </Button>
+                                                </form>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            </TabsContent>
+
+                            <TabsContent value="sessions" className="mt-0">
+                                <Sessions />
+                            </TabsContent>
+                        </Tabs>
                     </section>
 
                     <aside className="space-y-6">
