@@ -65,9 +65,9 @@ const CONVERSATION_ITEMS = [
 ] as const;
 
 const PINNED_TICKETS = [
-    { href: '#', label: '#TC-192 product inquiry...' },
-    { href: '#', label: '#TC-191 payment issue...' },
-    { href: '#', label: '+1 678-908-78...' },
+    { label: '#TC-192 product inquiry...' },
+    { label: '#TC-191 payment issue...' },
+    { label: '+1 678-908-78...' },
 ] as const;
 
 const navBaseClass = 'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium font-body transition-colors duration-150';
@@ -270,8 +270,14 @@ export default function DashboardLayout({
                                     </Button>
                                 </div>
                                 <div className="space-y-3">
-                                    {PINNED_TICKETS.map(({ href, label }, index) => (
-                                        <a key={label} href={href} className="group flex items-center justify-between gap-3">
+                                    {PINNED_TICKETS.map(({ label }, index) => (
+                                        <button
+                                            key={label}
+                                            type="button"
+                                            disabled
+                                            aria-disabled="true"
+                                            className="group flex w-full cursor-not-allowed items-center justify-between gap-3 text-left opacity-70"
+                                        >
                                             <div className="flex min-w-0 items-center gap-2">
                                                 <div className={cn(
                                                     'flex h-4 w-4 items-center justify-center rounded-full',
@@ -284,7 +290,7 @@ export default function DashboardLayout({
                                                 </span>
                                             </div>
                                             <span className="text-xs text-[#CBD5E1] transition-colors group-hover:text-[#5B619D]">⌁</span>
-                                        </a>
+                                        </button>
                                     ))}
 
                                     <Button variant="ghost" className="mt-1 h-auto justify-start rounded-md px-0 text-sm font-medium text-[#64748B] hover:bg-transparent hover:text-[#0F172A]">

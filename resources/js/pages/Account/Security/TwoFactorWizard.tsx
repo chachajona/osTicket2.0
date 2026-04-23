@@ -243,8 +243,11 @@ function Recovery({ codes }: { codes: string[] }) {
 
         anchor.href = url;
         anchor.download = "osticket-recovery-codes.txt";
+        anchor.rel = "noopener";
+        document.body.append(anchor);
         anchor.click();
-        URL.revokeObjectURL(url);
+        anchor.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 0);
     }
 
     if (codes.length === 0) {
