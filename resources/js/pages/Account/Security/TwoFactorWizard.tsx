@@ -63,7 +63,11 @@ export default function TwoFactorWizard({ step, twoFactor }: PageProps) {
     );
 }
 
-TwoFactorWizard.layout = (page: ReactElement) => (
+type TwoFactorWizardPageComponent = typeof TwoFactorWizard & {
+    layout?: (page: ReactElement) => ReactNode;
+};
+
+(TwoFactorWizard as TwoFactorWizardPageComponent).layout = (page: ReactElement) => (
     <DashboardLayout
         title="Secure Your Account"
         subtitle="Add an authenticator app to complete your migration."
@@ -75,12 +79,6 @@ TwoFactorWizard.layout = (page: ReactElement) => (
         {page}
     </DashboardLayout>
 );
-
-type TwoFactorWizardPageComponent = typeof TwoFactorWizard & {
-    layout?: (page: ReactElement) => ReactNode;
-};
-
-(TwoFactorWizard as TwoFactorWizardPageComponent).layout = TwoFactorWizard.layout;
 
 function ChooseMethod() {
     const form = useForm({ force: true, return_to_wizard: true });
@@ -180,9 +178,7 @@ function Verify() {
         return_to_wizard: true,
     });
 
-    const submit = (code: string) => {
-        setData("code", code);
-        setData("return_to_wizard", true);
+    const submit = () => {
         post("/scp/account/security/two-factor/confirm", {
             preserveScroll: true,
         });
@@ -227,7 +223,7 @@ function Verify() {
                 <Button
                     type="button"
                     disabled={processing || data.code.length < 6}
-                    onClick={() => submit(data.code)}
+                    onClick={submit}
                 >
                     {processing ? "Verifying…" : "Verify"}
                 </Button>

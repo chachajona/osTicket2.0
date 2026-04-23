@@ -173,6 +173,7 @@
     --input: #ffffff;
     --ring: #c4a5f3;
     --radius: 0.25rem;
+
     color-scheme: light;
     font-family: "Inter Variable", Inter, ui-sans-serif, system-ui, sans-serif;
     font-feature-settings: "ss01", "cv11";
@@ -392,7 +393,7 @@
     cursor: not-allowed;
 }
 
-/* Inputs inside auth-theme — clean cream-bordered with orange focus. */
+/* Inputs inside auth-theme — clean cream-bordered with lavender focus. */
 .auth-theme [data-slot="input"] {
     height: 44px;
     border-radius: 4px;

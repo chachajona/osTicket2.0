@@ -8,6 +8,9 @@ import { cn } from "@/lib/utils";
 const THEMES = { light: "", dark: ".dark" } as const;
 
 const INITIAL_DIMENSION = { width: 320, height: 200 } as const;
+const SAFE_CSS_COLOR_VALUE =
+    /^(?:#[\da-fA-F]{3,8}|(?:rgb|rgba|hsl|hsla|oklch|oklab|lab|lch|color-mix)\([a-zA-Z0-9\s.,%#+\-/*()]+\)|var\(--[a-zA-Z0-9_-]+\)|[a-zA-Z]+)$/;
+
 type TooltipNameType = number | string;
 
 export type ChartConfig = Record<
@@ -35,6 +38,21 @@ function useChart() {
     }
 
     return context;
+}
+
+function cssAttributeValue(value: string) {
+    return value
+        .replace(/\\/g, "\\\\")
+        .replace(/"/g, '\\"')
+        .replace(/[\n\r\f]/g, "");
+}
+
+function cssVariableName(value: string) {
+    return value.replace(/[^a-zA-Z0-9_-]/g, "_");
+}
+
+function safeCssColor(value: string | undefined) {
+    return value && SAFE_CSS_COLOR_VALUE.test(value) ? value : null;
 }
 
 function ChartContainer({
@@ -94,13 +112,17 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
                 __html: Object.entries(THEMES)
                     .map(
                         ([theme, prefix]) => `
-${prefix} [data-chart=${id}] {
+${prefix} [data-chart="${cssAttributeValue(id)}"] {
 ${colorConfig
     .map(([key, itemConfig]) => {
         const color =
             itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ??
             itemConfig.color;
-        return color ? `  --color-${key}: ${color};` : null;
+        const colorValue = safeCssColor(color);
+
+        return colorValue
+            ? `  --color-${cssVariableName(key)}: ${colorValue};`
+            : null;
     })
     .join("\n")}
 }
@@ -217,7 +239,7 @@ function ChartTooltipContent({
                             >
                                 {formatter &&
                                 item?.value !== undefined &&
-                                item.name ? (
+                                item.name != null ? (
                                     formatter(
                                         item.value,
                                         item.name,

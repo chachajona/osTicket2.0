@@ -1,4 +1,4 @@
-import { Children, type ReactNode } from 'react';
+import { Children, useRef, useState, type ReactNode } from 'react';
 import { Link, router } from '@inertiajs/react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
@@ -73,12 +73,17 @@ const PINNED_TICKETS = [
 const navBaseClass = 'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium font-body transition-colors duration-150';
 const navActiveClass = `${navBaseClass} bg-[#F1F5F9] text-[#0F172A] shadow-[inset_0_0_0_1px_rgba(226,232,240,0.8)]`;
 const navInactiveClass = `${navBaseClass} text-[#64748B] hover:bg-white hover:text-[#0F172A]`;
+const navDisabledClass = `${navBaseClass} cursor-not-allowed text-[#94A3B8] opacity-50`;
 
-function getNavClasses(activeNav: string | undefined, navItem: string): string {
+function getNavClasses(activeNav: string | undefined, navItem: string, disabled = false): string {
+    if (disabled) return navDisabledClass;
+
     return activeNav === navItem ? navActiveClass : navInactiveClass;
 }
 
-function getNavIconColor(activeNav: string | undefined, navItem: string): string {
+function getNavIconColor(activeNav: string | undefined, navItem: string, disabled = false): string {
+    if (disabled) return '#CBD5E1';
+
     return activeNav === navItem ? '#5B619D' : '#94A3B8';
 }
 
@@ -137,13 +142,31 @@ export default function DashboardLayout({
     const resolvedHeaderActions = headerActions === undefined
         ? <DefaultHeaderActions />
         : (Children.count(headerActions) > 0 ? headerActions : null);
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
+    const isLoggingOutRef = useRef(false);
+
+    function logout() {
+        if (isLoggingOutRef.current) {
+            return;
+        }
+
+        isLoggingOutRef.current = true;
+        setIsLoggingOut(true);
+
+        router.post('/scp/logout', {}, {
+            onFinish: () => {
+                isLoggingOutRef.current = false;
+                setIsLoggingOut(false);
+            },
+        });
+    }
 
     return (
         <div className="auth-theme relative flex h-screen overflow-hidden bg-[#E9ECEF] text-[#0F172A]">
             <div className="auth-mesh pointer-events-none absolute inset-0"></div>
             <div className="auth-grain pointer-events-none absolute inset-0"></div>
 
-            <main className="relative z-10 flex h-full w-full">
+            <div className="relative z-10 flex h-full w-full">
                 <div className="flex h-full w-full overflow-hidden bg-white">
                     <aside className="flex w-72 shrink-0 flex-col border-r border-[#E2E8F0] bg-[#F8FAFC]/90">
                         <div className="px-5 py-5 transition-colors hover:bg-white/70">
@@ -172,7 +195,7 @@ export default function DashboardLayout({
                                 {NAV_ITEMS.map(({ id, label, icon, href }) => {
                                     const content = (
                                         <>
-                                            <HugeiconsIcon icon={icon} size={18} color={getNavIconColor(activeNav, id)} />
+                                            <HugeiconsIcon icon={icon} size={18} color={getNavIconColor(activeNav, id, !href)} />
                                             <span>{label}</span>
                                         </>
                                     );
@@ -182,7 +205,13 @@ export default function DashboardLayout({
                                             {content}
                                         </Link>
                                     ) : (
-                                        <button key={id} type="button" className={`${getNavClasses(activeNav, id)} w-full text-left`}>
+                                        <button
+                                            key={id}
+                                            type="button"
+                                            disabled
+                                            aria-disabled="true"
+                                            className={`${getNavClasses(activeNav, id, true)} w-full text-left`}
+                                        >
                                             {content}
                                         </button>
                                     );
@@ -294,8 +323,9 @@ export default function DashboardLayout({
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => router.post('/scp/logout')}
-                                    className="rounded-md border-[#E2E8F0] bg-white text-xs text-[#64748B] hover:text-red-600"
+                                    disabled={isLoggingOut}
+                                    onClick={logout}
+                                    className="rounded-md border-[#E2E8F0] bg-white text-xs text-[#64748B] hover:text-red-600 cursor-pointer"
                                 >
                                     <HugeiconsIcon icon={LogoutSquare01Icon} size={14} color="#94A3B8" />
                                     Sign out
@@ -319,7 +349,7 @@ export default function DashboardLayout({
                         </main>
                     </div>
                 </div>
-            </main>
+            </div>
         </div>
     );
 }

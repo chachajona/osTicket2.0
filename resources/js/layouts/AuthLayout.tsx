@@ -4,7 +4,7 @@ import { usePage } from "@inertiajs/react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 
-type EyebrowAccent = "orange" | "pink" | "indigo" | "gradient";
+type EyebrowAccent = "purple" | "indigo" | "emerald" | "gradient";
 
 interface AuthLayoutProps {
     title: string;
@@ -48,7 +48,7 @@ export function AuthLayout({
     title,
     subtitle,
     tag,
-    eyebrowAccent = "orange",
+    eyebrowAccent = "purple",
     sectionIndex = "01",
     children,
     footer,

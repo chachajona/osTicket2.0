@@ -24,6 +24,8 @@ class MigrationBannerController extends Controller
             'dismissed_migration_banner_at' => now(),
         ])->save();
 
+        $request->session()->forget("auth.migration_banner.{$staff->staff_id}");
+
         return back();
     }
 }
