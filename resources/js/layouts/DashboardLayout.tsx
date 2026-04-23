@@ -93,19 +93,27 @@ function DefaultHeaderActions() {
             <Button
                 variant="outline"
                 size="icon"
-                className="rounded-md border-[#E2E8F0] bg-white text-[#64748B] hover:bg-[#F8FAFC]"
+                disabled
+                aria-disabled="true"
+                className="rounded-md border-[#E2E8F0] bg-white text-[#64748B] hover:bg-white"
                 aria-label="Open dashboard actions"
             >
                 <span className="text-lg leading-none">•••</span>
             </Button>
 
             <div className="flex overflow-hidden rounded-md shadow-[0_10px_25px_-20px_rgba(91,97,157,0.7)]">
-                <Button className="rounded-none rounded-l-md bg-[#5B619D] px-4 text-sm text-white hover:bg-[#4F5486]">
+                <Button
+                    disabled
+                    aria-disabled="true"
+                    className="rounded-none rounded-l-md bg-[#5B619D] px-4 text-sm text-white hover:bg-[#5B619D]"
+                >
                     Export CSV
                 </Button>
                 <Button
                     size="icon"
-                    className="rounded-none rounded-r-md border-l border-white/15 bg-[#5B619D] text-white hover:bg-[#4F5486]"
+                    disabled
+                    aria-disabled="true"
+                    className="rounded-none rounded-r-md border-l border-white/15 bg-[#5B619D] text-white hover:bg-[#5B619D]"
                     aria-label="Open export options"
                 >
                     <HugeiconsIcon icon={ArrowRight01Icon} size={14} className="rotate-90" />
@@ -223,13 +231,18 @@ export default function DashboardLayout({
                                 <div className="space-y-2">
                                     {CONVERSATION_ITEMS.map(({ id, label, subtitle, icon, badge, badgeActive }) => (
                                         <Card key={id} className={cn(
-                                            'rounded-xl border py-0 ring-0 shadow-none transition-colors',
+                                            'rounded-xl border py-0 opacity-70 ring-0 shadow-none transition-colors',
                                             id === 'side-conversation'
                                                 ? 'border-[#E2E8F0] bg-white shadow-sm shadow-[#0F172A]/[0.03]'
-                                                : 'border-transparent bg-transparent hover:border-[#E2E8F0] hover:bg-white/80',
+                                                : 'border-transparent bg-transparent',
                                         )}>
                                             <CardContent className="px-4 py-3">
-                                                <button type="button" className="flex w-full items-center justify-between gap-3 text-left">
+                                                <button
+                                                    type="button"
+                                                    disabled
+                                                    aria-disabled="true"
+                                                    className="flex w-full cursor-not-allowed items-center justify-between gap-3 text-left"
+                                                >
                                                     <div className="flex items-center gap-3">
                                                         <div className={cn(
                                                             'flex h-9 w-9 items-center justify-center rounded-lg',
@@ -265,7 +278,13 @@ export default function DashboardLayout({
                             <section className="mt-7 px-6">
                                 <div className="mb-3 flex items-center justify-between gap-3">
                                     <div className="auth-caption">Pinned Tickets</div>
-                                    <Button variant="ghost" size="xs" className="h-auto rounded-md px-0 text-[11px] text-[#94A3B8] hover:bg-transparent hover:text-[#0F172A]">
+                                    <Button
+                                        variant="ghost"
+                                        size="xs"
+                                        disabled
+                                        aria-disabled="true"
+                                        className="h-auto rounded-md px-0 text-[11px] text-[#94A3B8] hover:bg-transparent hover:text-[#94A3B8]"
+                                    >
                                         Unpin all
                                     </Button>
                                 </div>
@@ -276,7 +295,7 @@ export default function DashboardLayout({
                                             type="button"
                                             disabled
                                             aria-disabled="true"
-                                            className="group flex w-full cursor-not-allowed items-center justify-between gap-3 text-left opacity-70"
+                                            className="flex w-full cursor-not-allowed items-center justify-between gap-3 text-left opacity-70"
                                         >
                                             <div className="flex min-w-0 items-center gap-2">
                                                 <div className={cn(
@@ -285,15 +304,20 @@ export default function DashboardLayout({
                                                 )}>
                                                     <span className="text-[9px] leading-none">•</span>
                                                 </div>
-                                                <span className="truncate font-body text-sm font-medium text-[#64748B] transition-colors group-hover:text-[#0F172A]">
+                                                <span className="truncate font-body text-sm font-medium text-[#64748B] transition-colors">
                                                     {label}
                                                 </span>
                                             </div>
-                                            <span className="text-xs text-[#CBD5E1] transition-colors group-hover:text-[#5B619D]">⌁</span>
+                                            <span className="text-xs text-[#CBD5E1] transition-colors">⌁</span>
                                         </button>
                                     ))}
 
-                                    <Button variant="ghost" className="mt-1 h-auto justify-start rounded-md px-0 text-sm font-medium text-[#64748B] hover:bg-transparent hover:text-[#0F172A]">
+                                    <Button
+                                        variant="ghost"
+                                        disabled
+                                        aria-disabled="true"
+                                        className="mt-1 h-auto justify-start rounded-md px-0 text-sm font-medium text-[#64748B] hover:bg-transparent hover:text-[#64748B]"
+                                    >
                                         <span className="text-lg leading-none">+</span>
                                         Add new
                                     </Button>
@@ -304,7 +328,12 @@ export default function DashboardLayout({
                         <Separator className="bg-[#E2E8F0]" />
 
                         <div className="mt-auto px-5 py-5">
-                            <Button variant="ghost" className="mb-4 h-auto justify-start rounded-md px-0 text-sm text-[#64748B] hover:bg-transparent hover:text-[#0F172A]">
+                            <Button
+                                variant="ghost"
+                                disabled
+                                aria-disabled="true"
+                                className="mb-4 h-auto justify-start rounded-md px-0 text-sm text-[#64748B] hover:bg-transparent hover:text-[#64748B]"
+                            >
                                 <HugeiconsIcon icon={HelpCircleIcon} size={18} color="#94A3B8" />
                                 <span>Help &amp; Support</span>
                             </Button>

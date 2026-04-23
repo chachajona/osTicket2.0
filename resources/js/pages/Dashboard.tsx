@@ -63,22 +63,50 @@ type BarChartDatum = {
     highlighted?: boolean;
 };
 
+const DATE_RANGE_OPTIONS = [
+    { value: 'dec-1-7', label: 'Dec 1 - 7' },
+    { value: 'dec-8-14', label: 'Dec 8 - 14' },
+    { value: 'dec-15-21', label: 'Dec 15 - 21' },
+] as const;
+
+type DateRangeValue = (typeof DATE_RANGE_OPTIONS)[number]['value'];
+
 const STAT_CARDS: StatCardItem[] = [
     { label: 'Created Tickets', value: '24,208', trend: '-5%', positive: false },
-    { label: 'Unsolved Tickets', value: '4,564', trend: '+2%', positive: true },
+    { label: 'Unsolved Tickets', value: '4,564', trend: '+2%', positive: false },
     { label: 'Solved Tickets', value: '18,208', trend: '+8%', positive: true },
-    { label: 'Average First Time Reply', value: '12:01', suffix: 'min', trend: '+8', positive: true },
+    { label: 'Average First Time Reply', value: '12:01', suffix: 'min', trend: '+8 min', positive: false },
 ];
 
-const BAR_CHART_DATA: BarChartDatum[] = [
-    { day: 'Dec 1', created: 4120, solved: 3100 },
-    { day: 'Dec 2', created: 3450, solved: 2890 },
-    { day: 'Dec 3', created: 3890, solved: 2950 },
-    { day: 'Dec 4', created: 4300, solved: 3800, highlighted: true },
-    { day: 'Dec 5', created: 3650, solved: 2400 },
-    { day: 'Dec 6', created: 3520, solved: 2860 },
-    { day: 'Dec 7', created: 3780, solved: 3010 },
-];
+const BAR_CHART_DATA: Record<DateRangeValue, BarChartDatum[]> = {
+    'dec-1-7': [
+        { day: 'Dec 1', created: 4120, solved: 3100 },
+        { day: 'Dec 2', created: 3450, solved: 2890 },
+        { day: 'Dec 3', created: 3890, solved: 2950 },
+        { day: 'Dec 4', created: 4300, solved: 3800, highlighted: true },
+        { day: 'Dec 5', created: 3650, solved: 2400 },
+        { day: 'Dec 6', created: 3520, solved: 2860 },
+        { day: 'Dec 7', created: 3780, solved: 3010 },
+    ],
+    'dec-8-14': [
+        { day: 'Dec 8', created: 3840, solved: 3180 },
+        { day: 'Dec 9', created: 4020, solved: 3370 },
+        { day: 'Dec 10', created: 4210, solved: 3620 },
+        { day: 'Dec 11', created: 3960, solved: 3510 },
+        { day: 'Dec 12', created: 4380, solved: 3890, highlighted: true },
+        { day: 'Dec 13', created: 3670, solved: 3040 },
+        { day: 'Dec 14', created: 3540, solved: 2980 },
+    ],
+    'dec-15-21': [
+        { day: 'Dec 15', created: 3310, solved: 2840 },
+        { day: 'Dec 16', created: 3750, solved: 3290 },
+        { day: 'Dec 17', created: 3920, solved: 3460 },
+        { day: 'Dec 18', created: 4480, solved: 4020, highlighted: true },
+        { day: 'Dec 19', created: 4160, solved: 3710 },
+        { day: 'Dec 20', created: 3580, solved: 3120 },
+        { day: 'Dec 21', created: 3420, solved: 3060 },
+    ],
+};
 
 const REPLY_TIME_DATA = [
     { name: '0-1 Hours', value: 81, fill: '#22C55E' },
@@ -109,12 +137,6 @@ const ticketChartConfig = {
     solved: { label: 'Avg. Ticket Solved', color: '#5B619D' },
 } satisfies ChartConfig;
 
-const DATE_RANGE_OPTIONS = [
-    { value: 'dec-1-7', label: 'Dec 1 - 7' },
-    { value: 'dec-8-14', label: 'Dec 8 - 14' },
-    { value: 'dec-15-21', label: 'Dec 15 - 21' },
-] as const;
-
 const channelChartConfig = Object.fromEntries(
     CHANNEL_DATA.map(({ name, fill }) => [name, { label: name, color: fill }]),
 ) satisfies ChartConfig;
@@ -128,12 +150,23 @@ const replyTimeInteractiveChartConfig = {
     ),
 } satisfies ChartConfig;
 
-function getStatCardBorderClass(index: number) {
+function getStatCardBorderClass(index: number): string {
     return cn(
         index > 0 && 'border-t border-[#E2E8F0] md:border-t-0',
         index % 2 === 1 && 'md:border-l md:border-[#E2E8F0] xl:border-l',
         index >= 2 && 'xl:border-l xl:border-t-0',
     );
+}
+
+function getDateRangeLabel(dateRange: DateRangeValue): string {
+    return (
+        DATE_RANGE_OPTIONS.find((option) => option.value === dateRange)?.label ??
+        DATE_RANGE_OPTIONS[0].label
+    );
+}
+
+function getBarChartDataForRange(dateRange: DateRangeValue): BarChartDatum[] {
+    return BAR_CHART_DATA[dateRange];
 }
 
 function StatCard({ label, value, suffix, trend, positive }: StatCardItem) {
@@ -162,15 +195,15 @@ function SectionFrame({ children, className }: { children: ReactNode; className?
     return <Card className={cn('overflow-hidden rounded-[18px] border-[#E2E8F0] py-0 shadow-none ring-0', className)}>{children}</Card>;
 }
 
-function TicketChartFooter() {
+function TicketChartFooter({ dateRangeLabel }: { dateRangeLabel: string }) {
     return (
         <CardFooter className="flex-col items-start gap-2 border-t border-[#E2E8F0] px-6 py-4 text-sm xl:px-8">
             <div className="flex items-center gap-2 leading-none font-medium text-[#0F172A]">
-                Ticket creation remains ahead of resolutions this week
+                Ticket creation remains ahead of resolutions for this range
                 <HugeiconsIcon icon={ArrowUp01Icon} size={14} />
             </div>
             <div className="leading-none text-[#94A3B8]">
-                Showing created versus solved tickets for Dec 1 - 7
+                Showing created versus solved tickets for {dateRangeLabel}
             </div>
         </CardFooter>
     );
@@ -295,7 +328,9 @@ function ReplyTimeInteractiveChart() {
 }
 
 export default function Dashboard() {
-    const [dateRange, setDateRange] = React.useState<(typeof DATE_RANGE_OPTIONS)[number]['value']>('dec-1-7');
+    const [dateRange, setDateRange] = React.useState<DateRangeValue>('dec-1-7');
+    const dateRangeLabel = getDateRangeLabel(dateRange);
+    const ticketChartData = getBarChartDataForRange(dateRange);
 
     return (
         <>
@@ -328,9 +363,9 @@ export default function Dashboard() {
                             <div className="flex items-center justify-between gap-4">
                                 <div>
                                     <CardTitle className="font-body text-base font-medium text-[#0F172A]">Average Tickets Created</CardTitle>
-                                    <CardDescription className="mt-1 text-sm text-[#94A3B8]">Dec 1 - 7</CardDescription>
+                                    <CardDescription className="mt-1 text-sm text-[#94A3B8]">{dateRangeLabel}</CardDescription>
                                 </div>
-                                <Select value={dateRange} onValueChange={(value) => value && setDateRange(value as (typeof DATE_RANGE_OPTIONS)[number]['value'])}>
+                                <Select value={dateRange} onValueChange={(value) => value && setDateRange(value as DateRangeValue)}>
                                     <SelectTrigger
                                         size="sm"
                                         className="rounded-md border-[#E2E8F0] bg-white text-xs text-[#64748B]"
@@ -349,27 +384,27 @@ export default function Dashboard() {
                             </div>
                         </CardHeader>
                         <CardContent className="px-6 pb-6 xl:px-8 xl:pb-8">
-                            <ChartContainer config={ticketChartConfig} className="h-[360px] min-h-0 w-full !aspect-auto">
-                                <BarChart accessibilityLayer data={BAR_CHART_DATA} margin={{ top: 16, right: 8, left: 0, bottom: 8 }}>
+                            <ChartContainer config={ticketChartConfig} className="h-[360px] min-h-0 w-full aspect-auto!">
+                                <BarChart accessibilityLayer data={ticketChartData} margin={{ top: 16, right: 8, left: 0, bottom: 8 }}>
                                     <CartesianGrid vertical={false} strokeDasharray="3 5" />
                                     <XAxis dataKey="day" tickLine={false} axisLine={false} tickMargin={10} />
                                     <YAxis tickLine={false} axisLine={false} tickMargin={12} domain={[0, 5000]} ticks={[0, 1000, 2000, 3000, 4000, 5000]} />
                                     <ChartTooltip content={<ChartTooltipContent hideLabel />} />
                                     <ChartLegend content={<ChartLegendContent />} />
                                     <Bar dataKey="solved" stackId="a" radius={[0, 0, 4, 4]} maxBarSize={32}>
-                                        {BAR_CHART_DATA.map((item) => (
+                                        {ticketChartData.map((item) => (
                                             <Cell key={`solved-${item.day}`} fill="var(--color-solved)" fillOpacity={item.highlighted ? 1 : 0.92} />
                                         ))}
                                     </Bar>
                                     <Bar dataKey="created" stackId="a" radius={[4, 4, 0, 0]} maxBarSize={32}>
-                                        {BAR_CHART_DATA.map((item) => (
+                                        {ticketChartData.map((item) => (
                                             <Cell key={`created-${item.day}`} fill={item.highlighted ? '#C4A5F3' : 'var(--color-created)'} fillOpacity={item.highlighted ? 1 : 0.9} />
                                         ))}
                                     </Bar>
                                 </BarChart>
                             </ChartContainer>
                         </CardContent>
-                        <TicketChartFooter />
+                        <TicketChartFooter dateRangeLabel={dateRangeLabel} />
                     </SectionFrame>
 
                     <SectionFrame className="xl:rounded-l-none">
@@ -384,7 +419,7 @@ export default function Dashboard() {
                         </CardHeader>
                         <CardContent className="flex flex-col items-center p-6 xl:p-8">
                             <div className="relative mb-8 h-40 w-72 max-w-full">
-                                <ChartContainer config={channelChartConfig} className="h-full w-full !aspect-auto">
+                                <ChartContainer config={channelChartConfig} className="h-full w-full aspect-auto!">
                                     <PieChart>
                                         <ChartTooltip content={<ChartTooltipContent hideLabel formatter={(value) => value?.toLocaleString?.() ?? String(value)} />} />
                                         <Pie data={CHANNEL_DATA} dataKey="value" nameKey="name" startAngle={180} endAngle={0} innerRadius={72} outerRadius={96} cx="50%" cy="100%" stroke="transparent" paddingAngle={2}>

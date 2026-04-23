@@ -45,18 +45,34 @@ function go(step: number) {
     );
 }
 
+function getAllowedStep(step: number, twoFactor: PageProps["twoFactor"]): number {
+    let maxStep = 1;
+
+    if (twoFactor.enabled) {
+        maxStep = 5;
+    } else if (twoFactor.pending) {
+        maxStep = 3;
+    }
+
+    const requestedStep = Number.isFinite(step) ? step : 1;
+
+    return Math.min(Math.max(requestedStep, 1), maxStep);
+}
+
 export default function TwoFactorWizard({ step, twoFactor }: PageProps) {
+    const currentStep = getAllowedStep(step, twoFactor);
+
     return (
         <section className="auth-shell mt-2">
             <div className="auth-shell-inner p-6 sm:p-8">
-                <Stepper steps={STEPS} current={step - 1} className="flex-wrap mb-8" />
+                <Stepper steps={STEPS} current={currentStep - 1} className="flex-wrap mb-8" />
 
                 <StepPanel>
-                    {step === 1 && <ChooseMethod />}
-                    {step === 2 && <SetUp twoFactor={twoFactor} />}
-                    {step === 3 && <Verify />}
-                    {step === 4 && <Recovery codes={twoFactor.recoveryCodes} />}
-                    {step === 5 && <Done />}
+                    {currentStep === 1 && <ChooseMethod />}
+                    {currentStep === 2 && <SetUp twoFactor={twoFactor} />}
+                    {currentStep === 3 && <Verify />}
+                    {currentStep === 4 && <Recovery codes={twoFactor.recoveryCodes} />}
+                    {currentStep === 5 && <Done />}
                 </StepPanel>
             </div>
         </section>
@@ -124,7 +140,7 @@ function ChooseMethod() {
 function SetUp({ twoFactor }: { twoFactor: PageProps["twoFactor"] }) {
     const { copied, copy } = useClipboard();
 
-    if (!twoFactor.pending || !twoFactor.qrCodeSvg) {
+    if (!twoFactor.pending || !twoFactor.qrCodeUrl) {
         return (
             <Alert variant="warning">
                 <AlertDescription>
@@ -141,7 +157,14 @@ function SetUp({ twoFactor }: { twoFactor: PageProps["twoFactor"] }) {
             </p>
 
             <div className="rounded-md border border-[#E2E8F0] bg-[#F8FAFC] p-6 flex justify-center">
-                <div dangerouslySetInnerHTML={{ __html: twoFactor.qrCodeSvg }} />
+                <img
+                    src={twoFactor.qrCodeUrl}
+                    alt="Two-factor authentication QR code"
+                    width={220}
+                    height={220}
+                    loading="lazy"
+                    className="h-auto w-[220px]"
+                />
             </div>
 
             {twoFactor.setupKey && (
