@@ -67,7 +67,11 @@ export function AuthLayout({
             {/* Top bar — 3-column grid, uppercase micro meta. */}
             <header className="relative z-10 mx-auto grid w-full max-w-310 grid-cols-3 items-center gap-4 px-6 py-5 sm:px-10">
                 <span className="auth-caption text-foreground">
-                    osTicket<span className="text-muted-foreground"> · Staff Console</span>
+                    osTicket
+                    <span className="text-muted-foreground">
+                        {" "}
+                        · Staff Console
+                    </span>
                 </span>
                 <span className="auth-caption hidden justify-self-center text-muted-foreground sm:inline-flex">
                     Secure Session · Encrypted
@@ -89,7 +93,10 @@ export function AuthLayout({
             <main className="relative z-10 mx-auto grid w-full max-w-310 flex-1 grid-cols-12 gap-6 px-6 py-12 sm:px-10 sm:py-16 lg:gap-10 lg:py-20">
                 {/* Left rail — section number + meta caption. */}
                 <aside className="col-span-12 lg:col-span-3 lg:pt-4">
-                    <div className="auth-rise flex items-start gap-3" style={rise(0)}>
+                    <div
+                        className="auth-rise flex items-start gap-3"
+                        style={rise(0)}
+                    >
                         <span className="font-sans text-[10px] font-medium leading-3.75 tracking-widest text-muted-foreground">
                             {sectionIndex}
                         </span>
