@@ -101,3 +101,29 @@ it('redirects wizard enable and confirm actions back into the wizard flow', func
 
     $this->travelBack();
 });
+
+it('clears a dismissed migration banner timestamp when two-factor is disabled', function () {
+    $staff = Staff::factory()->create([
+        'passwd' => Hash::make('hello'),
+        'isactive' => 1,
+    ]);
+
+    app(StaffTwoFactorService::class)->enable($staff, true);
+
+    $staff->authMigration()->create([
+        'migrated_at' => now()->subDay(),
+        'upgrade_method' => 'totp',
+        'dismissed_migration_banner_at' => now(),
+    ]);
+
+    $this->actingAs($staff->fresh(), 'staff')
+        ->withSession(['auth.password_confirmed_at' => now()->timestamp])
+        ->delete('/scp/account/security/two-factor')
+        ->assertRedirect('/scp/account/security');
+
+    $migration = $staff->fresh()->authMigration;
+
+    expect($migration?->migrated_at)->toBeNull()
+        ->and($migration?->upgrade_method)->toBeNull()
+        ->and($migration?->dismissed_migration_banner_at)->toBeNull();
+});

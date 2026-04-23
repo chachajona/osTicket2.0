@@ -420,6 +420,11 @@
     box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
 }
 
+.custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #e2e8f0 transparent;
+}
+
 .custom-scrollbar::-webkit-scrollbar {
     width: 4px;
     height: 4px;

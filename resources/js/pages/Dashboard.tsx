@@ -128,6 +128,14 @@ const replyTimeInteractiveChartConfig = {
     ),
 } satisfies ChartConfig;
 
+function getStatCardBorderClass(index: number) {
+    return cn(
+        index > 0 && 'border-t border-[#E2E8F0] md:border-t-0',
+        index % 2 === 1 && 'md:border-l md:border-[#E2E8F0] xl:border-l',
+        index >= 2 && 'xl:border-l xl:border-t-0',
+    );
+}
+
 function StatCard({ label, value, suffix, trend, positive }: StatCardItem) {
     return (
         <Card className="rounded-none border-0 py-0 shadow-none ring-0">
@@ -213,12 +221,12 @@ function ReplyTimeInteractiveChart() {
                             <SelectValue placeholder="Select segment" />
                         </SelectTrigger>
                         <SelectContent align="end" className="rounded-xl">
-                            {REPLY_TIME_DATA.map(({ name }) => (
+                            {REPLY_TIME_DATA.map(({ fill, name }) => (
                                 <SelectItem key={name} value={name} className="rounded-lg [&_span]:flex">
                                     <div className="flex items-center gap-2 text-xs">
                                         <span
                                             className="flex h-3 w-3 shrink-0 rounded-[2px]"
-                                            style={{ backgroundColor: `var(--color-${name})` }}
+                                            style={{ backgroundColor: fill }}
                                         />
                                         {name}
                                     </div>
@@ -294,10 +302,20 @@ export default function Dashboard() {
             <MigrationBanner />
 
             <div className="space-y-6 xl:space-y-8">
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-[14px] border border-dashed border-[#C4A5F3]/50 bg-[#F8FAFC] px-4 py-3">
+                    <div>
+                        <p className="font-body text-sm font-medium text-[#0F172A]">Analytics preview</p>
+                        <p className="mt-0.5 text-xs text-[#64748B]">Dashboard metrics are sample values until live reporting endpoints are connected.</p>
+                    </div>
+                    <span className="rounded-full bg-[#F3ECFF] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#5B619D]">
+                        Sample data
+                    </span>
+                </div>
+
                 <SectionFrame>
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
                         {STAT_CARDS.map((card, index) => (
-                            <div key={card.label} className={cn(index > 0 && 'border-t border-[#E2E8F0] md:border-t-0', index % 2 === 1 && 'md:border-l md:border-[#E2E8F0] xl:border-l', index >= 2 && 'xl:border-l xl:border-t-0')}>
+                            <div key={card.label} className={getStatCardBorderClass(index)}>
                                 <StatCard {...card} />
                             </div>
                         ))}

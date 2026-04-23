@@ -103,6 +103,7 @@ class TwoFactorSecurityController extends Controller
             [
                 'migrated_at' => null,
                 'upgrade_method' => null,
+                'dismissed_migration_banner_at' => null,
             ],
         );
         $request->session()->forget("auth.migration_banner.{$staff->staff_id}");
