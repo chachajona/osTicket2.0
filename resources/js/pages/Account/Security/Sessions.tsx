@@ -2,24 +2,8 @@ import { Button } from "@/components/ui/button";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
     ComputerIcon,
-    SmartPhone01Icon,
     MapPinIcon,
 } from "@hugeicons/core-free-icons";
-
-type DeviceIcon = typeof ComputerIcon | typeof SmartPhone01Icon;
-
-interface OtherSession {
-    icon: DeviceIcon;
-    device: string;
-    ip: string;
-    location: string;
-    lastSeen: string;
-}
-
-const OTHER_SESSIONS: OtherSession[] = [
-    { icon: SmartPhone01Icon, device: 'iOS • Chrome', ip: '10.0.0.25', location: 'Tokyo, JP', lastSeen: '3 days ago' },
-    { icon: ComputerIcon, device: 'Windows 11 • Edge', ip: '172.16.0.4', location: 'London, UK', lastSeen: '1 week ago' },
-];
 
 export default function Sessions() {
     return (
@@ -35,17 +19,17 @@ export default function Sessions() {
 
                     <div className="flex-1 space-y-1">
                         <div className="flex items-center gap-2">
-                            <span className="font-display font-medium text-foreground">Mac OS • Safari</span>
-                            <span className="inline-flex items-center rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
-                                Active now
+                            <span className="font-display font-medium text-foreground">Current browser session</span>
+                            <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20">
+                                Details unavailable
                             </span>
                         </div>
                         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 font-mono text-xs text-muted-foreground">
-                            <span>192.168.1.1</span>
+                            <span>Session metadata is not connected yet.</span>
                             <span className="hidden sm:inline">•</span>
                             <span className="flex items-center gap-1 font-body">
                                 <HugeiconsIcon icon={MapPinIcon} className="size-3" />
-                                Ho Chi Minh City, VN
+                                Location unavailable
                             </span>
                         </div>
                     </div>
@@ -55,37 +39,13 @@ export default function Sessions() {
             <div className="space-y-4">
                 <h3 className="auth-eyebrow text-muted-foreground">Other Sessions</h3>
 
-                <div className="space-y-3">
-                    {OTHER_SESSIONS.map(({ icon, device, ip, location, lastSeen }) => (
-                        <div key={device} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-md border border-[#E2E8F0] bg-white p-4">
-                            <div className="flex items-center gap-4">
-                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted/50 border border-border text-muted-foreground">
-                                    <HugeiconsIcon icon={icon} className="size-5" />
-                                </div>
-                                <div className="space-y-1">
-                                    <div className="font-display font-medium text-foreground">{device}</div>
-                                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 font-mono text-xs text-muted-foreground">
-                                        <span>{ip}</span>
-                                        <span className="hidden sm:inline">•</span>
-                                        <span className="flex items-center gap-1 font-body">
-                                            <HugeiconsIcon icon={MapPinIcon} className="size-3" />
-                                            {location}
-                                        </span>
-                                        <span className="hidden sm:inline">•</span>
-                                        <span className="font-body text-muted-foreground/80">{lastSeen}</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <Button variant="outline" size="sm" onClick={() => console.log("revoke")} className="w-full sm:w-auto shrink-0 font-body">
-                                Revoke
-                            </Button>
-                        </div>
-                    ))}
+                <div className="rounded-md border border-dashed border-[#E2E8F0] bg-white p-5 text-sm text-muted-foreground">
+                    Session listing and revocation require backend session-management endpoints before they can be enabled.
                 </div>
             </div>
 
             <div className="pt-2 border-t border-[#E2E8F0]">
-                <Button variant="destructive" onClick={() => console.log("sign out all")} className="font-body w-full sm:w-auto">
+                <Button variant="destructive" disabled className="font-body w-full sm:w-auto">
                     Sign out of all other sessions
                 </Button>
             </div>

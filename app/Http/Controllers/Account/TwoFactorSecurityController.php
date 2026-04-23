@@ -8,7 +8,6 @@ use App\Services\StaffTwoFactorService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Routing\Redirector;
 
 class TwoFactorSecurityController extends Controller
 {
@@ -61,6 +60,7 @@ class TwoFactorSecurityController extends Controller
                 'upgrade_method' => 'totp',
             ],
         );
+        $request->session()->forget("auth.migration_banner.{$staff->staff_id}");
 
         return $this->securityRedirect($request, 4)
             ->with('status', 'Two-factor authentication enabled.')
@@ -105,13 +105,14 @@ class TwoFactorSecurityController extends Controller
                 'upgrade_method' => null,
             ],
         );
+        $request->session()->forget("auth.migration_banner.{$staff->staff_id}");
 
         return redirect()
             ->route('scp.account.security')
             ->with('status', 'Two-factor authentication disabled.');
     }
 
-    private function securityRedirect(Request $request, int $wizardStep): Redirector|RedirectResponse
+    private function securityRedirect(Request $request, int $wizardStep): RedirectResponse
     {
         if ($request->boolean('return_to_wizard')) {
             return redirect()->route('scp.account.security.two-factor.show', ['step' => $wizardStep]);

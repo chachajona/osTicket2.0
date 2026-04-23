@@ -208,7 +208,11 @@ export default function SecurityIndex({ twoFactor, migration, revealedRecoveryCo
     );
 }
 
-SecurityIndex.layout = (page: ReactElement) => (
+type SecurityPageComponent = typeof SecurityIndex & {
+    layout?: (page: ReactElement) => ReactNode;
+};
+
+(SecurityIndex as SecurityPageComponent).layout = (page: ReactElement) => (
     <DashboardLayout
         title="Account Security"
         subtitle="Manage two-factor authentication and active sessions."
@@ -219,9 +223,3 @@ SecurityIndex.layout = (page: ReactElement) => (
         {page}
     </DashboardLayout>
 );
-
-type SecurityPageComponent = typeof SecurityIndex & {
-    layout?: (page: ReactElement) => ReactNode;
-};
-
-(SecurityIndex as SecurityPageComponent).layout = SecurityIndex.layout;

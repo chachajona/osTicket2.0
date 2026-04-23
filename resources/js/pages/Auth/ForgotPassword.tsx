@@ -27,7 +27,7 @@ export default function ForgotPassword() {
             title="Recover your access."
             subtitle="Enter the email on file and we'll send a secure, single-use link to reset your password."
             tag="Recovery · Email"
-            eyebrowAccent="pink"
+            eyebrowAccent="emerald"
             sectionIndex="02"
             footer={
                 <div className="flex flex-wrap items-center justify-between gap-4">

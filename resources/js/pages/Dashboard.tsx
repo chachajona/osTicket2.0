@@ -439,14 +439,12 @@ export default function Dashboard() {
     );
 }
 
-Dashboard.layout = (page: ReactElement) => (
-    <DashboardLayout title="Dashboard" activeNav="dashboard" contentClassName="w-full">
-        {page}
-    </DashboardLayout>
-);
-
 type DashboardPageComponent = typeof Dashboard & {
     layout?: (page: ReactElement) => ReactNode;
 };
 
-(Dashboard as DashboardPageComponent).layout = Dashboard.layout;
+(Dashboard as DashboardPageComponent).layout = (page: ReactElement) => (
+    <DashboardLayout title="Dashboard" activeNav="dashboard" contentClassName="w-full">
+        {page}
+    </DashboardLayout>
+);

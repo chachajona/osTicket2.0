@@ -27,7 +27,7 @@ export default function ConfirmPassword() {
             title="Confirm your password."
             subtitle="Re-enter your password to continue to two-factor authentication settings."
             tag="Security · Re-auth"
-            eyebrowAccent="orange"
+            eyebrowAccent="purple"
             sectionIndex="04"
             footer={
                 <div className="flex flex-wrap items-center justify-between gap-4">

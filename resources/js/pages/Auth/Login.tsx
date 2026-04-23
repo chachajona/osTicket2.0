@@ -56,7 +56,7 @@ export default function Login() {
             title="Sign in to the console."
             subtitle="Access the osTicket staff support panel with your credentials. Two-factor authentication may be required."
             tag="Login · Staff"
-            eyebrowAccent="orange"
+            eyebrowAccent="purple"
             sectionIndex="01"
             footer={
                 <div className="flex flex-wrap items-center justify-between gap-4">

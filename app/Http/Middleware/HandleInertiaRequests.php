@@ -48,7 +48,7 @@ class HandleInertiaRequests extends Middleware
                         'id' => $staff->staff_id,
                         'name' => trim(($staff->firstname ?? '').' '.($staff->lastname ?? '')) ?: $staff->username,
                         'username' => $staff->username,
-                        'migrationBanner' => $this->shouldShowMigrationBanner($staff),
+                        'migrationBanner' => $this->migrationBannerVisible($request, $staff),
                     ]
                     : null,
                 'throttle' => [
@@ -62,12 +62,31 @@ class HandleInertiaRequests extends Middleware
 
     private function shouldShowMigrationBanner(Staff $staff): bool
     {
-        $migration = $staff->loadMissing('authMigration')->authMigration;
+        $staff->loadMissing(['authMigration', 'twoFactorCredential']);
+        $migration = $staff->authMigration;
 
         if (! $migration || is_null($migration->migrated_at)) {
             return false;
         }
 
         return is_null($migration->dismissed_migration_banner_at) && ! $staff->hasTotpEnabled();
+    }
+
+    private function migrationBannerVisible(Request $request, Staff $staff): bool
+    {
+        if (! $request->routeIs('scp.dashboard')) {
+            return false;
+        }
+
+        $key = "auth.migration_banner.{$staff->staff_id}";
+
+        if ($request->session()->has($key)) {
+            return (bool) $request->session()->get($key);
+        }
+
+        $visible = $this->shouldShowMigrationBanner($staff);
+        $request->session()->put($key, $visible);
+
+        return $visible;
     }
 }
