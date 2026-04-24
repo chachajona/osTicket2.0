@@ -74,6 +74,9 @@ const navBaseClass = 'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm fon
 const navActiveClass = `${navBaseClass} bg-[#F1F5F9] text-[#0F172A] shadow-[inset_0_0_0_1px_rgba(226,232,240,0.8)]`;
 const navInactiveClass = `${navBaseClass} text-[#64748B] hover:bg-white hover:text-[#0F172A]`;
 const navDisabledClass = `${navBaseClass} cursor-not-allowed text-[#94A3B8] opacity-50`;
+const footerActionBaseClass = 'inline-flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-xs font-medium transition-colors';
+const footerActionActiveClass = `${footerActionBaseClass} border-[#CBD5E1] bg-[#F1F5F9] text-[#0F172A] shadow-[inset_0_0_0_1px_rgba(226,232,240,0.8)]`;
+const footerActionInactiveClass = `${footerActionBaseClass} border-[#E2E8F0] bg-white text-[#64748B] hover:text-[#0F172A]`;
 
 function getNavClasses(activeNav: string | undefined, navItem: string, disabled = false): string {
     if (disabled) return navDisabledClass;
@@ -84,6 +87,14 @@ function getNavClasses(activeNav: string | undefined, navItem: string, disabled 
 function getNavIconColor(activeNav: string | undefined, navItem: string, disabled = false): string {
     if (disabled) return '#CBD5E1';
 
+    return activeNav === navItem ? '#5B619D' : '#94A3B8';
+}
+
+function getFooterActionClasses(activeNav: string | undefined, navItem: string): string {
+    return activeNav === navItem ? footerActionActiveClass : footerActionInactiveClass;
+}
+
+function getFooterActionIconColor(activeNav: string | undefined, navItem: string): string {
     return activeNav === navItem ? '#5B619D' : '#94A3B8';
 }
 
@@ -351,8 +362,12 @@ export default function DashboardLayout({
                             </Card>
 
                             <div className="grid grid-cols-2 gap-2">
-                                <Link href="/scp/account/security" className="inline-flex items-center justify-center gap-2 rounded-md border border-[#E2E8F0] bg-white px-3 py-2 text-xs font-medium text-[#64748B] transition-colors hover:text-[#0F172A]">
-                                    <HugeiconsIcon icon={ShieldCheck} size={14} color="#94A3B8" />
+                                <Link
+                                    href="/scp/account/security"
+                                    className={getFooterActionClasses(activeNav, 'security')}
+                                    aria-current={activeNav === 'security' ? 'page' : undefined}
+                                >
+                                    <HugeiconsIcon icon={ShieldCheck} size={14} color={getFooterActionIconColor(activeNav, 'security')} />
                                     Security
                                 </Link>
                                 <Button
