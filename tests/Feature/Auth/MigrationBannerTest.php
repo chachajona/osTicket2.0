@@ -47,3 +47,21 @@ it('persists dismissal via the controller', function () {
 
     expect($staff->fresh()->authMigration?->dismissed_migration_banner_at)->not->toBeNull();
 });
+
+it('recomputes the banner after a false session result when migration state changes', function () {
+    $staff = Staff::factory()->create(['isactive' => 1]);
+
+    $this->actingAs($staff, 'staff')
+        ->get('/scp')
+        ->assertInertia(fn ($page) => $page->where('auth.staff.migrationBanner', false));
+
+    StaffAuthMigration::create([
+        'staff_id' => $staff->staff_id,
+        'migrated_at' => now()->subDay(),
+        'upgrade_method' => 'auto',
+    ]);
+
+    $this->actingAs($staff->fresh(), 'staff')
+        ->get('/scp')
+        ->assertInertia(fn ($page) => $page->where('auth.staff.migrationBanner', true));
+});

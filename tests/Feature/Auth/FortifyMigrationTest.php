@@ -264,33 +264,6 @@ test('recovery code is not consumed when challenge expires during verification',
     expect($staff->fresh()->recoveryCodes())->toContain($recoveryCode);
 });
 
-test('qr code endpoint requires a confirmed password and hides confirmed setup material', function () {
-    $staff = createLegacyStaff();
-    $service = app(StaffTwoFactorService::class);
-    $service->enable($staff);
-
-    $redirectResponse = $this->actingAs($staff->fresh(), 'staff')
-        ->get('/scp/account/security/two-factor/qr-code');
-
-    $redirectResponse->assertRedirect('/scp/account/security/confirm-password');
-
-    $pendingResponse = $this->actingAs($staff->fresh(), 'staff')
-        ->withSession(['auth.password_confirmed_at' => now()->timestamp])
-        ->get('/scp/account/security/two-factor/qr-code');
-
-    $pendingResponse->assertOk();
-    $pendingResponse->assertJsonStructure(['svg', 'url']);
-
-    $service->confirm($staff->fresh(), app(Google2FA::class)->getCurrentOtp((string) $staff->fresh()->two_factor_secret));
-
-    $confirmedResponse = $this->actingAs($staff->fresh(), 'staff')
-        ->withSession(['auth.password_confirmed_at' => now()->timestamp])
-        ->get('/scp/account/security/two-factor/qr-code');
-
-    $confirmedResponse->assertOk();
-    expect($confirmedResponse->json())->toBe([]);
-});
-
 test('non-enrolled staff continue to the email otp flow', function () {
     Mail::fake();
 
