@@ -59,6 +59,10 @@ function getAllowedStep(step: number, twoFactor: PageProps["twoFactor"]): number
     return Math.min(Math.max(requestedStep, 1), maxStep);
 }
 
+function getQrCodeImageSrc(svg: string): string {
+    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
 export default function TwoFactorWizard({ step, twoFactor }: PageProps) {
     const currentStep = getAllowedStep(step, twoFactor);
 
@@ -140,7 +144,7 @@ function ChooseMethod() {
 function SetUp({ twoFactor }: { twoFactor: PageProps["twoFactor"] }) {
     const { copied, copy } = useClipboard();
 
-    if (!twoFactor.pending || !twoFactor.qrCodeUrl) {
+    if (!twoFactor.pending || !twoFactor.qrCodeSvg) {
         return (
             <Alert variant="warning">
                 <AlertDescription>
@@ -158,7 +162,7 @@ function SetUp({ twoFactor }: { twoFactor: PageProps["twoFactor"] }) {
 
             <div className="rounded-md border border-[#E2E8F0] bg-[#F8FAFC] p-6 flex justify-center">
                 <img
-                    src={twoFactor.qrCodeUrl}
+                    src={getQrCodeImageSrc(twoFactor.qrCodeSvg)}
                     alt="Two-factor authentication QR code"
                     width={220}
                     height={220}
