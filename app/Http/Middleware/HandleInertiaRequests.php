@@ -8,6 +8,8 @@ use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
 {
+    private const MIGRATION_BANNER_CACHE_TTL_SECONDS = 300;
+
     /**
      * The root template that's loaded on the first page visit.
      *
@@ -79,14 +81,34 @@ class HandleInertiaRequests extends Middleware
         }
 
         $key = "auth.migration_banner.{$staff->staff_id}";
+        $cached = $request->session()->get($key);
 
-        if ($request->session()->has($key)) {
-            return (bool) $request->session()->get($key);
+        if ($this->hasFreshMigrationBannerCache($cached)) {
+            return $cached['visible'];
         }
 
         $visible = $this->shouldShowMigrationBanner($staff);
-        $request->session()->put($key, $visible);
+        $request->session()->put($key, [
+            'visible' => $visible,
+            'cached_at' => now()->timestamp,
+        ]);
 
         return $visible;
+    }
+
+    /**
+     * @param  mixed  $cached
+     */
+    private function hasFreshMigrationBannerCache(mixed $cached): bool
+    {
+        if (! is_array($cached) || ! array_key_exists('visible', $cached) || ! array_key_exists('cached_at', $cached)) {
+            return false;
+        }
+
+        if (! is_bool($cached['visible']) || ! is_numeric($cached['cached_at'])) {
+            return false;
+        }
+
+        return now()->timestamp - (int) $cached['cached_at'] < self::MIGRATION_BANNER_CACHE_TTL_SECONDS;
     }
 }

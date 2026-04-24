@@ -99,7 +99,7 @@ test('confirming two-factor clears the cached migration banner result', function
     $this->actingAs($staff, 'staff')
         ->get('/scp')
         ->assertInertia(fn ($page) => $page->where('auth.staff.migrationBanner', false))
-        ->assertSessionHas($cacheKey, false);
+        ->assertSessionHas($cacheKey, fn (array $cache): bool => $cache['visible'] === false && is_int($cache['cached_at']));
 
     $service = app(StaffTwoFactorService::class);
     $service->enable($staff);
@@ -117,7 +117,7 @@ test('confirming two-factor clears the cached migration banner result', function
     $this->actingAs($staff->fresh(), 'staff')
         ->get('/scp')
         ->assertInertia(fn ($page) => $page->where('auth.staff.migrationBanner', false))
-        ->assertSessionHas($cacheKey, false);
+        ->assertSessionHas($cacheKey, fn (array $cache): bool => $cache['visible'] === false && is_int($cache['cached_at']));
 
     $this->travelBack();
 });
