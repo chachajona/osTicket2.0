@@ -24,7 +24,6 @@ class SecurityController extends Controller
                 'confirmedAt' => $staff->two_factor_confirmed_at?->toIso8601String(),
                 'recoveryCodesCount' => count($staff->recoveryCodes()),
                 'qrCodeSvg' => $isPendingTwoFactorSetup ? $staff->twoFactorQrCodeSvg() : null,
-                'qrCodeUrl' => $isPendingTwoFactorSetup ? $staff->twoFactorQrCodeUrl() : null,
                 'setupKey' => $isPendingTwoFactorSetup ? $staff->two_factor_secret : null,
             ],
             'migration' => [

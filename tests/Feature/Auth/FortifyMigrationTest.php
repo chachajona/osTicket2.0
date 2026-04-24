@@ -108,7 +108,7 @@ test('security page only exposes setup secret while two-factor confirmation is p
         ->and($pendingTwoFactor['pending'])->toBeTrue()
         ->and($pendingTwoFactor['setupKey'])->toBeString()->not->toBe('')
         ->and($pendingTwoFactor['qrCodeSvg'])->toBeString()->not->toBe('')
-        ->and($pendingTwoFactor['qrCodeUrl'])->toBeString()->not->toBe('');
+        ->and($pendingTwoFactor)->not->toHaveKey('qrCodeUrl');
 
     $service->confirm($staff->fresh(), app(Google2FA::class)->getCurrentOtp((string) $staff->fresh()->two_factor_secret));
 
@@ -121,7 +121,7 @@ test('security page only exposes setup secret while two-factor confirmation is p
     $confirmedResponse->assertJsonPath('props.twoFactor.enabled', true);
     $confirmedResponse->assertJsonPath('props.twoFactor.setupKey', null);
     $confirmedResponse->assertJsonPath('props.twoFactor.qrCodeSvg', null);
-    $confirmedResponse->assertJsonPath('props.twoFactor.qrCodeUrl', null);
+    expect(Arr::get($confirmedResponse->json(), 'props.twoFactor'))->not->toHaveKey('qrCodeUrl');
 });
 
 test('login routes totp-enrolled staff to the app challenge', function () {

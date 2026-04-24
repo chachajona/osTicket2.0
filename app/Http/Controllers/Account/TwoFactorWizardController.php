@@ -28,7 +28,6 @@ class TwoFactorWizardController extends Controller
                 'pending' => $hasSecret && ! $confirmed,
                 'method' => $staff->hasTotpEnabled() ? 'app' : null,
                 'qrCodeSvg' => $hasSecret && ! $confirmed ? $staff->twoFactorQrCodeSvg() : null,
-                'qrCodeUrl' => $hasSecret && ! $confirmed ? $staff->twoFactorQrCodeUrl() : null,
                 'setupKey' => $hasSecret && ! $confirmed ? $staff->two_factor_secret : null,
                 'recoveryCodes' => $request->session()->get('two_factor_recovery_codes', []),
             ],

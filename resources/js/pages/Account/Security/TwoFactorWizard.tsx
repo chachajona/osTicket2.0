@@ -23,7 +23,6 @@ interface PageProps {
         pending: boolean;
         method: "app" | null;
         qrCodeSvg: string | null;
-        qrCodeUrl: string | null;
         setupKey: string | null;
         recoveryCodes: string[];
     };

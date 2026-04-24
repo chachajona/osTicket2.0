@@ -13,7 +13,6 @@ interface TwoFactorState {
     confirmedAt: string | null;
     recoveryCodesCount: number;
     qrCodeSvg: string | null;
-    qrCodeUrl: string | null;
     setupKey: string | null;
 }
 
