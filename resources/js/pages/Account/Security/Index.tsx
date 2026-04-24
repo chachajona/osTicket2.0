@@ -121,8 +121,21 @@ export default function SecurityIndex({ twoFactor, migration, revealedRecoveryCo
 
                                 {revealedRecoveryCodes.length > 0 && (
                                     <Alert variant="warning" className="rounded-md border-amber-200 bg-amber-50">
-                                        <AlertDescription className="text-amber-900">
-                                            New recovery codes: <span className="font-mono">{revealedRecoveryCodes.join(' · ')}</span>. Save them somewhere safe.
+                                        <AlertDescription className="space-y-3 text-amber-900">
+                                            <p>
+                                                New recovery codes generated. Save them somewhere safe. Each code can be
+                                                used once.
+                                            </p>
+                                            <ul className="grid list-none gap-2 rounded-md border border-amber-100 bg-white/70 p-3 font-mono text-sm text-[#0F172A] sm:grid-cols-2">
+                                                {revealedRecoveryCodes.map((code) => (
+                                                    <li
+                                                        key={code}
+                                                        className="select-all rounded border border-amber-100 bg-white px-3 py-2"
+                                                    >
+                                                        {code}
+                                                    </li>
+                                                ))}
+                                            </ul>
                                         </AlertDescription>
                                     </Alert>
                                 )}

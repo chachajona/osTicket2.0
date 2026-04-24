@@ -120,4 +120,6 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    'legacy_totp_column' => env('AUTH_LEGACY_TOTP_COLUMN', 'totp_secret'),
+
 ];

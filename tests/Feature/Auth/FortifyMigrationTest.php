@@ -6,6 +6,7 @@ use App\Models\StaffTwoFactorCredential;
 use App\Services\StaffTwoFactorService;
 use App\Services\TwoFactorAppChallengeService;
 use App\Services\TwoFactorAuthService;
+use Illuminate\Encryption\Encrypter;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -30,6 +31,23 @@ function createLegacyStaff(array $attributes = []): Staff
     ], $attributes));
 
     return Staff::on('legacy')->findOrFail($staffId);
+}
+
+function createUnreadableTwoFactorCredential(Staff $staff): void
+{
+    $foreignEncrypter = new Encrypter(str_repeat('m', 32), config('app.cipher'));
+    $now = now();
+
+    DB::connection('osticket2')->table('staff_two_factor')->updateOrInsert(
+        ['staff_id' => $staff->staff_id],
+        [
+            'two_factor_secret' => $foreignEncrypter->encrypt('UNREADABLE-SECRET-KEY'),
+            'two_factor_recovery_codes' => $foreignEncrypter->encrypt(['alpha-beta-gamma']),
+            'two_factor_confirmed_at' => $now,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ],
+    );
 }
 
 test('security page renders for authenticated staff', function () {
@@ -179,6 +197,47 @@ test('login routes totp-enrolled staff to the app challenge', function () {
     $this->travelBack();
 });
 
+test('login falls back to email verification when app credentials are unreadable', function () {
+    Mail::fake();
+
+    $staff = createLegacyStaff();
+    createUnreadableTwoFactorCredential($staff);
+
+    $response = $this->post('/scp/login', [
+        'username' => $staff->username,
+        'password' => 'password',
+    ]);
+
+    $response->assertRedirect('/scp/2fa');
+    $response->assertSessionHas('2fa.staff_id', $staff->staff_id);
+    $response->assertSessionHas(
+        'status',
+        'We could not read your saved authenticator settings in this environment. Continue with email verification, then reconfigure two-factor authentication from Account Security.'
+    );
+
+    expect(app(TwoFactorAuthService::class)->hasPendingToken($staff->staff_id))->toBeTrue();
+});
+
+test('enabling two-factor overwrites unreadable stored credentials', function () {
+    $staff = createLegacyStaff();
+    createUnreadableTwoFactorCredential($staff);
+
+    $response = $this->actingAs($staff->fresh(), 'staff')
+        ->withSession(['auth.password_confirmed_at' => now()->timestamp])
+        ->post('/scp/account/security/two-factor/enable', [
+            'force' => true,
+        ]);
+
+    $response->assertRedirect('/scp/account/security');
+
+    $freshStaff = $staff->fresh();
+
+    expect($freshStaff->two_factor_secret)->toBeString()->not->toBe('UNREADABLE-SECRET-KEY')
+        ->and($freshStaff->two_factor_confirmed_at)->toBeNull()
+        ->and($freshStaff->recoveryCodes())->toHaveCount(8)
+        ->and($freshStaff->hasUnreadableTwoFactorCredential())->toBeFalse();
+});
+
 test('totp challenge accepts a valid app code', function () {
     $staff = createLegacyStaff();
     $service = app(StaffTwoFactorService::class);
@@ -309,4 +368,28 @@ test('non-enrolled staff continue to the email otp flow', function () {
     $response->assertRedirect('/scp/2fa');
     $response->assertSessionHas('2fa.staff_id', $staff->staff_id);
     expect(app(TwoFactorAuthService::class)->hasPendingToken($staff->staff_id))->toBeTrue();
+});
+
+test('security and dashboard pages tolerate unreadable app credentials', function () {
+    $staff = createLegacyStaff();
+    createUnreadableTwoFactorCredential($staff);
+
+    $dashboardResponse = $this->actingAs($staff->fresh(), 'staff')
+        ->withHeaders(inertiaHeaders())
+        ->get('/scp');
+
+    $dashboardResponse->assertOk();
+    $dashboardResponse->assertJsonPath('props.auth.staff.migrationBanner', false);
+
+    $securityResponse = $this->actingAs($staff->fresh(), 'staff')
+        ->withHeaders(inertiaHeaders())
+        ->get('/scp/account/security');
+
+    $securityResponse->assertOk();
+    $securityResponse->assertJsonPath('props.twoFactor.enabled', false);
+    $securityResponse->assertJsonPath('props.twoFactor.pending', false);
+    $securityResponse->assertJsonPath('props.twoFactor.recoveryCodesCount', 0);
+    $securityResponse->assertJsonPath('props.twoFactor.confirmedAt', null);
+    $securityResponse->assertJsonPath('props.twoFactor.setupKey', null);
+    $securityResponse->assertJsonPath('props.twoFactor.qrCodeSvg', null);
 });

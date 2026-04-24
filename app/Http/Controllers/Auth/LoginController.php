@@ -4,14 +4,15 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\Staff;
-use App\Services\TwoFactorAuthService;
+use App\Services\LegacyTwoFactorImporter;
 use App\Services\TwoFactorAppChallengeService;
+use App\Services\TwoFactorAuthService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -25,6 +26,7 @@ class LoginController extends Controller
     public function __construct(
         private readonly TwoFactorAuthService $twoFactor,
         private readonly TwoFactorAppChallengeService $appChallenge,
+        private readonly LegacyTwoFactorImporter $legacyImporter,
     ) {}
 
     public function showLogin(): Response
@@ -70,6 +72,8 @@ class LoginController extends Controller
         RateLimiter::clear($throttleKey);
 
         $staff->rehashPasswordIfNeeded($credentials['password']);
+        $this->legacyImporter->importIfNeeded($staff);
+        $staff->refresh();
         $this->ensureDashboardIsTheFallbackIntendedUrl($request);
 
         if ($staff->hasTotpEnabled()) {
@@ -81,11 +85,18 @@ class LoginController extends Controller
             return redirect()->route('scp.2fa-app');
         }
 
+        if ($staff->hasUnreadableTwoFactorCredential()) {
+            $request->session()->flash(
+                'status',
+                'We could not read your saved authenticator settings in this environment. Continue with email verification, then reconfigure two-factor authentication from Account Security.'
+            );
+        }
+
         $code = $this->twoFactor->generateToken($staff->staff_id);
 
         Mail::raw(
             "Your osTicket login code is: {$code}\n\nThis code expires in 6 minutes.",
-            fn($message) => $message
+            fn ($message) => $message
                 ->to($staff->email)
                 ->subject('Your Login Verification Code')
         );
