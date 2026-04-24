@@ -1,4 +1,4 @@
-import { Link, router, useForm } from "@inertiajs/react";
+import { Link, router, useForm, usePage } from "@inertiajs/react";
 import { type ReactElement, type ReactNode } from 'react';
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -16,8 +16,9 @@ import { useClipboard } from "@/hooks/use-clipboard";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ShieldCheck } from "@hugeicons/core-free-icons";
 
-interface PageProps {
+interface PageProps extends Record<string, unknown> {
     step: number;
+    status?: string;
     twoFactor: {
         enabled: boolean;
         pending: boolean;
@@ -63,15 +64,22 @@ function getQrCodeImageSrc(svg: string): string {
 }
 
 export default function TwoFactorWizard({ step, twoFactor }: PageProps) {
+    const { props } = usePage<PageProps>();
     const currentStep = getAllowedStep(step, twoFactor);
 
     return (
         <section className="auth-shell mt-2">
             <div className="auth-shell-inner p-6 sm:p-8">
+                {props.status && (
+                    <div className="mb-6 rounded-md border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3 text-sm text-[#0F172A]">
+                        {props.status}
+                    </div>
+                )}
+
                 <Stepper steps={STEPS} current={currentStep - 1} className="flex-wrap mb-8" />
 
                 <StepPanel>
-                    {currentStep === 1 && <ChooseMethod />}
+                    {currentStep === 1 && <ChooseMethod twoFactor={twoFactor} />}
                     {currentStep === 2 && <SetUp twoFactor={twoFactor} />}
                     {currentStep === 3 && <Verify />}
                     {currentStep === 4 && <Recovery codes={twoFactor.recoveryCodes} />}
@@ -99,23 +107,32 @@ type TwoFactorWizardPageComponent = typeof TwoFactorWizard & {
     </DashboardLayout>
 );
 
-function ChooseMethod() {
-    const form = useForm({ force: true, return_to_wizard: true });
+function ChooseMethod({ twoFactor }: { twoFactor: PageProps["twoFactor"] }) {
+    const form = useForm({ force: !twoFactor.pending, return_to_wizard: true });
+
+    const startSetup = () => {
+        if (twoFactor.pending) {
+            go(2);
+            return;
+        }
+
+        form.post("/scp/account/security/two-factor/enable", {
+            preserveScroll: true,
+        });
+    };
 
     return (
         <div className="space-y-4">
             <p className="text-sm text-gray-600">
-                Choose how you want to receive verification codes. We recommend an authenticator app for the strongest protection.
+                {twoFactor.pending
+                    ? 'Your authenticator app setup is already in progress. Continue without generating a new secret.'
+                    : 'Choose how you want to receive verification codes. We recommend an authenticator app for the strongest protection.'}
             </p>
 
             <div className="grid gap-3">
                 <button
                     type="button"
-                    onClick={() =>
-                        form.post("/scp/account/security/two-factor/enable", {
-                            preserveScroll: true,
-                        })
-                    }
+                    onClick={startSetup}
                     disabled={form.processing}
                     className="flex items-start gap-3 rounded-md border border-[#E2E8F0] bg-[#F8FAFC] p-4 text-left transition duration-150 hover:border-[#C4A5F3] hover:bg-white cursor-pointer disabled:opacity-50"
                 >
@@ -124,10 +141,12 @@ function ChooseMethod() {
                     </span>
                     <span>
                         <span className="block font-medium text-gray-900">
-                            Authenticator app
+                            {twoFactor.pending ? 'Continue authenticator setup' : 'Authenticator app'}
                         </span>
                         <span className="block text-sm text-gray-500">
-                            Use Google Authenticator, 1Password, Authy, or another TOTP app.
+                            {twoFactor.pending
+                                ? 'Resume scanning your existing QR code and finish verification.'
+                                : 'Use Google Authenticator, 1Password, Authy, or another TOTP app.'}
                         </span>
                     </span>
                 </button>
