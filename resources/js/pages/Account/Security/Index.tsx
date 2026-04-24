@@ -185,22 +185,6 @@ export default function SecurityIndex({ twoFactor, migration, revealedRecoveryCo
                             ))}
                         </dl>
                     </section>
-
-                    {revealedRecoveryCodes.length === 0 && (
-                        <section className="rounded-md border border-amber-200 bg-amber-50 p-5">
-                            <div className="auth-eyebrow text-amber-900! mb-2">RECOVERY CODES</div>
-                            <p className="text-xs text-amber-800 mb-3">
-                                Store these codes securely. Each code can be used once.
-                            </p>
-                            <div className="grid gap-2 sm:grid-cols-2">
-                                {revealedRecoveryCodes.map((code) => (
-                                    <div key={code} className="rounded-md bg-white px-2 py-1.5 font-mono text-xs text-gray-900 border border-amber-100">
-                                        {code}
-                                    </div>
-                                ))}
-                            </div>
-                        </section>
-                    )}
                 </aside>
             </div>
         </>
