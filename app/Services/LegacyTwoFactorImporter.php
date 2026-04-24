@@ -11,7 +11,7 @@ class LegacyTwoFactorImporter
 {
     public function importIfNeeded(Staff $staff): void
     {
-        if (! is_null($staff->two_factor_confirmed_at)) {
+        if (! is_null($staff->two_factor_secret) && ! is_null($staff->two_factor_confirmed_at)) {
             return;
         }
 

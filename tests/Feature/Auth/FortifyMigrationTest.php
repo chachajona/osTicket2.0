@@ -13,41 +13,45 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use PragmaRX\Google2FA\Google2FA;
 
-function createLegacyStaff(array $attributes = []): Staff
-{
-    $staffId = $attributes['staff_id'] ?? random_int(1000, 9999);
+if (! function_exists('createLegacyStaff')) {
+    function createLegacyStaff(array $attributes = []): Staff
+    {
+        $staffId = $attributes['staff_id'] ?? random_int(1000, 9999);
 
-    DB::connection('legacy')->table('staff')->insert(array_merge([
-        'staff_id' => $staffId,
-        'dept_id' => 1,
-        'username' => "staff{$staffId}",
-        'firstname' => 'Fortify',
-        'lastname' => 'Tester',
-        'email' => "staff{$staffId}@example.com",
-        'passwd' => bcrypt('password'),
-        'isactive' => 1,
-        'isadmin' => 0,
-        'created' => now(),
-    ], $attributes));
+        DB::connection('legacy')->table('staff')->insert(array_merge([
+            'staff_id' => $staffId,
+            'dept_id' => 1,
+            'username' => "staff{$staffId}",
+            'firstname' => 'Fortify',
+            'lastname' => 'Tester',
+            'email' => "staff{$staffId}@example.com",
+            'passwd' => bcrypt('password'),
+            'isactive' => 1,
+            'isadmin' => 0,
+            'created' => now(),
+        ], $attributes));
 
-    return Staff::on('legacy')->findOrFail($staffId);
+        return Staff::on('legacy')->findOrFail($staffId);
+    }
 }
 
-function createUnreadableTwoFactorCredential(Staff $staff): void
-{
-    $foreignEncrypter = new Encrypter(str_repeat('m', 32), config('app.cipher'));
-    $now = now();
+if (! function_exists('createUnreadableTwoFactorCredential')) {
+    function createUnreadableTwoFactorCredential(Staff $staff): void
+    {
+        $foreignEncrypter = new Encrypter(str_repeat('m', 32), config('app.cipher'));
+        $now = now();
 
-    DB::connection('osticket2')->table('staff_two_factor')->updateOrInsert(
-        ['staff_id' => $staff->staff_id],
-        [
-            'two_factor_secret' => $foreignEncrypter->encrypt('UNREADABLE-SECRET-KEY'),
-            'two_factor_recovery_codes' => $foreignEncrypter->encrypt(['alpha-beta-gamma']),
-            'two_factor_confirmed_at' => $now,
-            'created_at' => $now,
-            'updated_at' => $now,
-        ],
-    );
+        DB::connection('osticket2')->table('staff_two_factor')->updateOrInsert(
+            ['staff_id' => $staff->staff_id],
+            [
+                'two_factor_secret' => $foreignEncrypter->encrypt('UNREADABLE-SECRET-KEY'),
+                'two_factor_recovery_codes' => $foreignEncrypter->encrypt(['alpha-beta-gamma']),
+                'two_factor_confirmed_at' => $now,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+        );
+    }
 }
 
 test('security page renders for authenticated staff', function () {
@@ -238,6 +242,31 @@ test('enabling two-factor overwrites unreadable stored credentials', function ()
         ->and($freshStaff->hasUnreadableTwoFactorCredential())->toBeFalse();
 });
 
+test('updating two-factor credentials preserves the original created_at timestamp', function () {
+    $this->travelTo(now());
+
+    $staff = createLegacyStaff();
+    $service = app(StaffTwoFactorService::class);
+    $service->enable($staff);
+
+    $originalCredential = StaffTwoFactorCredential::query()->where('staff_id', $staff->staff_id)->firstOrFail();
+    $originalCreatedAt = $originalCredential->created_at;
+
+    $this->travel(1)->second();
+
+    $service->confirm(
+        $staff->fresh(),
+        app(Google2FA::class)->getCurrentOtp((string) $staff->fresh()->two_factor_secret),
+    );
+
+    $updatedCredential = StaffTwoFactorCredential::query()->where('staff_id', $staff->staff_id)->firstOrFail();
+
+    expect($updatedCredential->created_at?->equalTo($originalCreatedAt))->toBeTrue()
+        ->and($updatedCredential->updated_at?->greaterThan($originalCreatedAt))->toBeTrue();
+
+    $this->travelBack();
+});
+
 test('totp challenge accepts a valid app code', function () {
     $staff = createLegacyStaff();
     $service = app(StaffTwoFactorService::class);
@@ -328,7 +357,7 @@ test('recovery code is not consumed when challenge expires during verification',
 
     $recoveryCode = $staff->fresh()->recoveryCodes()[0];
 
-    $challenge = \Mockery::mock(TwoFactorAppChallengeService::class);
+    $challenge = Mockery::mock(TwoFactorAppChallengeService::class);
     $challenge->shouldReceive('hasActiveChallenge')
         ->once()
         ->with($staff->staff_id)

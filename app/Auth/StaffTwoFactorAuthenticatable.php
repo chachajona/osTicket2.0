@@ -115,26 +115,25 @@ trait StaffTwoFactorAuthenticatable
      */
     public function upsertTwoFactorCredential(array $attributes): StaffTwoFactorCredential
     {
+        $staffId = $this->getAuthIdentifier();
         $credential = new StaffTwoFactorCredential([
-            'staff_id' => $this->getAuthIdentifier(),
+            'staff_id' => $staffId,
         ]);
         $credential->forceFill($attributes);
 
         $timestamp = Carbon::now();
-        $payload = [
+        $values = [[
             ...$credential->getAttributes(),
             $credential->getUpdatedAtColumn() => $timestamp,
-        ];
-
+            $credential->getCreatedAtColumn() => $timestamp,
+        ]];
         $createdAtColumn = $credential->getCreatedAtColumn();
-        if (! array_key_exists($createdAtColumn, $payload)) {
-            $payload[$createdAtColumn] = $timestamp;
-        }
+        $updateColumns = array_values(array_filter(
+            array_keys($values[0]),
+            fn (string $column): bool => $column !== 'staff_id' && $column !== $createdAtColumn,
+        ));
 
-        $credential->newQuery()->updateOrInsert(
-            ['staff_id' => $this->getAuthIdentifier()],
-            $payload,
-        );
+        $credential->newQuery()->upsert($values, ['staff_id'], $updateColumns);
 
         $credential = $this->twoFactorCredential()->first();
         $this->hasUnreadableTwoFactorCredential = false;

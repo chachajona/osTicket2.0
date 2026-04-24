@@ -4,6 +4,7 @@ use App\Models\Staff;
 use App\Models\StaffAuthMigration;
 use App\Models\StaffTwoFactorCredential;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Encryption\Encrypter;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -32,6 +33,25 @@ if (! function_exists('createLegacyStaff')) {
         $staff->exists = true;
 
         return $staff;
+    }
+}
+
+if (! function_exists('createUnreadableTwoFactorCredential')) {
+    function createUnreadableTwoFactorCredential(Staff $staff): void
+    {
+        $foreignEncrypter = new Encrypter(str_repeat('m', 32), config('app.cipher'));
+        $now = now();
+
+        DB::connection('osticket2')->table('staff_two_factor')->updateOrInsert(
+            ['staff_id' => $staff->staff_id],
+            [
+                'two_factor_secret' => $foreignEncrypter->encrypt('UNREADABLE-SECRET-KEY'),
+                'two_factor_recovery_codes' => $foreignEncrypter->encrypt(['alpha-beta-gamma']),
+                'two_factor_confirmed_at' => $now,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+        );
     }
 }
 
@@ -132,6 +152,31 @@ test('legacy two factor import does not overwrite confirmed new credentials', fu
     expect($credential)->not->toBeNull()
         ->and($credential?->two_factor_secret)->toBe($existingSecret)
         ->and(StaffAuthMigration::query()->where('staff_id', $staff->staff_id)->exists())->toBeFalse();
+});
+
+test('legacy two factor import restores unreadable confirmed credentials from the legacy secret', function () {
+    $staff = createLegacyStaff();
+    $legacySecret = app(Google2FA::class)->generateSecretKey();
+
+    setLegacyTotpSecret($staff, $legacySecret);
+    createUnreadableTwoFactorCredential($staff);
+
+    $response = $this->post('/scp/login', [
+        'username' => $staff->username,
+        'password' => 'password',
+    ]);
+
+    $response->assertRedirect('/scp/2fa-app');
+    $response->assertSessionHas('2fa_app.staff_id', $staff->staff_id);
+
+    $credential = StaffTwoFactorCredential::query()->where('staff_id', $staff->staff_id)->first();
+    $migration = StaffAuthMigration::query()->where('staff_id', $staff->staff_id)->first();
+
+    expect($credential)->not->toBeNull()
+        ->and($credential?->two_factor_secret)->toBe($legacySecret)
+        ->and($credential?->two_factor_confirmed_at)->not->toBeNull()
+        ->and($migration)->not->toBeNull()
+        ->and($migration?->upgrade_method)->toBe('totp');
 });
 
 test('legacy two factor import is idempotent across repeated logins', function () {
