@@ -186,7 +186,7 @@ export default function SecurityIndex({ twoFactor, migration, revealedRecoveryCo
                         </dl>
                     </section>
 
-                    {revealedRecoveryCodes.length > 0 && (
+                    {revealedRecoveryCodes.length === 0 && (
                         <section className="rounded-md border border-amber-200 bg-amber-50 p-5">
                             <div className="auth-eyebrow text-amber-900! mb-2">RECOVERY CODES</div>
                             <p className="text-xs text-amber-800 mb-3">
