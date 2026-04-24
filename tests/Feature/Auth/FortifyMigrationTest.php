@@ -90,6 +90,38 @@ test('confirming two-factor marks the staff member as migrated', function () {
     $this->travelBack();
 });
 
+test('confirming two-factor clears the cached migration banner result', function () {
+    $this->travelTo(now());
+
+    $staff = createLegacyStaff();
+    $cacheKey = "auth.migration_banner.{$staff->staff_id}";
+
+    $this->actingAs($staff, 'staff')
+        ->get('/scp')
+        ->assertInertia(fn ($page) => $page->where('auth.staff.migrationBanner', false))
+        ->assertSessionHas($cacheKey, false);
+
+    $service = app(StaffTwoFactorService::class);
+    $service->enable($staff);
+
+    $otp = app(Google2FA::class)->getCurrentOtp((string) $staff->fresh()->two_factor_secret);
+
+    $this->actingAs($staff->fresh(), 'staff')
+        ->withSession(['auth.password_confirmed_at' => now()->timestamp])
+        ->post('/scp/account/security/two-factor/confirm', [
+            'code' => $otp,
+        ])
+        ->assertRedirect('/scp/account/security')
+        ->assertSessionMissing($cacheKey);
+
+    $this->actingAs($staff->fresh(), 'staff')
+        ->get('/scp')
+        ->assertInertia(fn ($page) => $page->where('auth.staff.migrationBanner', false))
+        ->assertSessionHas($cacheKey, false);
+
+    $this->travelBack();
+});
+
 test('security page only exposes setup secret while two-factor confirmation is pending', function () {
     $staff = createLegacyStaff();
     $service = app(StaffTwoFactorService::class);

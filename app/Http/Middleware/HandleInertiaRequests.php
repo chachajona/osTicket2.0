@@ -85,12 +85,7 @@ class HandleInertiaRequests extends Middleware
         }
 
         $visible = $this->shouldShowMigrationBanner($staff);
-
-        if ($visible) {
-            $request->session()->put($key, true);
-        } else {
-            $request->session()->forget($key);
-        }
+        $request->session()->put($key, $visible);
 
         return $visible;
     }
