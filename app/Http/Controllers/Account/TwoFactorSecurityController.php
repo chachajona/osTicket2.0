@@ -26,21 +26,6 @@ class TwoFactorSecurityController extends Controller
             ->with('status', 'Two-factor authentication setup started. Scan the QR code and confirm a code to finish.');
     }
 
-    public function qrCode(Request $request): JsonResponse
-    {
-        /** @var Staff $staff */
-        $staff = $request->user('staff');
-
-        if (is_null($staff->two_factor_secret) || ! is_null($staff->two_factor_confirmed_at)) {
-            return response()->json([]);
-        }
-
-        return response()->json([
-            'svg' => $staff->twoFactorQrCodeSvg(),
-            'url' => $staff->twoFactorQrCodeUrl(),
-        ]);
-    }
-
     public function confirm(Request $request): RedirectResponse
     {
         $validated = $request->validate([
