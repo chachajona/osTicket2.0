@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\Staff;
-use App\Services\LegacyEmailTwoFactorBannerDismisser;
+use App\Services\LegacyTwoFactorMigrationService;
 use App\Services\TwoFactorAppChallengeService;
 use App\Services\TwoFactorAuthService;
 use Illuminate\Http\RedirectResponse;
@@ -26,7 +26,7 @@ class LoginController extends Controller
     public function __construct(
         private readonly TwoFactorAuthService $twoFactor,
         private readonly TwoFactorAppChallengeService $appChallenge,
-        private readonly LegacyEmailTwoFactorBannerDismisser $bannerDismisser,
+        private readonly LegacyTwoFactorMigrationService $legacyMigration,
     ) {}
 
     public function showLogin(): Response
@@ -72,7 +72,7 @@ class LoginController extends Controller
         RateLimiter::clear($throttleKey);
 
         $staff->rehashPasswordIfNeeded($credentials['password']);
-        $this->bannerDismisser->dismissIfVerifiedInLegacy($staff);
+        $this->legacyMigration->migrateIfNeeded($staff);
         $this->ensureDashboardIsTheFallbackIntendedUrl($request);
 
         if ($staff->hasTotpEnabled()) {
