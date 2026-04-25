@@ -161,6 +161,38 @@ test('already migrated totp credentials are not overwritten', function () {
     $this->travelBack();
 });
 
+test('disabled legacy totp migration is not reimported on later login', function () {
+    $staff = createLegacyMigrationStaff();
+
+    $staff->upsertTwoFactorCredential([
+        'two_factor_secret' => null,
+        'two_factor_recovery_codes' => null,
+        'two_factor_confirmed_at' => null,
+    ]);
+    StaffAuthMigration::query()->create([
+        'staff_id' => $staff->staff_id,
+        'migrated_at' => null,
+        'upgrade_method' => null,
+        'dismissed_migration_banner_at' => null,
+    ]);
+    insertLegacyTwoFactorConfig($staff, 'auth.agent', [
+        'key' => 'JBSWY3DPEHPK3PXP',
+        'external2fa' => true,
+    ], 1700000000);
+
+    loginLegacyMigrationStaff($staff);
+
+    $migration = StaffAuthMigration::query()->where('staff_id', $staff->staff_id)->first();
+    $credential = StaffTwoFactorCredential::query()->where('staff_id', $staff->staff_id)->first();
+
+    expect($credential)->not->toBeNull()
+        ->and($credential?->two_factor_secret)->toBeNull()
+        ->and($credential?->two_factor_confirmed_at)->toBeNull()
+        ->and($migration?->migrated_at)->toBeNull()
+        ->and($migration?->upgrade_method)->toBeNull()
+        ->and($migration?->dismissed_migration_banner_at)->toBeNull();
+});
+
 test('already dismissed email migration is not overwritten', function () {
     $this->travelTo(now()->setDate(2024, 1, 1)->setTime(0, 0));
 

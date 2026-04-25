@@ -32,6 +32,10 @@ class LegacyTwoFactorMigrationService
             return true;
         }
 
+        if ($this->hasClearedMigrationRecord($staff)) {
+            return true;
+        }
+
         $decoded = $this->legacyBackendConfig($staff, 'auth.agent');
 
         if (! $this->isVerified($decoded)) {
@@ -59,6 +63,18 @@ class LegacyTwoFactorMigrationService
         );
 
         return true;
+    }
+
+    private function hasClearedMigrationRecord(Staff $staff): bool
+    {
+        $migration = $staff->loadMissing('authMigration')->authMigration;
+
+        // The disable flow leaves a cleared row behind; treat it as an opt-out
+        // so verified legacy TOTP config is not re-imported on later logins.
+        return $migration
+            && is_null($migration->migrated_at)
+            && is_null($migration->upgrade_method)
+            && is_null($migration->dismissed_migration_banner_at);
     }
 
     private function dismissEmailBannerIfNeeded(Staff $staff): void
