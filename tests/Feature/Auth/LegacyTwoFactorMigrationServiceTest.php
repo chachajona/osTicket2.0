@@ -161,7 +161,7 @@ test('already migrated totp credentials are not overwritten', function () {
     $this->travelBack();
 });
 
-test('disabled legacy totp migration is not reimported on later login', function () {
+test('disabled dual legacy totp and email migration is not reimported or shown as a banner', function () {
     $staff = createLegacyMigrationStaff();
 
     $staff->upsertTwoFactorCredential([
@@ -179,6 +179,9 @@ test('disabled legacy totp migration is not reimported on later login', function
         'key' => 'JBSWY3DPEHPK3PXP',
         'external2fa' => true,
     ], 1700000000);
+    insertLegacyTwoFactorConfig($staff, 'email', [
+        'email' => 'a@b.com',
+    ], 1700000000);
 
     loginLegacyMigrationStaff($staff);
 
@@ -191,6 +194,12 @@ test('disabled legacy totp migration is not reimported on later login', function
         ->and($migration?->migrated_at)->toBeNull()
         ->and($migration?->upgrade_method)->toBeNull()
         ->and($migration?->dismissed_migration_banner_at)->toBeNull();
+
+    $this->actingAs($staff->fresh(), 'staff')
+        ->withHeaders(inertiaHeaders())
+        ->get('/scp')
+        ->assertOk()
+        ->assertJsonPath('props.auth.staff.migrationBanner', false);
 });
 
 test('already dismissed email migration is not overwritten', function () {
