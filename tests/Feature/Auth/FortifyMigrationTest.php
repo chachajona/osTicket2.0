@@ -6,52 +6,30 @@ use App\Models\StaffTwoFactorCredential;
 use App\Services\StaffTwoFactorService;
 use App\Services\TwoFactorAppChallengeService;
 use App\Services\TwoFactorAuthService;
-use Illuminate\Encryption\Encrypter;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use PragmaRX\Google2FA\Google2FA;
 
-if (! function_exists('createLegacyStaff')) {
-    function createLegacyStaff(array $attributes = []): Staff
-    {
-        $staffId = $attributes['staff_id'] ?? random_int(1000, 9999);
+function createLegacyStaff(array $attributes = []): Staff
+{
+    $staffId = $attributes['staff_id'] ?? random_int(1000, 9999);
 
-        DB::connection('legacy')->table('staff')->insert(array_merge([
-            'staff_id' => $staffId,
-            'dept_id' => 1,
-            'username' => "staff{$staffId}",
-            'firstname' => 'Fortify',
-            'lastname' => 'Tester',
-            'email' => "staff{$staffId}@example.com",
-            'passwd' => bcrypt('password'),
-            'isactive' => 1,
-            'isadmin' => 0,
-            'created' => now(),
-        ], $attributes));
+    DB::connection('legacy')->table('staff')->insert(array_merge([
+        'staff_id' => $staffId,
+        'dept_id' => 1,
+        'username' => "staff{$staffId}",
+        'firstname' => 'Fortify',
+        'lastname' => 'Tester',
+        'email' => "staff{$staffId}@example.com",
+        'passwd' => bcrypt('password'),
+        'isactive' => 1,
+        'isadmin' => 0,
+        'created' => now(),
+    ], $attributes));
 
-        return Staff::on('legacy')->findOrFail($staffId);
-    }
-}
-
-if (! function_exists('createUnreadableTwoFactorCredential')) {
-    function createUnreadableTwoFactorCredential(Staff $staff): void
-    {
-        $foreignEncrypter = new Encrypter(str_repeat('m', 32), config('app.cipher'));
-        $now = now();
-
-        DB::connection('osticket2')->table('staff_two_factor')->updateOrInsert(
-            ['staff_id' => $staff->staff_id],
-            [
-                'two_factor_secret' => $foreignEncrypter->encrypt('UNREADABLE-SECRET-KEY'),
-                'two_factor_recovery_codes' => $foreignEncrypter->encrypt(['alpha-beta-gamma']),
-                'two_factor_confirmed_at' => $now,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ],
-        );
-    }
+    return Staff::on('legacy')->findOrFail($staffId);
 }
 
 test('security page renders for authenticated staff', function () {
@@ -201,72 +179,6 @@ test('login routes totp-enrolled staff to the app challenge', function () {
     $this->travelBack();
 });
 
-test('login falls back to email verification when app credentials are unreadable', function () {
-    Mail::fake();
-
-    $staff = createLegacyStaff();
-    createUnreadableTwoFactorCredential($staff);
-
-    $response = $this->post('/scp/login', [
-        'username' => $staff->username,
-        'password' => 'password',
-    ]);
-
-    $response->assertRedirect('/scp/2fa');
-    $response->assertSessionHas('2fa.staff_id', $staff->staff_id);
-    $response->assertSessionHas(
-        'status',
-        'We could not read your saved authenticator settings in this environment. Continue with email verification, then reconfigure two-factor authentication from Account Security.'
-    );
-
-    expect(app(TwoFactorAuthService::class)->hasPendingToken($staff->staff_id))->toBeTrue();
-});
-
-test('enabling two-factor overwrites unreadable stored credentials', function () {
-    $staff = createLegacyStaff();
-    createUnreadableTwoFactorCredential($staff);
-
-    $response = $this->actingAs($staff->fresh(), 'staff')
-        ->withSession(['auth.password_confirmed_at' => now()->timestamp])
-        ->post('/scp/account/security/two-factor/enable', [
-            'force' => true,
-        ]);
-
-    $response->assertRedirect('/scp/account/security');
-
-    $freshStaff = $staff->fresh();
-
-    expect($freshStaff->two_factor_secret)->toBeString()->not->toBe('UNREADABLE-SECRET-KEY')
-        ->and($freshStaff->two_factor_confirmed_at)->toBeNull()
-        ->and($freshStaff->recoveryCodes())->toHaveCount(8)
-        ->and($freshStaff->hasUnreadableTwoFactorCredential())->toBeFalse();
-});
-
-test('updating two-factor credentials preserves the original created_at timestamp', function () {
-    $this->travelTo(now());
-
-    $staff = createLegacyStaff();
-    $service = app(StaffTwoFactorService::class);
-    $service->enable($staff);
-
-    $originalCredential = StaffTwoFactorCredential::query()->where('staff_id', $staff->staff_id)->firstOrFail();
-    $originalCreatedAt = $originalCredential->created_at;
-
-    $this->travel(1)->second();
-
-    $service->confirm(
-        $staff->fresh(),
-        app(Google2FA::class)->getCurrentOtp((string) $staff->fresh()->two_factor_secret),
-    );
-
-    $updatedCredential = StaffTwoFactorCredential::query()->where('staff_id', $staff->staff_id)->firstOrFail();
-
-    expect($updatedCredential->created_at?->equalTo($originalCreatedAt))->toBeTrue()
-        ->and($updatedCredential->updated_at?->greaterThan($originalCreatedAt))->toBeTrue();
-
-    $this->travelBack();
-});
-
 test('totp challenge accepts a valid app code', function () {
     $staff = createLegacyStaff();
     $service = app(StaffTwoFactorService::class);
@@ -357,7 +269,7 @@ test('recovery code is not consumed when challenge expires during verification',
 
     $recoveryCode = $staff->fresh()->recoveryCodes()[0];
 
-    $challenge = Mockery::mock(TwoFactorAppChallengeService::class);
+    $challenge = \Mockery::mock(TwoFactorAppChallengeService::class);
     $challenge->shouldReceive('hasActiveChallenge')
         ->once()
         ->with($staff->staff_id)
@@ -397,28 +309,4 @@ test('non-enrolled staff continue to the email otp flow', function () {
     $response->assertRedirect('/scp/2fa');
     $response->assertSessionHas('2fa.staff_id', $staff->staff_id);
     expect(app(TwoFactorAuthService::class)->hasPendingToken($staff->staff_id))->toBeTrue();
-});
-
-test('security and dashboard pages tolerate unreadable app credentials', function () {
-    $staff = createLegacyStaff();
-    createUnreadableTwoFactorCredential($staff);
-
-    $dashboardResponse = $this->actingAs($staff->fresh(), 'staff')
-        ->withHeaders(inertiaHeaders())
-        ->get('/scp');
-
-    $dashboardResponse->assertOk();
-    $dashboardResponse->assertJsonPath('props.auth.staff.migrationBanner', false);
-
-    $securityResponse = $this->actingAs($staff->fresh(), 'staff')
-        ->withHeaders(inertiaHeaders())
-        ->get('/scp/account/security');
-
-    $securityResponse->assertOk();
-    $securityResponse->assertJsonPath('props.twoFactor.enabled', false);
-    $securityResponse->assertJsonPath('props.twoFactor.pending', false);
-    $securityResponse->assertJsonPath('props.twoFactor.recoveryCodesCount', 0);
-    $securityResponse->assertJsonPath('props.twoFactor.confirmedAt', null);
-    $securityResponse->assertJsonPath('props.twoFactor.setupKey', null);
-    $securityResponse->assertJsonPath('props.twoFactor.qrCodeSvg', null);
 });

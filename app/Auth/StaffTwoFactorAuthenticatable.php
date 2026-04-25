@@ -9,17 +9,13 @@ use BaconQrCode\Renderer\ImageRenderer;
 use BaconQrCode\Renderer\RendererStyle\Fill;
 use BaconQrCode\Renderer\RendererStyle\RendererStyle;
 use BaconQrCode\Writer;
-use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Support\Carbon;
 use Laravel\Fortify\Contracts\TwoFactorAuthenticationProvider;
 use Laravel\Fortify\Fortify;
 use Laravel\Fortify\RecoveryCode;
 
 trait StaffTwoFactorAuthenticatable
 {
-    protected bool $hasUnreadableTwoFactorCredential = false;
-
     /**
      * Get the sibling record that stores Fortify-managed two-factor state.
      *
@@ -89,7 +85,7 @@ trait StaffTwoFactorAuthenticatable
 
     public function getTwoFactorSecretAttribute(): ?string
     {
-        return $this->readTwoFactorCredentialAttribute('two_factor_secret');
+        return $this->loadMissing('twoFactorCredential')->twoFactorCredential?->two_factor_secret;
     }
 
     /**
@@ -97,17 +93,12 @@ trait StaffTwoFactorAuthenticatable
      */
     public function getTwoFactorRecoveryCodesAttribute(): ?array
     {
-        return $this->readTwoFactorCredentialAttribute('two_factor_recovery_codes');
+        return $this->loadMissing('twoFactorCredential')->twoFactorCredential?->two_factor_recovery_codes;
     }
 
     public function getTwoFactorConfirmedAtAttribute(): mixed
     {
-        return $this->readTwoFactorCredentialAttribute('two_factor_confirmed_at');
-    }
-
-    public function hasUnreadableTwoFactorCredential(): bool
-    {
-        return $this->hasUnreadableTwoFactorCredential;
+        return $this->loadMissing('twoFactorCredential')->twoFactorCredential?->two_factor_confirmed_at;
     }
 
     /**
@@ -115,67 +106,20 @@ trait StaffTwoFactorAuthenticatable
      */
     public function upsertTwoFactorCredential(array $attributes): StaffTwoFactorCredential
     {
-        $staffId = $this->getAuthIdentifier();
-        $credential = new StaffTwoFactorCredential([
-            'staff_id' => $staffId,
+        $credential = $this->relationLoaded('twoFactorCredential')
+            ? $this->getRelation('twoFactorCredential')
+            : $this->twoFactorCredential()->first();
+
+        $credential ??= new StaffTwoFactorCredential([
+            'staff_id' => $this->getAuthIdentifier(),
         ]);
+
         $credential->forceFill($attributes);
-
-        $timestamp = Carbon::now();
-        $values = [[
-            ...$credential->getAttributes(),
-            $credential->getUpdatedAtColumn() => $timestamp,
-            $credential->getCreatedAtColumn() => $timestamp,
-        ]];
-        $createdAtColumn = $credential->getCreatedAtColumn();
-        $updateColumns = array_values(array_filter(
-            array_keys($values[0]),
-            fn (string $column): bool => $column !== 'staff_id' && $column !== $createdAtColumn,
-        ));
-
-        $credential->newQuery()->upsert($values, ['staff_id'], $updateColumns);
-
-        $credential = $this->twoFactorCredential()->first();
-        $this->hasUnreadableTwoFactorCredential = false;
+        $credential->staff_id = $this->getAuthIdentifier();
+        $credential->save();
 
         $this->setRelation('twoFactorCredential', $credential);
 
         return $credential;
-    }
-
-    protected function readTwoFactorCredentialAttribute(string $attribute): mixed
-    {
-        if ($this->hasUnreadableTwoFactorCredential) {
-            return null;
-        }
-
-        $credential = $this->loadMissing('twoFactorCredential')->twoFactorCredential;
-
-        if (! $credential) {
-            return null;
-        }
-
-        try {
-            return $credential->getAttribute($attribute);
-        } catch (DecryptException $exception) {
-            $this->markUnreadableTwoFactorCredential($attribute, $exception);
-
-            return null;
-        }
-    }
-
-    protected function markUnreadableTwoFactorCredential(string $attribute, DecryptException $exception): void
-    {
-        if ($this->hasUnreadableTwoFactorCredential) {
-            return;
-        }
-
-        $this->hasUnreadableTwoFactorCredential = true;
-
-        logger()->warning('Unreadable staff two-factor credential encountered.', [
-            'staff_id' => $this->getAuthIdentifier(),
-            'attribute' => $attribute,
-            'message' => $exception->getMessage(),
-        ]);
     }
 }

@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\Staff;
-use App\Services\LegacyTwoFactorImporter;
+use App\Services\LegacyEmailTwoFactorBannerDismisser;
 use App\Services\TwoFactorAppChallengeService;
 use App\Services\TwoFactorAuthService;
 use Illuminate\Http\RedirectResponse;
@@ -26,7 +26,7 @@ class LoginController extends Controller
     public function __construct(
         private readonly TwoFactorAuthService $twoFactor,
         private readonly TwoFactorAppChallengeService $appChallenge,
-        private readonly LegacyTwoFactorImporter $legacyImporter,
+        private readonly LegacyEmailTwoFactorBannerDismisser $bannerDismisser,
     ) {}
 
     public function showLogin(): Response
@@ -72,8 +72,7 @@ class LoginController extends Controller
         RateLimiter::clear($throttleKey);
 
         $staff->rehashPasswordIfNeeded($credentials['password']);
-        $this->legacyImporter->importIfNeeded($staff);
-        $staff->refresh();
+        $this->bannerDismisser->dismissIfVerifiedInLegacy($staff);
         $this->ensureDashboardIsTheFallbackIntendedUrl($request);
 
         if ($staff->hasTotpEnabled()) {
@@ -83,13 +82,6 @@ class LoginController extends Controller
             $request->session()->put('2fa_app.remember', $request->boolean('remember'));
 
             return redirect()->route('scp.2fa-app');
-        }
-
-        if ($staff->hasUnreadableTwoFactorCredential()) {
-            $request->session()->flash(
-                'status',
-                'We could not read your saved authenticator settings in this environment. Continue with email verification, then reconfigure two-factor authentication from Account Security.'
-            );
         }
 
         $code = $this->twoFactor->generateToken($staff->staff_id);
