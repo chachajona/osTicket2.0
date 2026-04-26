@@ -116,8 +116,15 @@ abstract class TestCase extends BaseTestCase
                 $table->timestamp('migrated_at')->nullable();
                 $table->timestamp('must_upgrade_after')->nullable();
                 $table->string('upgrade_method', 32)->nullable();
+                $table->timestamp('dismissed_migration_banner_at')->nullable();
                 $table->timestamps();
             });
+
+            if (! $osticket2->hasColumn('staff_auth_migrations', 'dismissed_migration_banner_at')) {
+                $osticket2->table('staff_auth_migrations', function (Blueprint $table): void {
+                    $table->timestamp('dismissed_migration_banner_at')->nullable()->after('upgrade_method');
+                });
+            }
 
             foreach ([
                 'staff_auth_migrations',

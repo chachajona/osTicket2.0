@@ -4,14 +4,15 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\Staff;
-use App\Services\TwoFactorAuthService;
+use App\Services\LegacyTwoFactorMigrationService;
 use App\Services\TwoFactorAppChallengeService;
+use App\Services\TwoFactorAuthService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -25,6 +26,7 @@ class LoginController extends Controller
     public function __construct(
         private readonly TwoFactorAuthService $twoFactor,
         private readonly TwoFactorAppChallengeService $appChallenge,
+        private readonly LegacyTwoFactorMigrationService $legacyMigration,
     ) {}
 
     public function showLogin(): Response
@@ -70,6 +72,7 @@ class LoginController extends Controller
         RateLimiter::clear($throttleKey);
 
         $staff->rehashPasswordIfNeeded($credentials['password']);
+        $this->legacyMigration->migrateIfNeeded($staff);
         $this->ensureDashboardIsTheFallbackIntendedUrl($request);
 
         if ($staff->hasTotpEnabled()) {
@@ -85,7 +88,7 @@ class LoginController extends Controller
 
         Mail::raw(
             "Your osTicket login code is: {$code}\n\nThis code expires in 6 minutes.",
-            fn($message) => $message
+            fn ($message) => $message
                 ->to($staff->email)
                 ->subject('Your Login Verification Code')
         );

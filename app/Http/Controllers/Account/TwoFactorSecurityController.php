@@ -22,30 +22,15 @@ class TwoFactorSecurityController extends Controller
 
         $this->twoFactor->enable($staff, $request->boolean('force'));
 
-        return redirect()
-            ->route('scp.account.security')
+        return $this->securityRedirect($request, 2)
             ->with('status', 'Two-factor authentication setup started. Scan the QR code and confirm a code to finish.');
-    }
-
-    public function qrCode(Request $request): JsonResponse
-    {
-        /** @var Staff $staff */
-        $staff = $request->user('staff');
-
-        if (is_null($staff->two_factor_secret) || ! is_null($staff->two_factor_confirmed_at)) {
-            return response()->json([]);
-        }
-
-        return response()->json([
-            'svg' => $staff->twoFactorQrCodeSvg(),
-            'url' => $staff->twoFactorQrCodeUrl(),
-        ]);
     }
 
     public function confirm(Request $request): RedirectResponse
     {
         $validated = $request->validate([
             'code' => ['required', 'string'],
+            'return_to_wizard' => ['nullable', 'boolean'],
         ]);
 
         /** @var Staff $staff */
@@ -60,9 +45,9 @@ class TwoFactorSecurityController extends Controller
                 'upgrade_method' => 'totp',
             ],
         );
+        $request->session()->forget("auth.migration_banner.{$staff->staff_id}");
 
-        return redirect()
-            ->route('scp.account.security')
+        return $this->securityRedirect($request, 4)
             ->with('status', 'Two-factor authentication enabled.')
             ->with('two_factor_recovery_codes', $staff->fresh()->recoveryCodes());
     }
@@ -103,11 +88,22 @@ class TwoFactorSecurityController extends Controller
             [
                 'migrated_at' => null,
                 'upgrade_method' => null,
+                'dismissed_migration_banner_at' => null,
             ],
         );
+        $request->session()->forget("auth.migration_banner.{$staff->staff_id}");
 
         return redirect()
             ->route('scp.account.security')
             ->with('status', 'Two-factor authentication disabled.');
+    }
+
+    private function securityRedirect(Request $request, int $wizardStep): RedirectResponse
+    {
+        if ($request->boolean('return_to_wizard')) {
+            return redirect()->route('scp.account.security.two-factor.show', ['step' => $wizardStep]);
+        }
+
+        return redirect()->route('scp.account.security');
     }
 }

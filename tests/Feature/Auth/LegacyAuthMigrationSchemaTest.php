@@ -45,6 +45,7 @@ test('staff auth migrations migration backfills missing optional columns on an e
     });
 
     loadMigration('2026_04_19_000200_create_staff_auth_migrations_table.php')->up();
+    loadMigration('2026_04_22_140000_add_dismissed_migration_banner_at_to_staff_auth_migrations.php')->up();
 
     $schema = Schema::connection('osticket2');
 
@@ -54,6 +55,7 @@ test('staff auth migrations migration backfills missing optional columns on an e
         'migrated_at',
         'must_upgrade_after',
         'upgrade_method',
+        'dismissed_migration_banner_at',
         'created_at',
         'updated_at',
     ]))->toBeTrue()

@@ -280,7 +280,7 @@ test('password reset form rejects malformed tokens', function () {
     $response = $this->get('/scp/password/reset/not-a-valid-token');
 
     $response->assertRedirect('/scp/password/forgot');
-    $response->assertSessionHasErrors(['email']);
+    $response->assertSessionHasErrors(['general']);
 });
 
 test('inactive staff cannot reset their password with a valid token', function () {

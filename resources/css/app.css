@@ -149,84 +149,81 @@
     }
 }
 
-/* Editorial light auth theme — scoped to .auth-theme only, does not leak.
- * Palette: warm cream surface on white, black foreground, gradient accents
- * (orange #F97316 → pink #EC4899 → indigo #6366F1). Inter-only typography. */
+/* Helpdesk Dashboard light theme — scoped to .auth-theme only, does not leak.
+ * Palette: slate-to-white surface on white, slate-900 foreground, lavender-purple accent
+ * (#C4A5F3 primary → #5B619D secondary → #22C55E tertiary). Inter typography. */
 .auth-theme {
     --background: #ffffff;
-    --foreground: #18181b;
-    --surface: #f4f2eb;
-    --card: #f4f2eb;
-    --card-foreground: #18181b;
+    --foreground: #0f172a;
+    --surface: #f8fafc;
+    --card: #f8fafc;
+    --card-foreground: #0f172a;
     --popover: #ffffff;
-    --popover-foreground: #18181b;
-    --primary: #18181b;
+    --popover-foreground: #0f172a;
+    --primary: #0f172a;
     --primary-foreground: #ffffff;
-    --secondary: #f4f2eb;
-    --secondary-foreground: #18181b;
-    --muted: #f4f2eb;
-    --muted-foreground: #52525b;
-    --accent: #f97316;
-    --accent-foreground: #18181b;
+    --secondary: #f1f5f9;
+    --secondary-foreground: #0f172a;
+    --muted: #f1f5f9;
+    --muted-foreground: #64748b;
+    --accent: #c4a5f3;
+    --accent-foreground: #0f172a;
     --destructive: #dc2626;
-    --border: #e2e0d8;
+    --border: #f1f5f9;
     --input: #ffffff;
-    --ring: #18181b;
+    --ring: #c4a5f3;
     --radius: 0.25rem;
+
     color-scheme: light;
     font-family: "Inter Variable", Inter, ui-sans-serif, system-ui, sans-serif;
     font-feature-settings: "ss01", "cv11";
 }
 
 .auth-theme ::selection {
-    background: rgba(249, 115, 22, 0.28);
-    color: #18181b;
+    background: rgba(196, 165, 243, 0.30);
+    color: #0f172a;
 }
 
-/* Editorial gradient — orange → pink → indigo. Used for border shells,
- * underlines, accent flourishes. */
 .auth-gradient {
     background: linear-gradient(
         to right bottom,
-        #fb923c 0%,
-        #ec4899 55%,
-        #6366f1 100%
+        #c4a5f3 0%,
+        #7c6fbd 55%,
+        #5b619d 100%
     );
 }
 
-/* Horizontal gradient variant — for rules, accent bars. */
 .auth-gradient-h {
     background: linear-gradient(
         to right,
-        #fb923c 0%,
-        #ec4899 55%,
-        #6366f1 100%
+        #c4a5f3 0%,
+        #7c6fbd 55%,
+        #5b619d 100%
     );
 }
 
-/* Gradient border shell — 1px outer + cream inner. Wrap .auth-shell around
+/* Gradient border shell — 1px outer + slate inner. Wrap .auth-shell around
  * a child with class .auth-shell-inner to get a hairline gradient frame. */
 .auth-shell {
     padding: 1px;
-    border-radius: 10px;
+    border-radius: 12px;
     background: linear-gradient(
         to right bottom,
-        #fb923c 0%,
-        #ec4899 55%,
-        #6366f1 100%
+        #c4a5f3 0%,
+        #7c6fbd 55%,
+        #5b619d 100%
     );
     box-shadow:
-        rgba(236, 72, 153, 0.10) 0 10px 15px -3px,
-        rgba(236, 72, 153, 0.10) 0 4px 6px -4px,
+        rgba(196, 165, 243, 0.20) 0 10px 15px -3px,
+        rgba(196, 165, 243, 0.15) 0 4px 6px -4px,
         rgba(0, 0, 0, 0.04) 0 2px 8px -2px;
 }
 
 .auth-shell-inner {
-    border-radius: 9px;
+    border-radius: 11px;
     background: var(--surface);
 }
 
-/* Warm corner gradient mesh — decorative wash behind the hero. */
 .auth-mesh {
     position: absolute;
     inset: 0;
@@ -235,18 +232,18 @@
     background:
         radial-gradient(
             55% 40% at 92% 8%,
-            rgba(249, 115, 22, 0.20) 0%,
-            rgba(249, 115, 22, 0) 70%
+            rgba(196, 165, 243, 0.18) 0%,
+            rgba(196, 165, 243, 0) 70%
         ),
         radial-gradient(
             50% 35% at 8% 100%,
-            rgba(99, 102, 241, 0.14) 0%,
-            rgba(99, 102, 241, 0) 70%
+            rgba(91, 97, 157, 0.12) 0%,
+            rgba(91, 97, 157, 0) 70%
         ),
         radial-gradient(
             40% 30% at 60% 60%,
-            rgba(236, 72, 153, 0.10) 0%,
-            rgba(236, 72, 153, 0) 70%
+            rgba(34, 197, 94, 0.07) 0%,
+            rgba(34, 197, 94, 0) 70%
         );
 }
 
@@ -265,7 +262,6 @@
     background-size: 3px 3px;
 }
 
-/* Ruler — thin border with gradient partial accent. */
 .auth-rule {
     position: relative;
     height: 1px;
@@ -276,7 +272,7 @@
     content: "";
     position: absolute;
     inset: 0 70% 0 0;
-    background: linear-gradient(to right, #fb923c 0%, #ec4899 100%);
+    background: linear-gradient(to right, #c4a5f3 0%, #5b619d 100%);
 }
 
 @keyframes auth-rise {
@@ -296,7 +292,6 @@
     }
 }
 
-/* Eyebrow caption — micro uppercase with dot. */
 .auth-eyebrow {
     display: inline-flex;
     align-items: center;
@@ -319,11 +314,11 @@
     flex-shrink: 0;
 }
 
-.auth-eyebrow[data-accent="orange"]::before { background: #f97316; }
-.auth-eyebrow[data-accent="pink"]::before { background: #ec4899; }
-.auth-eyebrow[data-accent="indigo"]::before { background: #6366f1; }
+.auth-eyebrow[data-accent="purple"]::before { background: #c4a5f3; }
+.auth-eyebrow[data-accent="indigo"]::before { background: #5b619d; }
+.auth-eyebrow[data-accent="emerald"]::before { background: #22c55e; }
 .auth-eyebrow[data-accent="gradient"]::before {
-    background: linear-gradient(135deg, #fb923c, #ec4899, #6366f1);
+    background: linear-gradient(135deg, #c4a5f3, #7c6fbd, #5b619d);
 }
 
 /* Tiny caption — uppercase label, used for metadata. */
@@ -337,7 +332,6 @@
     color: var(--muted-foreground);
 }
 
-/* Secondary button — tracked uppercase underline. */
 .auth-link-btn {
     display: inline-flex;
     align-items: center;
@@ -355,11 +349,10 @@
 }
 
 .auth-link-btn:hover {
-    color: #be185d;
-    border-color: #be185d;
+    color: #5b619d;
+    border-color: #5b619d;
 }
 
-/* Primary submit — black pill with gradient hover accent. */
 .auth-submit {
     display: inline-flex;
     width: 100%;
@@ -378,16 +371,16 @@
     text-transform: uppercase;
     transition: background 200ms ease, transform 150ms ease;
     box-shadow:
-        rgba(24, 24, 27, 0.1) 0 2px 4px -2px,
-        rgba(24, 24, 27, 0.05) 0 1px 2px 0;
+        rgba(15, 23, 42, 0.10) 0 2px 4px -2px,
+        rgba(15, 23, 42, 0.05) 0 1px 2px 0;
 }
 
 .auth-submit:hover:not(:disabled) {
     background: linear-gradient(
         to right,
-        #18181b 0%,
-        #3b1a3d 50%,
-        #18181b 100%
+        #0f172a 0%,
+        #1e1b4b 50%,
+        #0f172a 100%
     );
 }
 
@@ -400,7 +393,7 @@
     cursor: not-allowed;
 }
 
-/* Inputs inside auth-theme — clean cream-bordered with orange focus. */
+/* Inputs inside auth-theme — clean cream-bordered with lavender focus. */
 .auth-theme [data-slot="input"] {
     height: 44px;
     border-radius: 4px;
@@ -413,16 +406,35 @@
 }
 
 .auth-theme [data-slot="input"]:hover {
-    border-color: #cbc8bd;
+    border-color: #cbd5e1;
 }
 
 .auth-theme [data-slot="input"]:focus-visible {
     outline: none;
-    border-color: #18181b;
-    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.18);
+    border-color: #5b619d;
+    box-shadow: 0 0 0 3px rgba(196, 165, 243, 0.25);
 }
 
 .auth-theme [data-slot="input"][aria-invalid="true"] {
     border-color: var(--destructive);
     box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+}
+
+.custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #e2e8f0 transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 9999px;
 }

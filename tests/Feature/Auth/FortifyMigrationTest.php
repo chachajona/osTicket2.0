@@ -90,6 +90,38 @@ test('confirming two-factor marks the staff member as migrated', function () {
     $this->travelBack();
 });
 
+test('confirming two-factor clears the cached migration banner result', function () {
+    $this->travelTo(now());
+
+    $staff = createLegacyStaff();
+    $cacheKey = "auth.migration_banner.{$staff->staff_id}";
+
+    $this->actingAs($staff, 'staff')
+        ->get('/scp')
+        ->assertInertia(fn ($page) => $page->where('auth.staff.migrationBanner', false))
+        ->assertSessionHas($cacheKey, fn (array $cache): bool => $cache['visible'] === false && is_int($cache['cached_at']));
+
+    $service = app(StaffTwoFactorService::class);
+    $service->enable($staff);
+
+    $otp = app(Google2FA::class)->getCurrentOtp((string) $staff->fresh()->two_factor_secret);
+
+    $this->actingAs($staff->fresh(), 'staff')
+        ->withSession(['auth.password_confirmed_at' => now()->timestamp])
+        ->post('/scp/account/security/two-factor/confirm', [
+            'code' => $otp,
+        ])
+        ->assertRedirect('/scp/account/security')
+        ->assertSessionMissing($cacheKey);
+
+    $this->actingAs($staff->fresh(), 'staff')
+        ->get('/scp')
+        ->assertInertia(fn ($page) => $page->where('auth.staff.migrationBanner', false))
+        ->assertSessionHas($cacheKey, fn (array $cache): bool => $cache['visible'] === false && is_int($cache['cached_at']));
+
+    $this->travelBack();
+});
+
 test('security page only exposes setup secret while two-factor confirmation is pending', function () {
     $staff = createLegacyStaff();
     $service = app(StaffTwoFactorService::class);
@@ -108,7 +140,7 @@ test('security page only exposes setup secret while two-factor confirmation is p
         ->and($pendingTwoFactor['pending'])->toBeTrue()
         ->and($pendingTwoFactor['setupKey'])->toBeString()->not->toBe('')
         ->and($pendingTwoFactor['qrCodeSvg'])->toBeString()->not->toBe('')
-        ->and($pendingTwoFactor['qrCodeUrl'])->toBeString()->not->toBe('');
+        ->and($pendingTwoFactor)->not->toHaveKey('qrCodeUrl');
 
     $service->confirm($staff->fresh(), app(Google2FA::class)->getCurrentOtp((string) $staff->fresh()->two_factor_secret));
 
@@ -121,7 +153,7 @@ test('security page only exposes setup secret while two-factor confirmation is p
     $confirmedResponse->assertJsonPath('props.twoFactor.enabled', true);
     $confirmedResponse->assertJsonPath('props.twoFactor.setupKey', null);
     $confirmedResponse->assertJsonPath('props.twoFactor.qrCodeSvg', null);
-    $confirmedResponse->assertJsonPath('props.twoFactor.qrCodeUrl', null);
+    expect(Arr::get($confirmedResponse->json(), 'props.twoFactor'))->not->toHaveKey('qrCodeUrl');
 });
 
 test('login routes totp-enrolled staff to the app challenge', function () {
@@ -262,33 +294,6 @@ test('recovery code is not consumed when challenge expires during verification',
     ]);
 
     expect($staff->fresh()->recoveryCodes())->toContain($recoveryCode);
-});
-
-test('qr code endpoint requires a confirmed password and hides confirmed setup material', function () {
-    $staff = createLegacyStaff();
-    $service = app(StaffTwoFactorService::class);
-    $service->enable($staff);
-
-    $redirectResponse = $this->actingAs($staff->fresh(), 'staff')
-        ->get('/scp/account/security/two-factor/qr-code');
-
-    $redirectResponse->assertRedirect('/scp/account/security/confirm-password');
-
-    $pendingResponse = $this->actingAs($staff->fresh(), 'staff')
-        ->withSession(['auth.password_confirmed_at' => now()->timestamp])
-        ->get('/scp/account/security/two-factor/qr-code');
-
-    $pendingResponse->assertOk();
-    $pendingResponse->assertJsonStructure(['svg', 'url']);
-
-    $service->confirm($staff->fresh(), app(Google2FA::class)->getCurrentOtp((string) $staff->fresh()->two_factor_secret));
-
-    $confirmedResponse = $this->actingAs($staff->fresh(), 'staff')
-        ->withSession(['auth.password_confirmed_at' => now()->timestamp])
-        ->get('/scp/account/security/two-factor/qr-code');
-
-    $confirmedResponse->assertOk();
-    expect($confirmedResponse->json())->toBe([]);
 });
 
 test('non-enrolled staff continue to the email otp flow', function () {
