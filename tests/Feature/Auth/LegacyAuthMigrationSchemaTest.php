@@ -62,6 +62,45 @@ test('staff auth migrations migration backfills missing optional columns on an e
         ->and($schema->hasIndex('staff_auth_migrations', ['staff_id'], 'unique'))->toBeTrue();
 });
 
+test('staff preferences migration rollback does not drop pre-existing shared table', function () {
+    recreateOsticket2Table('staff_preferences', function (Blueprint $table): void {
+        $table->id();
+        $table->unsignedBigInteger('staff_id')->unique();
+    });
+
+    try {
+        $migration = loadMigration('2026_04_26_000100_create_staff_preferences_table.php');
+        $migration->up();
+        $migration->down();
+
+        expect(Schema::connection('osticket2')->hasTable('staff_preferences'))->toBeTrue();
+    } finally {
+        Schema::connection('osticket2')->dropIfExists('staff_preferences');
+        loadMigration('2026_04_26_000100_create_staff_preferences_table.php')->up();
+    }
+});
+
+test('staff preferences migration rollback drops only tables it created', function () {
+    Schema::connection('osticket2')->dropIfExists('staff_preferences');
+
+    try {
+        $migration = loadMigration('2026_04_26_000100_create_staff_preferences_table.php');
+        $migration->up();
+
+        expect(Schema::connection('osticket2')->hasColumn(
+            'staff_preferences',
+            'created_by_migration_2026_04_26_000100'
+        ))->toBeTrue();
+
+        $migration->down();
+
+        expect(Schema::connection('osticket2')->hasTable('staff_preferences'))->toBeFalse();
+    } finally {
+        Schema::connection('osticket2')->dropIfExists('staff_preferences');
+        loadMigration('2026_04_26_000100_create_staff_preferences_table.php')->up();
+    }
+});
+
 test('staff two factor migration fails loudly when the shared table is missing core columns', function () {
     recreateOsticket2Table('staff_two_factor', function (Blueprint $table): void {
         $table->unsignedBigInteger('staff_id');

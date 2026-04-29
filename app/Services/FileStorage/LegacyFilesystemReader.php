@@ -57,6 +57,10 @@ class LegacyFilesystemReader implements FileStorageReader
 
     private function path(File $file): ?string
     {
+        if ((string) $file->bk === 'F') {
+            return $this->pluginFilesystemPath($file);
+        }
+
         $attrs = $file->attrs ?? null;
 
         if (! is_string($attrs) || trim($attrs) === '') {
@@ -68,11 +72,56 @@ class LegacyFilesystemReader implements FileStorageReader
         if (is_array($decoded)) {
             foreach (['path', 'file', 'filename', 'key'] as $key) {
                 if (isset($decoded[$key]) && is_string($decoded[$key])) {
-                    return $decoded[$key];
+                    return $this->sandboxedPath($decoded[$key]);
                 }
             }
         }
 
-        return $attrs;
+        return $this->sandboxedPath($attrs);
+    }
+
+    private function pluginFilesystemPath(File $file): ?string
+    {
+        $key = $file->key ?? null;
+
+        if (! is_string($key) || $key === '') {
+            return null;
+        }
+
+        return $this->sandboxedPath($key[0].DIRECTORY_SEPARATOR.$key);
+    }
+
+    private function sandboxedPath(string $candidate): ?string
+    {
+        $root = config('services.osticket.filesystem_root');
+
+        if (! is_string($root) || trim($root) === '') {
+            return null;
+        }
+
+        $resolvedRoot = realpath($root);
+
+        if ($resolvedRoot === false) {
+            return null;
+        }
+
+        $candidate = trim($candidate);
+        $path = str_starts_with($candidate, DIRECTORY_SEPARATOR)
+            ? $candidate
+            : rtrim($resolvedRoot, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.$candidate;
+        $resolvedPath = realpath($path);
+
+        if ($resolvedPath === false) {
+            return null;
+        }
+
+        $normalizedRoot = rtrim(str_replace('\\', '/', $resolvedRoot), '/');
+        $normalizedPath = str_replace('\\', '/', $resolvedPath);
+
+        if ($normalizedPath !== $normalizedRoot && ! str_starts_with($normalizedPath, $normalizedRoot.'/')) {
+            return null;
+        }
+
+        return $resolvedPath;
     }
 }

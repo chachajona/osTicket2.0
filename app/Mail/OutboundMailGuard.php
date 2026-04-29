@@ -27,7 +27,7 @@ class OutboundMailGuard
 
     private function isPasswordReset(MessageSending $event): bool
     {
-        return trim((string) $event->message->getSubject()) === 'Reset Your Password';
+        return ($event->data['__laravel_mailable'] ?? null) === PasswordResetLinkMail::class;
     }
 
     private function allRecipientsExplicitlyAllowed(MessageSending $event): bool

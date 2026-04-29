@@ -7,11 +7,15 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    private const TABLE = 'staff_preferences';
+
+    private const CREATED_MARKER = 'created_by_migration_2026_04_26_000100';
+
     public function up(): void
     {
         $schema = Schema::connection('osticket2');
 
-        if (! $schema->hasTable('staff_preferences')) {
+        if (! $schema->hasTable(self::TABLE)) {
             $this->createTable($schema);
 
             return;
@@ -22,25 +26,30 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::connection('osticket2')->dropIfExists('staff_preferences');
+        $schema = Schema::connection('osticket2');
+
+        if ($schema->hasColumn(self::TABLE, self::CREATED_MARKER)) {
+            $schema->dropIfExists(self::TABLE);
+        }
     }
 
     private function createTable(Builder $schema): void
     {
-        $schema->create('staff_preferences', function (Blueprint $table): void {
+        $schema->create(self::TABLE, function (Blueprint $table): void {
             $table->id();
             $table->unsignedBigInteger('staff_id')->unique();
             $table->string('theme', 16)->default('system');
             $table->string('language', 16)->nullable();
             $table->string('timezone', 64)->nullable();
             $table->json('notifications')->nullable();
+            $table->boolean(self::CREATED_MARKER)->default(true);
             $table->timestamps();
         });
     }
 
     private function guardRequiredColumns(Builder $schema): void
     {
-        $existingColumns = $schema->getColumnListing('staff_preferences');
+        $existingColumns = $schema->getColumnListing(self::TABLE);
         $missingColumns = array_values(array_diff(['id', 'staff_id'], $existingColumns));
 
         if ($missingColumns === []) {
@@ -49,7 +58,7 @@ return new class extends Migration
 
         throw new RuntimeException(sprintf(
             'Existing %s table is missing required column(s): %s.',
-            $schema->getConnection()->getTablePrefix().'staff_preferences',
+            $schema->getConnection()->getTablePrefix().self::TABLE,
             implode(', ', $missingColumns),
         ));
     }

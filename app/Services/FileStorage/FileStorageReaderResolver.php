@@ -16,7 +16,7 @@ class FileStorageReaderResolver
     {
         return match ((string) ($file->bk ?? 'D')) {
             'D', '' => $this->chunkReader,
-            '6' => $this->filesystemReader,
+            '6', 'F' => $this->filesystemReader,
             default => throw new RuntimeException(sprintf('Unsupported legacy file backend [%s].', $file->bk)),
         };
     }

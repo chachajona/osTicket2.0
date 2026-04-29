@@ -112,12 +112,13 @@ function DefaultHeaderActions() {
             >
                 {t('dashboard.layout.my_queue')}
             </Link>
-            <Link
-                href="/scp/tickets/create"
-                className={cn(buttonVariants({ size: 'sm' }), "rounded-[4px] bg-[#5B619D] px-4 text-xs font-medium uppercase tracking-[0.12em] text-white hover:bg-[#4F548C] shadow-[0_10px_25px_-20px_rgba(91,97,157,0.7)]")}
+            <button
+                type="button"
+                disabled
+                className={cn(buttonVariants({ size: 'sm' }), "rounded-[4px] bg-[#5B619D] px-4 text-xs font-medium uppercase tracking-[0.12em] text-white hover:bg-[#4F548C] disabled:cursor-not-allowed disabled:opacity-60 shadow-[0_10px_25px_-20px_rgba(91,97,157,0.7)]")}
             >
                 {t('dashboard.layout.new_ticket')}
-            </Link>
+            </button>
         </>
     );
 }

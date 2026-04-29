@@ -42,6 +42,7 @@ return [
     'osticket' => [
         'secret_salt' => env('OSTICKET_SECRET_SALT'),
         'config_path' => env('OSTICKET_CONFIG_PATH'),
+        'filesystem_root' => env('OSTICKET_FILESYSTEM_ROOT'),
     ],
 
 ];

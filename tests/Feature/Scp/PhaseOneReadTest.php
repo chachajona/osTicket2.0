@@ -410,6 +410,17 @@ test('search returns only rbac-visible tickets', function () {
     expect($response->json('props.results'))->toHaveCount(1);
 });
 
+test('search treats fallback like wildcards as literal characters', function () {
+    $staff = phaseOneStaff(['staff_id' => 84]);
+
+    $response = $this->actingAs($staff, 'staff')
+        ->withHeaders(inertiaHeaders())
+        ->get('/scp/search?q=%');
+
+    $response->assertOk();
+    expect($response->json('props.results'))->toBe([]);
+});
+
 test('dashboard uses live visible open ticket counts', function () {
     $this->travelTo('2026-04-28 12:00:00');
     $staff = phaseOneStaff();
@@ -485,6 +496,54 @@ test('chunked attachment download streams legacy bytes', function () {
 
     $response->assertOk();
     expect($response->streamedContent())->toBe('hello world');
+});
+
+test('attachment downloads are scoped to accessible ticket departments', function () {
+    $staff = phaseOneStaff(['staff_id' => 85]);
+
+    DB::connection('legacy')->table('thread')->insert([
+        'id' => 301,
+        'object_id' => 201,
+        'object_type' => 'T',
+        'created' => '2026-04-20 11:00:00',
+    ]);
+
+    DB::connection('legacy')->table('thread_entry')->insert([
+        'id' => 401,
+        'thread_id' => 301,
+        'staff_id' => 0,
+        'type' => 'M',
+        'body' => 'Hidden message body',
+        'format' => 'html',
+        'created' => '2026-04-20 11:01:00',
+    ]);
+
+    DB::connection('legacy')->table('file')->insert([
+        'id' => 801,
+        'bk' => 'D',
+        'size' => 6,
+        'name' => 'hidden.txt',
+        'mime' => 'text/plain',
+    ]);
+
+    DB::connection('legacy')->table('file_chunk')->insert([
+        'file_id' => 801,
+        'chunk_id' => 1,
+        'filedata' => 'hidden',
+    ]);
+
+    DB::connection('legacy')->table('attachment')->insert([
+        'id' => 901,
+        'file_id' => 801,
+        'object_type' => 'H',
+        'object_id' => 401,
+        'name' => 'hidden.txt',
+        'inline' => 0,
+    ]);
+
+    $response = $this->actingAs($staff, 'staff')->get('/scp/attachments/801');
+
+    $response->assertNotFound();
 });
 
 test('queue csv export uses configured fields and rbac-visible rows', function () {

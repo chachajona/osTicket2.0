@@ -66,22 +66,37 @@ class SearchService
     private function searchRows(string $query, int $limit)
     {
         if (DB::connection('legacy')->getDriverName() === 'mysql') {
-            return DB::connection('legacy')
-                ->table('_search')
-                ->selectRaw('object_type, object_id, title, MATCH(title, content) AGAINST(? IN BOOLEAN MODE) AS score', [$query])
-                ->where('object_type', 'T')
-                ->whereRaw('MATCH(title, content) AGAINST(? IN BOOLEAN MODE)', [$query])
-                ->orderByDesc('score')
-                ->orderByDesc('object_id')
-                ->limit($limit)
-                ->get();
+            try {
+                return DB::connection('legacy')
+                    ->table('_search')
+                    ->selectRaw('object_type, object_id, title, MATCH(title, content) AGAINST(? IN BOOLEAN MODE) AS score', [$query])
+                    ->where('object_type', 'T')
+                    ->whereRaw('MATCH(title, content) AGAINST(? IN BOOLEAN MODE)', [$query])
+                    ->orderByDesc('score')
+                    ->orderByDesc('object_id')
+                    ->limit($limit)
+                    ->get();
+            } catch (QueryException) {
+                return $this->fallbackSearchRows($query, $limit);
+            }
         }
 
+        return $this->fallbackSearchRows($query, $limit);
+    }
+
+    /**
+     * @return Collection<int, object>
+     */
+    private function fallbackSearchRows(string $query, int $limit)
+    {
         return Search::query()
             ->where('object_type', 'T')
             ->where(function ($builder) use ($query): void {
-                $builder->where('title', 'like', "%{$query}%")
-                    ->orWhere('content', 'like', "%{$query}%");
+                $escaped = str_replace(['\\', '%', '_'], ['\\\\', '\%', '\_'], $query);
+                $pattern = "%{$escaped}%";
+
+                $builder->whereRaw('title like ? escape ?', [$pattern, '\\'])
+                    ->orWhereRaw('content like ? escape ?', [$pattern, '\\']);
             })
             ->orderByDesc('object_id')
             ->limit($limit)
