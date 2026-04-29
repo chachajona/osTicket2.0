@@ -115,4 +115,11 @@ return [
         'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel')),
     ],
 
+    'outbound_guard' => [
+        'allowed_recipients' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env('OUTBOUND_MAIL_ALLOWED_RECIPIENTS', '')),
+        ))),
+    ],
+
 ];
