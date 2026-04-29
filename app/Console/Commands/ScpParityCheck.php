@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Eloquent\Scopes\TicketAccessibleScope;
 use App\Models\Queue;
 use App\Models\Ticket;
 use App\Services\Scp\LegacyQueueCriteriaParser;
@@ -17,7 +18,10 @@ class ScpParityCheck extends Command
     public function handle(LegacyQueueCriteriaParser $criteriaParser, TicketReadService $tickets): int
     {
         $sample = max(1, (int) $this->option('sample'));
-        $query = Ticket::query()->orderByDesc('ticket_id')->limit($sample);
+        $query = Ticket::query()
+            ->withoutGlobalScope(TicketAccessibleScope::class)
+            ->orderByDesc('ticket_id')
+            ->limit($sample);
         $queueId = $this->option('queue');
 
         if ($queueId) {

@@ -16,6 +16,8 @@ class TicketAccessibleScope implements Scope
         $staff = Auth::guard('staff')->user();
 
         if (! $staff instanceof Staff) {
+            $builder->whereRaw('1 = 0');
+
             return;
         }
 

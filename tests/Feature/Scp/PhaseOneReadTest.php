@@ -584,3 +584,24 @@ test('queue csv export uses configured fields and rbac-visible rows', function (
         ->and($csv)->toContain('200200,"Visible searchable ticket","Grace Hopper",High')
         ->and($csv)->not->toContain('200201');
 });
+
+test('queue csv export does not expose arbitrary relationship attributes', function () {
+    $staff = phaseOneStaff(['staff_id' => 83]);
+    $passwordHash = (string) DB::connection('legacy')
+        ->table('staff')
+        ->where('staff_id', 83)
+        ->value('passwd');
+
+    DB::connection('legacy')->table('queue_export')
+        ->where('id', 1001)
+        ->update(['config' => json_encode(['number', 'staff.passwd', 'user.defaultEmail.address'])]);
+
+    $response = $this->actingAs($staff, 'staff')->get('/scp/queues/1000/export');
+
+    $response->assertOk();
+    $csv = $response->streamedContent();
+
+    expect($csv)->toContain('Number,Staff.passwd,User.defaultemail.address')
+        ->and($csv)->toContain('200200,,grace@example.com')
+        ->and($csv)->not->toContain($passwordHash);
+});

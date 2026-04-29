@@ -14,6 +14,25 @@ class QueueExportService
 {
     private const DEFAULT_FIELDS = ['number', 'created', 'subject', 'from', 'priority', 'assignee'];
 
+    private const SAFE_DATA_FIELDS = [
+        'topic_id',
+        'team_id',
+        'sla_id',
+        'email_id',
+        'source',
+        'ip_address',
+        'duedate',
+        'lastupdate',
+        'lastmessage',
+        'lastresponse',
+        'isoverdue',
+        'isanswered',
+        'status.name',
+        'status.state',
+        'user.name',
+        'user.defaultEmail.address',
+    ];
+
     public function __construct(private readonly LegacyQueueCriteriaParser $criteriaParser) {}
 
     public function stream(Queue $queue, Staff $staff): StreamedResponse
@@ -115,7 +134,7 @@ class QueueExportService
             'from', 'requester' => $ticket->user?->name ?: $ticket->user?->defaultEmail?->address,
             'cdata.subject', 'subject' => $ticket->cdata?->subject,
             'cdata.priority', 'priority' => $priorityNames[(string) $ticket->cdata?->priority] ?? $ticket->cdata?->priority,
-            default => data_get($ticket, $field),
+            default => in_array($field, self::SAFE_DATA_FIELDS, true) ? data_get($ticket, $field) : null,
         };
     }
 

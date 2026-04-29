@@ -124,6 +124,41 @@ test('admin ticket queries are not department scoped', function () {
     expect(Ticket::query()->pluck('ticket_id')->all())->toBe([1, 2]);
 });
 
+test('ticket queries fail closed without authenticated staff', function () {
+    DB::connection('legacy')->table('ticket')->insert([
+        ['ticket_id' => 1, 'number' => 'A', 'dept_id' => 1, 'staff_id' => 0],
+        ['ticket_id' => 2, 'number' => 'B', 'dept_id' => 2, 'staff_id' => 0],
+    ]);
+
+    Auth::guard('staff')->logout();
+
+    expect(Ticket::query()->pluck('ticket_id')->all())->toBe([]);
+});
+
+test('staff assigned tickets relation is not scoped to the authenticated viewer', function () {
+    $viewer = scpStaff([
+        'staff_id' => 55,
+        'dept_id' => 1,
+        'username' => 'viewer',
+        'email' => 'viewer@example.com',
+    ]);
+    $owner = scpStaff([
+        'staff_id' => 56,
+        'dept_id' => 3,
+        'username' => 'owner',
+        'email' => 'owner@example.com',
+    ]);
+
+    DB::connection('legacy')->table('ticket')->insert([
+        ['ticket_id' => 1, 'number' => 'A', 'dept_id' => 3, 'staff_id' => 56],
+        ['ticket_id' => 2, 'number' => 'B', 'dept_id' => 1, 'staff_id' => 55],
+    ]);
+
+    Auth::guard('staff')->login($viewer);
+
+    expect($owner->assignedTickets()->pluck('ticket_id')->all())->toBe([1]);
+});
+
 test('preferences page creates own preference row and logs access', function () {
     $staff = scpStaff(['staff_id' => 53]);
 

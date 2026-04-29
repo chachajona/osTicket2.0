@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Auth\StaffTwoFactorAuthenticatable;
+use App\Models\Eloquent\Scopes\TicketAccessibleScope;
 use Database\Factories\StaffFactory;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Collection;
@@ -85,7 +86,8 @@ class Staff extends LegacyModel implements Authenticatable
      */
     public function assignedTickets()
     {
-        return $this->hasMany(Ticket::class, 'staff_id', 'staff_id');
+        return $this->hasMany(Ticket::class, 'staff_id', 'staff_id')
+            ->withoutGlobalScope(TicketAccessibleScope::class);
     }
 
     /**
