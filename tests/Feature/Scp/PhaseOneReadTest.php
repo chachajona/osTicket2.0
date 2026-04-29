@@ -220,6 +220,10 @@ beforeEach(function (): void {
 afterEach(function (): void {
     $schema = Schema::connection('legacy');
 
+    DB::connection('legacy')->table('staff')
+        ->whereIn('staff_id', [80, 81, 82, 83, 84, 85])
+        ->delete();
+
     foreach (['attachment', 'file_chunk', 'file'] as $table) {
         if ($schema->hasTable($table)) {
             DB::connection('legacy')->table($table)->delete();
@@ -478,8 +482,10 @@ test('dashboard uses live visible open ticket counts', function () {
     $response->assertJsonPath('props.metrics.trend.unassigned.direction', 'new');
     $response->assertJsonPath('props.metrics.statusComparison.rangeStart', '2025-11-01');
     $response->assertJsonPath('props.metrics.statusComparison.rangeEnd', '2026-04-28');
-    $response->assertJsonPath('props.metrics.statusComparison.openTotal', 2);
+    $response->assertJsonPath('props.metrics.statusComparison.openTotal', 3);
     $response->assertJsonPath('props.metrics.statusComparison.solvedTotal', 1);
+    $response->assertJsonPath('props.metrics.statusComparison.months.4.month', '2026-03-01');
+    $response->assertJsonPath('props.metrics.statusComparison.months.4.open', 1);
     $response->assertJsonPath('props.metrics.statusComparison.months.5.month', '2026-04-01');
     $response->assertJsonPath('props.metrics.statusComparison.months.5.open', 2);
     $response->assertJsonPath('props.metrics.statusComparison.months.5.solved', 1);
@@ -488,6 +494,25 @@ test('dashboard uses live visible open ticket counts', function () {
     $response->assertJsonPath('props.metrics.channelDistribution.channels.0.label', 'Email');
     $response->assertJsonPath('props.metrics.channelDistribution.channels.0.count', 2);
     $response->assertJsonPath('props.metrics.recentActivity.0.ticket_number', '200200');
+});
+
+test('dashboard degraded fallback preserves selected date range', function () {
+    $this->travelTo('2026-04-28 12:00:00');
+    $staff = phaseOneStaff();
+
+    Schema::connection('legacy')->dropIfExists('ticket');
+
+    $response = $this->actingAs($staff, 'staff')
+        ->withHeaders(inertiaHeaders())
+        ->get('/scp?range=last_7_days');
+
+    $response->assertOk();
+    $response->assertJsonPath('props.range', 'last_7_days');
+    $response->assertJsonPath('props.metrics.open', 0);
+    $response->assertJsonPath('props.metrics.statusComparison.rangeStart', '2026-04-22');
+    $response->assertJsonPath('props.metrics.statusComparison.rangeEnd', '2026-04-28');
+    $response->assertJsonPath('props.metrics.channelDistribution.rangeStart', '2026-04-22');
+    $response->assertJsonPath('props.metrics.channelDistribution.rangeEnd', '2026-04-28');
 });
 
 test('chunked attachment download streams legacy bytes', function () {

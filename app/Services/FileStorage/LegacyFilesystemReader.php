@@ -43,12 +43,20 @@ class LegacyFilesystemReader implements FileStorageReader
                 throw new RuntimeException('Failed to open legacy filesystem file for reading.');
             }
 
-            while (! feof($handle)) {
-                echo fread($handle, 1024 * 512);
-                flush();
-            }
+            try {
+                while (! feof($handle)) {
+                    $chunk = fread($handle, 1024 * 512);
 
-            fclose($handle);
+                    if ($chunk === false) {
+                        throw new RuntimeException('Failed while reading legacy filesystem file stream.');
+                    }
+
+                    echo $chunk;
+                    flush();
+                }
+            } finally {
+                fclose($handle);
+            }
         }, $metadata->name, [
             'Content-Type' => $metadata->mime ?? 'application/octet-stream',
             'Content-Length' => (string) $metadata->size,
@@ -72,7 +80,11 @@ class LegacyFilesystemReader implements FileStorageReader
         if (is_array($decoded)) {
             foreach (['path', 'file', 'filename', 'key'] as $key) {
                 if (isset($decoded[$key]) && is_string($decoded[$key])) {
-                    return $this->sandboxedPath($decoded[$key]);
+                    $resolved = $this->sandboxedPath($decoded[$key]);
+
+                    if ($resolved !== null) {
+                        return $resolved;
+                    }
                 }
             }
         }

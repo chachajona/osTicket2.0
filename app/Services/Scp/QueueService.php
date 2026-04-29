@@ -176,7 +176,7 @@ class QueueService
                     'perPage' => $perPage,
                     'total' => 0,
                 ],
-                'unsupported' => false,
+                'unsupported' => $unsupportedReasons !== [],
                 'unsupportedReasons' => $unsupportedReasons,
             ];
         }

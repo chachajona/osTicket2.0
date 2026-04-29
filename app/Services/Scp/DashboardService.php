@@ -2,8 +2,8 @@
 
 namespace App\Services\Scp;
 
-use App\Models\ThreadEvent;
 use App\Models\Staff;
+use App\Models\ThreadEvent;
 use App\Models\Ticket;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
@@ -79,8 +79,8 @@ class DashboardService
                 'unassigned' => 0,
                 'overdue' => 0,
                 'trend' => $this->emptyTrends(),
-                'statusComparison' => $this->emptyStatusComparison(),
-                'channelDistribution' => $this->emptyChannelDistribution(),
+                'statusComparison' => $this->emptyStatusComparison($range),
+                'channelDistribution' => $this->emptyChannelDistribution($range),
                 'recentActivity' => [],
                 'generatedAt' => now()->toIso8601String(),
             ];
@@ -115,8 +115,7 @@ class DashboardService
     }
 
     /**
-     * @param Builder<Ticket> $tickets
-     *
+     * @param  Builder<Ticket>  $tickets
      * @return array{open:int, assignedToMe:int, unassigned:int, overdue:int}
      */
     private function countsFor(Builder $tickets, int $staffId): array
@@ -137,9 +136,8 @@ class DashboardService
     }
 
     /**
-     * @param array{open:int, assignedToMe:int, unassigned:int, overdue:int} $current
-     * @param array{open:int, assignedToMe:int, unassigned:int, overdue:int} $previous
-     *
+     * @param  array{open:int, assignedToMe:int, unassigned:int, overdue:int}  $current
+     * @param  array{open:int, assignedToMe:int, unassigned:int, overdue:int}  $previous
      * @return array<string, array{previous:int, change:int, percent:float|null, direction:string}>
      */
     private function trends(array $current, array $previous): array
@@ -196,10 +194,10 @@ class DashboardService
         $today = now();
 
         return match ($range) {
-            'last_7_days'    => $today->copy()->subDays(6)->startOfDay(),
-            'last_30_days'   => $today->copy()->subDays(29)->startOfDay(),
-            'last_3_months'  => $today->copy()->startOfMonth()->subMonthsNoOverflow(2),
-            default          => $today->copy()->startOfMonth()->subMonthsNoOverflow(5),
+            'last_7_days' => $today->copy()->subDays(6)->startOfDay(),
+            'last_30_days' => $today->copy()->subDays(29)->startOfDay(),
+            'last_3_months' => $today->copy()->startOfMonth()->subMonthsNoOverflow(2),
+            default => $today->copy()->startOfMonth()->subMonthsNoOverflow(5),
         };
     }
 
@@ -257,7 +255,6 @@ class DashboardService
         $counts = [];
 
         Ticket::query()
-            ->whereHas('status', fn ($query) => $query->where('state', 'open'))
             ->whereNotNull('created')
             ->whereBetween('created', [$start->toDateTimeString(), $end->toDateTimeString()])
             ->pluck('created')
@@ -297,13 +294,13 @@ class DashboardService
      *     months:array<int, array{month:string, label:string, open:int, solved:int}>
      * }
      */
-    private function emptyStatusComparison(): array
+    private function emptyStatusComparison(string $range = 'last_6_months'): array
     {
         $today = now();
-        $rangeStart = $today->copy()->startOfMonth()->subMonthsNoOverflow(5);
+        $rangeStart = $this->rangeStart($range);
         $months = [];
 
-        for ($cursor = $rangeStart->copy(); $cursor <= $today; $cursor->addMonthNoOverflow()) {
+        for ($cursor = $rangeStart->copy()->startOfMonth(); $cursor <= $today; $cursor->addMonthNoOverflow()) {
             $month = $cursor->copy()->startOfMonth();
             $months[] = [
                 'month' => $month->toDateString(),
@@ -315,7 +312,7 @@ class DashboardService
 
         return [
             'rangeStart' => $rangeStart->toDateString(),
-            'rangeEnd' => $today->copy()->startOfMonth()->toDateString(),
+            'rangeEnd' => $today->toDateString(),
             'openTotal' => 0,
             'solvedTotal' => 0,
             'months' => $months,
@@ -412,13 +409,13 @@ class DashboardService
      *     channels:array<int, array{key:string, label:string, count:int, percent:float}>
      * }
      */
-    private function emptyChannelDistribution(): array
+    private function emptyChannelDistribution(string $range = 'last_6_months'): array
     {
         $today = now();
 
         return [
-            'rangeStart' => $today->copy()->startOfMonth()->subMonthsNoOverflow(5)->toDateString(),
-            'rangeEnd' => $today->copy()->startOfMonth()->toDateString(),
+            'rangeStart' => $this->rangeStart($range)->toDateString(),
+            'rangeEnd' => $today->toDateString(),
             'total' => 0,
             'channels' => [],
         ];

@@ -68,6 +68,7 @@ function sanitizeNode(node: Element): void {
 
         if (!ALLOWED_TAGS.has(tag)) {
             // Unwrap unknown tag — keep its children inline.
+            sanitizeNode(child);
             while (child.firstChild) node.insertBefore(child.firstChild, child);
             child.remove();
             continue;

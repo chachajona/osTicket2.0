@@ -62,6 +62,32 @@ test('filesystem plugin reader derives path from file key', function () {
     ])))->toBeTrue();
 });
 
+test('legacy filesystem reader tries later decoded path candidates', function () {
+    $root = storage_path('framework/testing/legacy-files');
+    $outside = storage_path('framework/testing/outside-legacy.txt');
+
+    if (! is_dir($root)) {
+        mkdir($root, 0777, true);
+    }
+
+    file_put_contents($root.'/allowed.txt', 'allowed');
+    file_put_contents($outside, 'outside');
+
+    config(['services.osticket.filesystem_root' => $root]);
+
+    $reader = app(LegacyFilesystemReader::class);
+
+    expect($reader->exists(new File([
+        'id' => 5,
+        'bk' => '6',
+        'name' => 'allowed.txt',
+        'attrs' => json_encode([
+            'path' => $outside,
+            'file' => 'allowed.txt',
+        ]),
+    ])))->toBeTrue();
+});
+
 test('legacy filesystem reader fails closed without configured root', function () {
     config(['services.osticket.filesystem_root' => null]);
 

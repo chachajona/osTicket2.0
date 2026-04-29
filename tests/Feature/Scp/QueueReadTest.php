@@ -403,7 +403,9 @@ test('queue read degrades to empty rows when the legacy ticket query fails', fun
         'staff_id' => 0,
         'flags' => 3,
         'title' => 'Broken legacy query',
-        'config' => null,
+        'config' => json_encode([
+            ['unknown__field', 'exact', 'value'],
+        ]),
         'sort' => 1,
     ]);
 
@@ -423,6 +425,8 @@ test('queue read degrades to empty rows when the legacy ticket query fails', fun
     $response->assertOk();
     $response->assertJsonPath('props.pagination.total', 0);
     $response->assertJsonPath('props.tickets', []);
+    $response->assertJsonPath('props.unsupported', true);
+    $response->assertJsonPath('props.unsupportedReasons.0', 'Unsupported queue field [unknown__field].');
 });
 
 test('queue filters do not bypass ticket rbac', function () {
