@@ -5,6 +5,7 @@ use App\Models\Ticket;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 
 beforeEach(function (): void {
@@ -80,7 +81,7 @@ function scpStaff(array $attributes = []): Staff
         'firstname' => 'SCP',
         'lastname' => 'Staff',
         'email' => 'scp@example.com',
-        'passwd' => bcrypt('password'),
+        'passwd' => Hash::make('password'),
         'isactive' => 1,
         'isadmin' => 0,
         'created' => now(),

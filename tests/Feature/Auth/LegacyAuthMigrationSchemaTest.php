@@ -101,6 +101,47 @@ test('staff preferences migration rollback drops only tables it created', functi
     }
 });
 
+test('scp access log migration rollback does not drop pre-existing shared table', function () {
+    recreateOsticket2Table('access_log', function (Blueprint $table): void {
+        $table->id();
+        $table->unsignedBigInteger('staff_id')->index();
+        $table->string('action', 128);
+        $table->timestamp('created_at')->useCurrent();
+    });
+
+    try {
+        $migration = loadMigration('2026_04_26_000200_create_scp_access_log_table.php');
+        $migration->up();
+        $migration->down();
+
+        expect(Schema::connection('osticket2')->hasTable('access_log'))->toBeTrue();
+    } finally {
+        Schema::connection('osticket2')->dropIfExists('access_log');
+        loadMigration('2026_04_26_000200_create_scp_access_log_table.php')->up();
+    }
+});
+
+test('scp access log migration rollback drops only tables it created', function () {
+    Schema::connection('osticket2')->dropIfExists('access_log');
+
+    try {
+        $migration = loadMigration('2026_04_26_000200_create_scp_access_log_table.php');
+        $migration->up();
+
+        expect(Schema::connection('osticket2')->hasColumn(
+            'access_log',
+            'created_by_migration_2026_04_26_000200'
+        ))->toBeTrue();
+
+        $migration->down();
+
+        expect(Schema::connection('osticket2')->hasTable('access_log'))->toBeFalse();
+    } finally {
+        Schema::connection('osticket2')->dropIfExists('access_log');
+        loadMigration('2026_04_26_000200_create_scp_access_log_table.php')->up();
+    }
+});
+
 test('staff two factor migration fails loudly when the shared table is missing core columns', function () {
     recreateOsticket2Table('staff_two_factor', function (Blueprint $table): void {
         $table->unsignedBigInteger('staff_id');

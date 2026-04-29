@@ -21,21 +21,21 @@ class LegacyQueueCriteriaParser
      * @var array<string, array{column:string, relation?:string}>
      */
     private const FIELD_MAP = [
-        'ticket_id' => ['column' => 'ticket_id'],
-        'number' => ['column' => 'number'],
-        'dept_id' => ['column' => 'dept_id'],
-        'staff_id' => ['column' => 'staff_id'],
-        'team_id' => ['column' => 'team_id'],
-        'topic_id' => ['column' => 'topic_id'],
-        'status_id' => ['column' => 'status_id'],
-        'source' => ['column' => 'source'],
-        'isoverdue' => ['column' => 'isoverdue'],
-        'isanswered' => ['column' => 'isanswered'],
-        'closed' => ['column' => 'closed'],
-        'created' => ['column' => 'created'],
-        'updated' => ['column' => 'updated'],
-        'lastupdate' => ['column' => 'lastupdate'],
-        'duedate' => ['column' => 'duedate'],
+        'ticket_id' => ['column' => 'ticket.ticket_id'],
+        'number' => ['column' => 'ticket.number'],
+        'dept_id' => ['column' => 'ticket.dept_id'],
+        'staff_id' => ['column' => 'ticket.staff_id'],
+        'team_id' => ['column' => 'ticket.team_id'],
+        'topic_id' => ['column' => 'ticket.topic_id'],
+        'status_id' => ['column' => 'ticket.status_id'],
+        'source' => ['column' => 'ticket.source'],
+        'isoverdue' => ['column' => 'ticket.isoverdue'],
+        'isanswered' => ['column' => 'ticket.isanswered'],
+        'closed' => ['column' => 'ticket.closed'],
+        'created' => ['column' => 'ticket.created'],
+        'updated' => ['column' => 'ticket.updated'],
+        'lastupdate' => ['column' => 'ticket.lastupdate'],
+        'duedate' => ['column' => 'ticket.duedate'],
         'status__state' => ['relation' => 'status', 'column' => 'state'],
         'status__name' => ['relation' => 'status', 'column' => 'name'],
         'cdata.subject' => ['relation' => 'cdata', 'column' => 'subject'],
@@ -268,13 +268,19 @@ class LegacyQueueCriteriaParser
         $teamIds = $includeTeams ? $this->teamIds((int) $staff->staff_id) : [];
 
         if ($operator === 'includes') {
+            if (! $includeMe && (! $includeTeams || $teamIds === [])) {
+                $query->whereRaw('1 = 0');
+
+                return;
+            }
+
             $query->where(function (Builder $query) use ($staff, $includeMe, $includeTeams, $teamIds): void {
                 if ($includeMe) {
-                    $query->orWhere('staff_id', (int) $staff->staff_id);
+                    $query->orWhere('ticket.staff_id', (int) $staff->staff_id);
                 }
 
                 if ($includeTeams && $teamIds !== []) {
-                    $query->orWhereIn('team_id', $teamIds);
+                    $query->orWhereIn('ticket.team_id', $teamIds);
                 }
             });
 
@@ -285,15 +291,15 @@ class LegacyQueueCriteriaParser
             $query->where(function (Builder $query) use ($staff, $includeMe, $includeTeams, $teamIds): void {
                 if ($includeMe) {
                     $query->where(function (Builder $query) use ($staff): void {
-                        $query->whereNull('staff_id')
-                            ->orWhere('staff_id', '!=', (int) $staff->staff_id);
+                        $query->whereNull('ticket.staff_id')
+                            ->orWhere('ticket.staff_id', '!=', (int) $staff->staff_id);
                     });
                 }
 
                 if ($includeTeams && $teamIds !== []) {
                     $query->where(function (Builder $query) use ($teamIds): void {
-                        $query->whereNull('team_id')
-                            ->orWhereNotIn('team_id', $teamIds);
+                        $query->whereNull('ticket.team_id')
+                            ->orWhereNotIn('ticket.team_id', $teamIds);
                     });
                 }
             });

@@ -3,6 +3,7 @@
 use App\Models\Staff;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 
 beforeEach(function (): void {
@@ -243,7 +244,7 @@ function phaseOneStaff(array $attributes = []): Staff
         'firstname' => 'Phase',
         'lastname' => 'One',
         'email' => 'phase-one@example.com',
-        'passwd' => bcrypt('password'),
+        'passwd' => Hash::make('password'),
         'isactive' => 1,
         'isadmin' => 0,
         'created' => now(),

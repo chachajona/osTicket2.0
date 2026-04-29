@@ -163,7 +163,13 @@ function SearchField({ defaultQuery = '' }: { defaultQuery?: string }) {
                 <InputGroupAddon align="inline-start">
                     <HugeiconsIcon icon={Search01Icon} size={16} />
                 </InputGroupAddon>
-                <InputGroupInput name="q" defaultValue={defaultQuery} aria-label={t('dashboard.layout.search_tickets')} placeholder={t('dashboard.layout.search_placeholder')} />
+                <InputGroupInput
+                    key={defaultQuery}
+                    name="q"
+                    defaultValue={defaultQuery}
+                    aria-label={t('dashboard.layout.search_tickets')}
+                    placeholder={t('dashboard.layout.search_placeholder')}
+                />
                 <InputGroupAddon align="inline-end">
                     <Kbd>⌘</Kbd>
                     <Kbd>K</Kbd>

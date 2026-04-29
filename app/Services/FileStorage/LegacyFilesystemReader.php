@@ -40,7 +40,7 @@ class LegacyFilesystemReader implements FileStorageReader
             $handle = fopen($path, 'rb');
 
             if ($handle === false) {
-                return;
+                throw new RuntimeException('Failed to open legacy filesystem file for reading.');
             }
 
             while (! feof($handle)) {

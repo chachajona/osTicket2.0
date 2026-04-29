@@ -3,6 +3,7 @@
 use App\Models\Staff;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 
 beforeEach(function (): void {
@@ -109,7 +110,7 @@ function queueReadStaff(array $attributes = []): Staff
         'firstname' => 'Queue',
         'lastname' => 'Reader',
         'email' => 'queue-reader@example.com',
-        'passwd' => bcrypt('password'),
+        'passwd' => Hash::make('password'),
         'isactive' => 1,
         'isadmin' => 0,
         'created' => now(),
@@ -453,4 +454,44 @@ test('assigned to me queue filters by authenticated staff', function () {
     $response->assertJsonPath('props.unsupported', false);
     $response->assertJsonPath('props.pagination.total', 1);
     $response->assertJsonPath('props.tickets.0.id', 140);
+
+    $sortedResponse = $this->actingAs($staff, 'staff')
+        ->withHeaders(inertiaHeaders())
+        ->get('/scp/queues/14?sort=assignee&dir=asc');
+
+    $sortedResponse->assertOk();
+    $sortedResponse->assertJsonPath('props.pagination.total', 1);
+    $sortedResponse->assertJsonPath('props.tickets.0.id', 140);
+});
+
+test('assigned to my teams queue returns no tickets when staff has no teams', function () {
+    $staff = queueReadStaff(['staff_id' => 75]);
+
+    DB::connection('legacy')->table('queue')->insert([
+        'id' => 15,
+        'parent_id' => null,
+        'staff_id' => 0,
+        'flags' => 3,
+        'title' => 'Assigned to my teams',
+        'config' => json_encode([
+            'criteria' => [
+                ['assignee', 'includes', ['T' => 'Teams']],
+            ],
+            'conditions' => [],
+        ]),
+        'sort' => 1,
+    ]);
+
+    DB::connection('legacy')->table('ticket')->insert([
+        ['ticket_id' => 150, 'number' => '150150', 'dept_id' => 1, 'team_id' => 12],
+        ['ticket_id' => 151, 'number' => '150151', 'dept_id' => 1, 'staff_id' => 75],
+    ]);
+
+    $response = $this->actingAs($staff, 'staff')
+        ->withHeaders(inertiaHeaders())
+        ->get('/scp/queues/15');
+
+    $response->assertOk();
+    $response->assertJsonPath('props.unsupported', false);
+    $response->assertJsonPath('props.pagination.total', 0);
 });
