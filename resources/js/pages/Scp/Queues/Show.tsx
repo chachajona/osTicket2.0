@@ -3,7 +3,6 @@ import { HugeiconsIcon } from '@hugeicons/react';
 import {
     Add01Icon,
     Download01Icon,
-    MaximizeScreenIcon,
     Search01Icon,
 } from '@hugeicons/core-free-icons';
 
@@ -13,7 +12,12 @@ import {
     type PaginationState,
     type TicketRow,
 } from '@/components/scp/QueueTicketTable';
-import { TicketFilterChips } from '@/components/scp/TicketFilterChips';
+import {
+    TicketFilterChips,
+    type QueueFilterOptions,
+    type QueueFilters,
+    type QueueSortState,
+} from '@/components/scp/TicketFilterChips';
 import { type QueueNavigation } from '@/components/scp/queue-types';
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
@@ -36,6 +40,9 @@ interface QueueShowProps {
     pagination: PaginationState;
     unsupported: boolean;
     unsupportedReasons?: string[];
+    filters: QueueFilters;
+    filterOptions: QueueFilterOptions;
+    sort: QueueSortState;
 }
 
 interface QueueShowLayoutProps extends QueueShowProps {
@@ -56,17 +63,6 @@ function QueueShowLayout({ queue, navigation, children }: QueueShowLayoutProps) 
             }
             headerActions={
                 <>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        disabled
-                        aria-disabled="true"
-                        title="Coming soon"
-                        className="rounded-md border-zinc-200 text-zinc-700"
-                    >
-                        <HugeiconsIcon icon={MaximizeScreenIcon} size={14} />
-                        Focus Mode
-                    </Button>
                     <a
                         href={`/scp/queues/${queue.id}/export`}
                         className={buttonVariants({ variant: 'outline', size: 'sm' })}
@@ -100,6 +96,9 @@ export default function QueueShow({
     pagination,
     unsupported,
     unsupportedReasons = [],
+    filters,
+    filterOptions,
+    sort,
 }: QueueShowProps) {
     return (
         <div className="space-y-4">
@@ -116,7 +115,7 @@ export default function QueueShow({
                 </div>
             )}
 
-            <div className="flex flex-wrap items-center gap-6 border-y border-zinc-100 px-1 py-3">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-3 border-y border-zinc-100 px-1 py-3">
                 <form
                     role="search"
                     onSubmit={(event) => {
@@ -126,7 +125,7 @@ export default function QueueShow({
                             window.location.href = `/scp/search?queue=${queue.id}&q=${encodeURIComponent(value)}`;
                         }
                     }}
-                    className="w-64"
+                    className="w-full sm:w-64"
                 >
                     <InputGroup>
                         <InputGroupAddon align="inline-start">
@@ -144,13 +143,20 @@ export default function QueueShow({
                     {pagination.total} {pagination.total === 1 ? 'ticket' : 'tickets'}
                 </span>
 
-                <TicketFilterChips />
+                <TicketFilterChips
+                    queueId={queue.id}
+                    filters={filters}
+                    filterOptions={filterOptions}
+                    sort={sort}
+                />
             </div>
 
             <QueueTicketTable
                 queueId={queue.id}
                 tickets={tickets}
                 pagination={pagination}
+                sort={sort}
+                filters={filters}
             />
         </div>
     );

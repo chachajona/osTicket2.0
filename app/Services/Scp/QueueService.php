@@ -6,6 +6,7 @@ use App\Models\Queue;
 use App\Models\Staff;
 use App\Models\Ticket;
 use App\Models\TicketPriority;
+use App\Models\TicketStatus;
 use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\QueryException;
@@ -19,6 +20,8 @@ class QueueService
     private const FLAG_QUEUE = 0x0002;
 
     private const FLAG_DISABLED = 0x0004;
+
+    private const COMMON_SOURCES = ['Email', 'Web', 'Phone', 'API', 'SMS', 'MMS', 'CCM', 'Other'];
 
     public function __construct(private readonly LegacyQueueCriteriaParser $criteriaParser) {}
 
@@ -118,26 +121,42 @@ class QueueService
     }
 
     /**
+     * @param  array{
+     *   state?: list<string>,
+     *   source?: list<string>,
+     *   priority?: list<int>,
+     *   created_from?: ?string,
+     *   created_to?: ?string
+     * }  $filters
+     *
      * @return array{
-     *   tickets: array<int, array{id:int,number:string,created:?string,subject:?string,from:?string,priority:?string,assignee:?string}>,
+     *   tickets: array<int, array{id:int,number:string,created:?string,subject:?string,from:?string,priority:?string,assignee:?string,status:?string,status_state:?string,source:?string}>,
      *   pagination: array{page:int,perPage:int,total:int},
      *   unsupported: bool,
      *   unsupportedReasons: list<string>
      * }
      */
-    public function ticketRows(Queue $queue, Staff $staff, int $page): array
-    {
+    public function ticketRows(
+        Queue $queue,
+        Staff $staff,
+        int $page,
+        array $filters = [],
+        string $sort = 'created',
+        string $direction = 'desc',
+    ): array {
         $perPage = $this->perPage($staff);
         $query = Ticket::query()
-            ->with(['cdata', 'staff', 'user.defaultEmail'])
-            ->orderByDesc('created')
-            ->orderByDesc('ticket_id');
+            ->select('ticket.*')
+            ->with(['cdata', 'staff', 'status', 'user.defaultEmail']);
 
         $unsupportedReasons = $this->criteriaParser->apply($query, $queue->config, $staff);
 
+        $this->applyFilters($query, $filters);
+        $this->applySort($query, $sort, $direction);
+
         $paginator = $query->paginate(
             perPage: $perPage,
-            columns: ['*'],
+            columns: ['ticket.*'],
             pageName: 'page',
             page: $page,
         );
@@ -152,6 +171,110 @@ class QueueService
             'unsupported' => $unsupportedReasons !== [],
             'unsupportedReasons' => $unsupportedReasons,
         ];
+    }
+
+    /**
+     * @return array{
+     *   states: list<string>,
+     *   sources: list<string>,
+     *   priorities: list<array{id:int,name:string}>
+     * }
+     */
+    public function filterOptions(): array
+    {
+        try {
+            $states = TicketStatus::query()
+                ->select('state')
+                ->distinct()
+                ->orderBy('state')
+                ->pluck('state')
+                ->filter()
+                ->values()
+                ->all();
+
+            $priorities = TicketPriority::query()
+                ->orderBy('priority_urgency')
+                ->orderBy('priority')
+                ->get(['priority_id', 'priority'])
+                ->map(fn (TicketPriority $row): array => [
+                    'id' => (int) $row->priority_id,
+                    'name' => (string) $row->priority,
+                ])
+                ->all();
+
+            return [
+                'states' => $states,
+                'sources' => self::COMMON_SOURCES,
+                'priorities' => $priorities,
+            ];
+        } catch (QueryException) {
+            return [
+                'states' => [],
+                'sources' => self::COMMON_SOURCES,
+                'priorities' => [],
+            ];
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     */
+    private function applyFilters(Builder $query, array $filters): void
+    {
+        $states = $filters['state'] ?? [];
+        if (is_array($states) && $states !== []) {
+            $query->whereHas('status', fn (Builder $sub) => $sub->whereIn('state', $states));
+        }
+
+        $sources = $filters['source'] ?? [];
+        if (is_array($sources) && $sources !== []) {
+            $query->whereIn('ticket.source', $sources);
+        }
+
+        $priorities = $filters['priority'] ?? [];
+        if (is_array($priorities) && $priorities !== []) {
+            $query->whereHas('cdata', fn (Builder $sub) => $sub->whereIn('priority', $priorities));
+        }
+
+        $createdFrom = $filters['created_from'] ?? null;
+        if (is_string($createdFrom) && $createdFrom !== '') {
+            $query->where('ticket.created', '>=', $createdFrom.' 00:00:00');
+        }
+
+        $createdTo = $filters['created_to'] ?? null;
+        if (is_string($createdTo) && $createdTo !== '') {
+            $query->where('ticket.created', '<=', $createdTo.' 23:59:59');
+        }
+    }
+
+    private function applySort(Builder $query, string $sort, string $direction): void
+    {
+        $direction = strtolower($direction) === 'asc' ? 'asc' : 'desc';
+
+        switch ($sort) {
+            case 'number':
+                $query->orderBy('ticket.number', $direction);
+                break;
+            case 'priority':
+                $query->leftJoin('ticket__cdata as sort_cdata', 'sort_cdata.ticket_id', '=', 'ticket.ticket_id')
+                    ->orderBy('sort_cdata.priority', $direction);
+                break;
+            case 'from':
+                $query->leftJoin('user as sort_user', 'sort_user.id', '=', 'ticket.user_id')
+                    ->orderBy('sort_user.name', $direction);
+                break;
+            case 'assignee':
+                $query->leftJoin('staff as sort_staff', 'sort_staff.staff_id', '=', 'ticket.staff_id')
+                    ->orderBy('sort_staff.firstname', $direction)
+                    ->orderBy('sort_staff.lastname', $direction);
+                break;
+            case 'created':
+            default:
+                $query->orderBy('ticket.created', $direction);
+                break;
+        }
+
+        $query->orderBy('ticket.ticket_id', 'desc');
     }
 
     /**
@@ -183,7 +306,7 @@ class QueueService
     }
 
     /**
-     * @return array<int, array{id:int,number:string,created:?string,subject:?string,from:?string,priority:?string,assignee:?string}>
+     * @return array<int, array{id:int,number:string,created:?string,subject:?string,from:?string,priority:?string,assignee:?string,status:?string,status_state:?string,source:?string}>
      */
     private function mapRows(LengthAwarePaginator $paginator): array
     {
@@ -200,6 +323,9 @@ class QueueService
                 'from' => $ticket->user?->name ?: $ticket->user?->defaultEmail?->address,
                 'priority' => $priorityNames[(string) $ticket->cdata?->priority] ?? $ticket->cdata?->priority,
                 'assignee' => $ticket->staff?->displayName(),
+                'status' => $ticket->status?->name,
+                'status_state' => $ticket->status?->state,
+                'source' => $ticket->source ?: null,
             ])
             ->values()
             ->all();

@@ -261,6 +261,167 @@ test('queue show supports legacy includes operator with option objects', functio
     $response->assertJsonPath('props.tickets.0.id', 130);
 });
 
+test('queue filter chips narrow tickets by source priority state and date', function () {
+    $staff = queueReadStaff(['staff_id' => 80]);
+
+    DB::connection('legacy')->table('queue')->insert([
+        'id' => 80,
+        'parent_id' => null,
+        'staff_id' => 0,
+        'flags' => 3,
+        'title' => 'All open',
+        'config' => json_encode([['status__state', 'exact', 'open']]),
+        'sort' => 1,
+    ]);
+
+    DB::connection('legacy')->table('ticket_status')->insert([
+        ['id' => 1, 'name' => 'Open', 'state' => 'open'],
+        ['id' => 2, 'name' => 'Closed', 'state' => 'closed'],
+    ]);
+
+    DB::connection('legacy')->table('ticket_priority')->insert([
+        ['priority_id' => 2, 'priority' => 'High', 'priority_urgency' => 1],
+        ['priority_id' => 3, 'priority' => 'Low', 'priority_urgency' => 4],
+    ]);
+
+    DB::connection('legacy')->table('ticket')->insert([
+        ['ticket_id' => 800, 'number' => '800', 'dept_id' => 1, 'status_id' => 1, 'source' => 'Email', 'created' => '2026-04-26 09:00:00'],
+        ['ticket_id' => 801, 'number' => '801', 'dept_id' => 1, 'status_id' => 1, 'source' => 'Web', 'created' => '2026-04-26 10:00:00'],
+        ['ticket_id' => 802, 'number' => '802', 'dept_id' => 1, 'status_id' => 1, 'source' => 'Phone', 'created' => '2026-01-15 09:00:00'],
+        ['ticket_id' => 803, 'number' => '803', 'dept_id' => 1, 'status_id' => 1, 'source' => 'Email', 'created' => '2026-04-26 11:00:00'],
+    ]);
+
+    DB::connection('legacy')->table('ticket__cdata')->insert([
+        ['ticket_id' => 800, 'subject' => 'Email High', 'priority' => '2'],
+        ['ticket_id' => 801, 'subject' => 'Web High', 'priority' => '2'],
+        ['ticket_id' => 802, 'subject' => 'Phone Low', 'priority' => '3'],
+        ['ticket_id' => 803, 'subject' => 'Email Low', 'priority' => '3'],
+    ]);
+
+    $sourceResponse = $this->actingAs($staff, 'staff')
+        ->withHeaders(inertiaHeaders())
+        ->get('/scp/queues/80?source[]=Email');
+
+    $sourceResponse->assertOk();
+    $sourceResponse->assertJsonPath('props.pagination.total', 2);
+    $sourceResponse->assertJsonPath('props.filters.source.0', 'Email');
+
+    $priorityResponse = $this->actingAs($staff, 'staff')
+        ->withHeaders(inertiaHeaders())
+        ->get('/scp/queues/80?priority[]=2');
+
+    $priorityResponse->assertJsonPath('props.pagination.total', 2);
+    expect(collect($priorityResponse->json('props.tickets'))->pluck('id')->all())
+        ->toEqualCanonicalizing([800, 801]);
+
+    $bothResponse = $this->actingAs($staff, 'staff')
+        ->withHeaders(inertiaHeaders())
+        ->get('/scp/queues/80?source[]=Email&priority[]=2');
+
+    $bothResponse->assertJsonPath('props.pagination.total', 1);
+    $bothResponse->assertJsonPath('props.tickets.0.id', 800);
+
+    $stateResponse = $this->actingAs($staff, 'staff')
+        ->withHeaders(inertiaHeaders())
+        ->get('/scp/queues/80?state[]=closed');
+
+    // The queue itself filters to state=open via criteria, so a closed-state filter yields zero.
+    $stateResponse->assertJsonPath('props.pagination.total', 0);
+
+    $dateResponse = $this->actingAs($staff, 'staff')
+        ->withHeaders(inertiaHeaders())
+        ->get('/scp/queues/80?created_from=2026-04-01&created_to=2026-04-30');
+
+    $dateResponse->assertJsonPath('props.pagination.total', 3);
+    expect(collect($dateResponse->json('props.tickets'))->pluck('id')->all())
+        ->not->toContain(802);
+});
+
+test('queue sort orders rows server-side', function () {
+    $staff = queueReadStaff(['staff_id' => 81]);
+
+    DB::connection('legacy')->table('queue')->insert([
+        'id' => 81,
+        'parent_id' => null,
+        'staff_id' => 0,
+        'flags' => 3,
+        'title' => 'Sortable',
+        'config' => null,
+        'sort' => 1,
+    ]);
+
+    DB::connection('legacy')->table('ticket')->insert([
+        ['ticket_id' => 900, 'number' => '900', 'dept_id' => 1, 'staff_id' => 0, 'created' => '2026-04-20 09:00:00'],
+        ['ticket_id' => 901, 'number' => '901', 'dept_id' => 1, 'staff_id' => 0, 'created' => '2026-04-22 09:00:00'],
+        ['ticket_id' => 902, 'number' => '902', 'dept_id' => 1, 'staff_id' => 0, 'created' => '2026-04-21 09:00:00'],
+    ]);
+
+    DB::connection('legacy')->table('ticket__cdata')->insert([
+        ['ticket_id' => 900, 'subject' => 'A', 'priority' => '3'],
+        ['ticket_id' => 901, 'subject' => 'B', 'priority' => '1'],
+        ['ticket_id' => 902, 'subject' => 'C', 'priority' => '2'],
+    ]);
+
+    $createdAsc = $this->actingAs($staff, 'staff')
+        ->withHeaders(inertiaHeaders())
+        ->get('/scp/queues/81?sort=created&dir=asc');
+
+    expect(collect($createdAsc->json('props.tickets'))->pluck('id')->all())
+        ->toBe([900, 902, 901]);
+
+    $createdDesc = $this->actingAs($staff, 'staff')
+        ->withHeaders(inertiaHeaders())
+        ->get('/scp/queues/81?sort=created&dir=desc');
+
+    expect(collect($createdDesc->json('props.tickets'))->pluck('id')->all())
+        ->toBe([901, 902, 900]);
+
+    $priorityAsc = $this->actingAs($staff, 'staff')
+        ->withHeaders(inertiaHeaders())
+        ->get('/scp/queues/81?sort=priority&dir=asc');
+
+    expect(collect($priorityAsc->json('props.tickets'))->pluck('id')->all())
+        ->toBe([901, 902, 900]);
+
+    $numberDesc = $this->actingAs($staff, 'staff')
+        ->withHeaders(inertiaHeaders())
+        ->get('/scp/queues/81?sort=number&dir=desc');
+
+    expect(collect($numberDesc->json('props.tickets'))->pluck('id')->all())
+        ->toBe([902, 901, 900]);
+});
+
+test('queue filters do not bypass ticket rbac', function () {
+    $staff = queueReadStaff(['staff_id' => 82, 'dept_id' => 1]);
+
+    DB::connection('legacy')->table('queue')->insert([
+        'id' => 82,
+        'parent_id' => null,
+        'staff_id' => 0,
+        'flags' => 3,
+        'title' => 'RBAC test',
+        'config' => null,
+        'sort' => 1,
+    ]);
+
+    DB::connection('legacy')->table('ticket')->insert([
+        ['ticket_id' => 1000, 'number' => '1000', 'dept_id' => 1, 'staff_id' => 0, 'source' => 'Email', 'created' => '2026-04-25 09:00:00'],
+        ['ticket_id' => 1001, 'number' => '1001', 'dept_id' => 9, 'staff_id' => 0, 'source' => 'Email', 'created' => '2026-04-25 09:00:00'],
+    ]);
+
+    DB::connection('legacy')->table('ticket__cdata')->insert([
+        ['ticket_id' => 1000, 'subject' => 'mine', 'priority' => '2'],
+        ['ticket_id' => 1001, 'subject' => 'forbidden', 'priority' => '2'],
+    ]);
+
+    $response = $this->actingAs($staff, 'staff')
+        ->withHeaders(inertiaHeaders())
+        ->get('/scp/queues/82?source[]=Email');
+
+    $response->assertJsonPath('props.pagination.total', 1);
+    $response->assertJsonPath('props.tickets.0.id', 1000);
+});
+
 test('assigned to me queue filters by authenticated staff', function () {
     $staff = queueReadStaff(['staff_id' => 74]);
 

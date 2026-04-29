@@ -6,14 +6,18 @@ use App\Http\Controllers\Controller;
 use App\Models\Queue;
 use App\Services\Scp\QueueExportService;
 use App\Services\Scp\QueueService;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 class QueueController extends Controller
 {
+    private const SORTABLE_COLUMNS = ['number', 'created', 'priority', 'from', 'assignee'];
+
     public function __construct(
         private readonly QueueService $queues,
         private readonly QueueExportService $exports,
@@ -39,10 +43,16 @@ class QueueController extends Controller
 
         abort_unless($this->queues->canViewQueue($queue, (int) $staff->staff_id), 404);
 
+        $filters = $this->parseFilters($request);
+        $sort = $this->parseSort($request);
+
         $ticketRows = $this->queues->ticketRows(
             queue: $queue,
             staff: $staff,
             page: max(1, (int) $request->query('page', 1)),
+            filters: $filters,
+            sort: $sort['by'],
+            direction: $sort['dir'],
         );
 
         return Inertia::render('Scp/Queues/Show', [
@@ -55,6 +65,9 @@ class QueueController extends Controller
             'pagination' => $ticketRows['pagination'],
             'unsupported' => $ticketRows['unsupported'],
             'unsupportedReasons' => $ticketRows['unsupportedReasons'],
+            'filters' => $filters,
+            'filterOptions' => $this->queues->filterOptions(),
+            'sort' => $sort,
         ]);
     }
 
@@ -68,5 +81,80 @@ class QueueController extends Controller
     private function staffId(Request $request): int
     {
         return (int) $request->user('staff')->staff_id;
+    }
+
+    /**
+     * @return array{
+     *   state: list<string>,
+     *   source: list<string>,
+     *   priority: list<int>,
+     *   created_from: ?string,
+     *   created_to: ?string
+     * }
+     */
+    private function parseFilters(Request $request): array
+    {
+        return [
+            'state' => $this->stringList($request->query('state')),
+            'source' => $this->stringList($request->query('source')),
+            'priority' => $this->intList($request->query('priority')),
+            'created_from' => $this->parseDate($request->query('created_from')),
+            'created_to' => $this->parseDate($request->query('created_to')),
+        ];
+    }
+
+    /**
+     * @return array{by:string, dir:string}
+     */
+    private function parseSort(Request $request): array
+    {
+        $by = (string) $request->query('sort', 'created');
+        $dir = strtolower((string) $request->query('dir', 'desc'));
+
+        return [
+            'by' => in_array($by, self::SORTABLE_COLUMNS, true) ? $by : 'created',
+            'dir' => $dir === 'asc' ? 'asc' : 'desc',
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function stringList(mixed $value): array
+    {
+        if ($value === null || $value === '') {
+            return [];
+        }
+
+        $items = is_array($value) ? $value : explode(',', (string) $value);
+
+        return array_values(array_filter(array_map(
+            fn (mixed $item): string => trim((string) $item),
+            $items,
+        ), fn (string $item): bool => $item !== ''));
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function intList(mixed $value): array
+    {
+        return array_values(array_filter(array_map(
+            fn (string $item): int => (int) $item,
+            $this->stringList($value),
+        ), fn (int $item): bool => $item > 0));
+    }
+
+    private function parseDate(mixed $value): ?string
+    {
+        if (! is_string($value) || trim($value) === '') {
+            return null;
+        }
+
+        try {
+            return CarbonImmutable::parse($value)->toDateString();
+        } catch (Throwable) {
+            return null;
+        }
     }
 }

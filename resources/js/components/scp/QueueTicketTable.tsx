@@ -1,5 +1,5 @@
-import { Link, router, usePage } from '@inertiajs/react';
-import { useMemo, useState } from 'react';
+import { Link, router } from '@inertiajs/react';
+import { useState } from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
     ArrowDown01Icon,
@@ -10,6 +10,7 @@ import {
 
 import { Avatar } from '@/components/scp/Avatar';
 import { PriorityBadge } from '@/components/scp/PriorityBadge';
+import type { QueueFilters, QueueSortState } from '@/components/scp/TicketFilterChips';
 import { Button } from '@/components/ui/button';
 import { formatTicketDate } from '@/lib/datetime';
 import { cn } from '@/lib/utils';
@@ -22,6 +23,9 @@ export interface TicketRow {
     from: string | null;
     priority: string | null;
     assignee: string | null;
+    status?: string | null;
+    status_state?: string | null;
+    source?: string | null;
 }
 
 export interface PaginationState {
@@ -34,12 +38,14 @@ interface QueueTicketTableProps {
     queueId: number;
     tickets: TicketRow[];
     pagination: PaginationState;
+    sort: QueueSortState;
+    filters: QueueFilters;
 }
 
 type SortDirection = 'asc' | 'desc';
 
 interface ColumnDef {
-    id: keyof TicketRow;
+    id: string;
     label: string;
     sortable: boolean;
     width?: string;
@@ -94,23 +100,22 @@ function CheckboxButton({
     );
 }
 
-export function QueueTicketTable({ queueId, tickets, pagination }: QueueTicketTableProps) {
-    const { url } = usePage();
+function buildFilterParams(filters: QueueFilters): Record<string, string | number | string[] | number[]> {
+    const params: Record<string, string | number | string[] | number[]> = {};
+    if (filters.state.length > 0) params.state = filters.state;
+    if (filters.source.length > 0) params.source = filters.source;
+    if (filters.priority.length > 0) params.priority = filters.priority;
+    if (filters.created_from) params.created_from = filters.created_from;
+    if (filters.created_to) params.created_to = filters.created_to;
+    return params;
+}
+
+export function QueueTicketTable({ queueId, tickets, pagination, sort, filters }: QueueTicketTableProps) {
     const [selected, setSelected] = useState<Set<number>>(new Set());
     const allSelected = tickets.length > 0 && selected.size === tickets.length;
 
-    const { sortBy, sortDir } = useMemo(() => {
-        const search = url.includes('?') ? url.slice(url.indexOf('?')) : '';
-        const params = new URLSearchParams(search);
-        const sort = params.get('sort') as keyof TicketRow | null;
-        const dir = params.get('dir') as SortDirection | null;
-        const validKey = COLUMNS.some((column) => column.id === sort);
-
-        return {
-            sortBy: validKey ? (sort as keyof TicketRow) : 'created',
-            sortDir: dir === 'asc' ? 'asc' : 'desc',
-        };
-    }, [url]);
+    const sortBy = sort.by;
+    const sortDir: SortDirection = sort.dir === 'asc' ? 'asc' : 'desc';
 
     function toggleAll() {
         setSelected(allSelected ? new Set() : new Set(tickets.map((ticket) => ticket.id)));
@@ -133,7 +138,7 @@ export function QueueTicketTable({ queueId, tickets, pagination }: QueueTicketTa
         const nextDir: SortDirection = column.id === sortBy && sortDir === 'asc' ? 'desc' : 'asc';
         router.get(
             `/scp/queues/${queueId}`,
-            { sort: column.id, dir: nextDir, page: 1 },
+            { ...buildFilterParams(filters), sort: column.id, dir: nextDir, page: 1 },
             { preserveScroll: true, preserveState: true, replace: true },
         );
     }
@@ -141,7 +146,7 @@ export function QueueTicketTable({ queueId, tickets, pagination }: QueueTicketTa
     function navigatePage(nextPage: number) {
         router.get(
             `/scp/queues/${queueId}`,
-            { page: nextPage, sort: sortBy, dir: sortDir },
+            { ...buildFilterParams(filters), page: nextPage, sort: sortBy, dir: sortDir },
             { preserveScroll: true, preserveState: true },
         );
     }
@@ -168,15 +173,24 @@ export function QueueTicketTable({ queueId, tickets, pagination }: QueueTicketTa
                                     scope="col"
                                     className={cn(
                                         'px-3 py-2 text-xs font-normal whitespace-nowrap',
-                                        column.sortable ? 'cursor-pointer text-zinc-500 hover:text-zinc-800' : 'text-zinc-500',
+                                        column.sortable ? 'text-zinc-500' : 'text-zinc-500',
                                         column.width,
                                     )}
+                                    aria-sort={
+                                        sortBy === column.id
+                                            ? sortDir === 'asc' ? 'ascending' : 'descending'
+                                            : 'none'
+                                    }
                                 >
                                     <button
                                         type="button"
                                         onClick={() => handleSort(column)}
                                         disabled={!column.sortable}
-                                        className="inline-flex items-center gap-1"
+                                        className={cn(
+                                            'inline-flex items-center gap-1 transition-colors',
+                                            column.sortable ? 'cursor-pointer hover:text-zinc-800' : 'cursor-default',
+                                            sortBy === column.id && 'text-zinc-900',
+                                        )}
                                     >
                                         {column.label}
                                         {column.sortable && (
