@@ -1,18 +1,23 @@
 <?php
 
-use App\Http\Controllers\Account\SecurityController;
 use App\Http\Controllers\Account\MigrationBannerController;
-use App\Http\Controllers\Account\TwoFactorWizardController;
+use App\Http\Controllers\Account\SecurityController;
 use App\Http\Controllers\Account\TwoFactorSecurityController;
+use App\Http\Controllers\Account\TwoFactorWizardController;
 use App\Http\Controllers\Auth\ConfirmPasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\TwoFactorAppController;
 use App\Http\Controllers\Auth\TwoFactorController;
+use App\Http\Controllers\Scp\AttachmentController;
+use App\Http\Controllers\Scp\DashboardController;
+use App\Http\Controllers\Scp\QueueController;
+use App\Http\Controllers\Scp\SearchController;
+use App\Http\Controllers\Scp\StaffPreferencesController;
+use App\Http\Controllers\Scp\TicketController;
 use Illuminate\Auth\Middleware\RequirePassword;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
 Route::get('/', function () {
     if (Auth::guard('staff')->check()) {
@@ -40,7 +45,7 @@ Route::prefix('scp')->name('scp.')->group(function () {
         Route::post('/password/reset', [PasswordResetController::class, 'resetPassword'])->name('password.update');
     });
 
-    Route::middleware('auth.staff')->group(function () {
+    Route::middleware(['auth.staff', 'scp.access', 'scp.log'])->group(function () {
         Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
         Route::get('/account/security', [SecurityController::class, 'show'])->name('account.security');
@@ -57,9 +62,15 @@ Route::prefix('scp')->name('scp.')->group(function () {
             Route::delete('/account/security/two-factor', [TwoFactorSecurityController::class, 'disable'])->name('account.security.two-factor.disable');
         });
 
-        Route::get('/', function () {
-            return Inertia::render('Dashboard');
-        })->name('dashboard');
+        Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/queues', [QueueController::class, 'index'])->name('queues.index');
+        Route::get('/queues/{queue}', [QueueController::class, 'show'])->name('queues.show');
+        Route::get('/queues/{queue}/export', [QueueController::class, 'export'])->name('queues.export');
+        Route::get('/tickets/{ticket}', [TicketController::class, 'show'])->name('tickets.show');
+        Route::get('/attachments/{file}', [AttachmentController::class, 'download'])->name('attachments.download');
+        Route::get('/search', [SearchController::class, 'index'])->name('search');
+        Route::get('/preferences', [StaffPreferencesController::class, 'show'])->name('preferences.show');
+        Route::patch('/preferences', [StaffPreferencesController::class, 'update'])->name('preferences.update');
     });
 });
 

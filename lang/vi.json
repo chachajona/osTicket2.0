@@ -2,7 +2,12 @@
     "nav": {
         "dashboard": "Bảng điều khiển",
         "tickets": "Yêu cầu",
+        "inbox": "Hộp thư",
+        "notifications": "Thông báo",
         "knowledgebase": "Kiến thức chung",
+        "customers": "Khách hàng",
+        "forum": "Diễn đàn",
+        "reports": "Báo cáo",
         "my_tickets": "Yêu cầu của tôi",
         "open_tickets": "Mở Tickets",
         "new_ticket": "Lệnh mới",
@@ -101,6 +106,119 @@
             "resending": "Đang gửi lại...",
             "back_to_login": "Quay lại đăng nhập"
         }
+    },
+    "dashboard": {
+        "banner": {
+            "title": "Bảng điều khiển trực tiếp",
+            "description": "Số liệu được truy vấn từ cơ sở dữ liệu legacy mỗi lần tải trang{{refreshedAt}}."
+        },
+        "metrics": {
+            "open_tickets": {
+                "label": "Yêu cầu đang mở",
+                "helper": "Yêu cầu hiển thị có trạng thái đang mở"
+            },
+            "assigned_to_me": {
+                "label": "Được giao cho tôi",
+                "helper": "{{percent}} yêu cầu đang mở có thể xem"
+            },
+            "unassigned": {
+                "label": "Chưa phân công",
+                "helper": "Chưa có nhân viên hoặc nhóm phụ trách"
+            },
+            "overdue": {
+                "label": "Quá hạn",
+                "helper": "{{percent}} yêu cầu đang mở có thể xem"
+            },
+            "trend": {
+                "up": "+{{percent}}",
+                "down": "-{{percent}}",
+                "flat": "0%",
+                "new": "Mới",
+                "compare_to_last_month": "So với tháng trước"
+            }
+        },
+        "chart": {
+            "tickets": "Yêu cầu",
+            "open": "Đang mở",
+            "assigned": "Đã phân công",
+            "unassigned": "Chưa phân công",
+            "overdue": "Quá hạn"
+        },
+        "live_counts": {
+            "title": "Số lượng yêu cầu trực tiếp",
+            "description": "Truy vấn từ các bảng yêu cầu legacy theo phòng ban bạn có quyền xem."
+        },
+        "ticket_status_chart": {
+            "title": "Yêu cầu mở và đã xử lý",
+            "description": "{{rangeStart}} - {{rangeEnd}}.",
+            "open": "Đang mở",
+            "solved": "Đã xử lý",
+            "open_total": "Đang mở: {{count}}",
+            "solved_total": "Đã xử lý: {{count}}"
+        },
+        "ownership": {
+            "title": "Phân công yêu cầu đang mở",
+            "description": "Tỷ lệ phân công nhân viên cho các yêu cầu đang mở có thể xem.",
+            "assigned": "Đã phân công",
+            "assigned_to_me": "Được giao cho tôi",
+            "assigned_elsewhere": "Được giao cho người khác",
+            "unassigned": "Chưa phân công",
+            "select_segment": "Chọn phân đoạn",
+            "empty": "Hiện không có yêu cầu đang mở nào có thể xem."
+        },
+        "quick_actions": {
+            "title": "Trung tâm thao tác",
+            "description": "Lối tắt cho các công việc yêu cầu nhân viên thường dùng.",
+            "open_queues": "Mở hàng đợi yêu cầu",
+            "open_queues_hint": "Xem hàng đợi được giao, chưa giao và quá hạn.",
+            "search_tickets": "Tìm kiếm yêu cầu",
+            "search_tickets_hint": "Mở nhanh yêu cầu, người gửi hoặc cụm từ.",
+            "staff_preferences": "Tùy chọn nhân viên",
+            "staff_preferences_hint": "Điều chỉnh ngôn ngữ và hiển thị SCP.",
+            "live_hint": "Thao tác dùng quyền nhân viên và khả năng xem yêu cầu hiện tại."
+        },
+        "channels": {
+            "title": "Yêu cầu theo kênh",
+            "description": "{{rangeStart}} - {{rangeEnd}}.",
+            "total": "Yêu cầu",
+            "empty": "Không có kênh yêu cầu nào có thể xem trong khoảng này."
+        },
+        "recent_activity": {
+            "title": "Luồng yêu cầu trực tiếp",
+            "description": "Các sự kiện yêu cầu mới nhất có thể xem từ lịch sử thread legacy.",
+            "empty": "Chưa có hoạt động yêu cầu nào có thể xem.",
+            "thread": "Thread {{id}}",
+            "unknown_time": "Không rõ thời gian",
+            "ticket_activity": "hoạt động yêu cầu",
+            "untitled_ticket": "Yêu cầu chưa có tiêu đề",
+            "actor": "Cập nhật bởi {{username}}",
+            "by_user": " bởi {{username}}"
+        },
+        "layout": {
+            "open_dashboard_actions": "Mở thao tác bảng điều khiển",
+            "open_export_options": "Mở tùy chọn xuất",
+            "search_tickets": "Tìm kiếm yêu cầu",
+            "search_placeholder": "Tìm kiếm...",
+            "conversation": "Hội thoại",
+            "favorites": "Yêu thích",
+            "favorites_hint": "Di chuột qua bảng bất kỳ và bấm biểu tượng sao để thêm vào đây.",
+            "pinned_tickets": "Yêu cầu đã ghim",
+            "unpin_all": "Bỏ ghim tất cả",
+            "add_new": "Thêm mới",
+            "preferences": "Tùy chọn",
+            "powered_by": "Cung cấp bởi",
+            "security": "Bảo mật",
+            "my_queue": "Hàng chờ của tôi",
+            "new_ticket": "Ticket mới"
+        },
+        "date_range": {
+            "label": "Khoảng thời gian",
+            "last_7_days": "7 ngày qua",
+            "last_30_days": "30 ngày qua",
+            "last_3_months": "3 tháng qua",
+            "last_6_months": "6 tháng qua"
+        },
+        "overview": "Tổng quan"
     },
     "actions": {
         "submit": "Đệ trình",

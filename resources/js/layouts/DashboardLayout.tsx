@@ -1,23 +1,24 @@
 import { Children, useRef, useState, type ReactNode } from 'react';
 import { Link, router } from '@inertiajs/react';
 import { HugeiconsIcon } from '@hugeicons/react';
+import { useTranslation } from 'react-i18next';
 import {
     ArrowRight01Icon,
     BarChartIcon,
     BookOpen01Icon,
     CustomerService01Icon,
     DashboardSquare01Icon,
-    HelpCircleIcon,
     InboxIcon,
     LogoutSquare01Icon,
     Message01Icon,
     Notification01Icon,
     Search01Icon,
+    Settings01Icon,
     ShieldCheck,
     Ticket01Icon,
 } from '@hugeicons/core-free-icons';
 
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import {
     Card,
     CardContent,
@@ -32,31 +33,33 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 
 interface DashboardLayoutProps {
-    title: string;
+    title?: string;
     subtitle?: string;
     eyebrow?: string;
     activeNav?: string;
+    headerLeft?: ReactNode;
     headerActions?: ReactNode;
     contentClassName?: string;
+    searchQuery?: string;
     children: ReactNode;
 }
 
 interface NavItem {
     id: string;
-    label: string;
+    labelKey: string;
     icon: typeof DashboardSquare01Icon;
     href?: string;
 }
 
 const NAV_ITEMS: NavItem[] = [
-    { id: 'dashboard', label: 'Dashboard', icon: DashboardSquare01Icon, href: '/scp' },
-    { id: 'inbox', label: 'Inbox', icon: InboxIcon },
-    { id: 'notifications', label: 'Notifications', icon: Notification01Icon },
-    { id: 'tickets', label: 'Tickets', icon: Ticket01Icon },
-    { id: 'knowledge', label: 'Knowledge Base', icon: BookOpen01Icon },
-    { id: 'customers', label: 'Customers', icon: CustomerService01Icon },
-    { id: 'forum', label: 'Forum', icon: Message01Icon },
-    { id: 'reports', label: 'Reports', icon: BarChartIcon },
+    { id: 'dashboard', labelKey: 'nav.dashboard', icon: DashboardSquare01Icon, href: '/scp' },
+    { id: 'queues', labelKey: 'nav.tickets', icon: Ticket01Icon, href: '/scp/queues' },
+    { id: 'inbox', labelKey: 'nav.inbox', icon: InboxIcon },
+    { id: 'notifications', labelKey: 'nav.notifications', icon: Notification01Icon },
+    { id: 'knowledge', labelKey: 'nav.knowledgebase', icon: BookOpen01Icon },
+    { id: 'customers', labelKey: 'nav.customers', icon: CustomerService01Icon },
+    { id: 'forum', labelKey: 'nav.forum', icon: Message01Icon },
+    { id: 'reports', labelKey: 'nav.reports', icon: BarChartIcon },
 ];
 
 const CONVERSATION_ITEMS = [
@@ -99,53 +102,49 @@ function getFooterActionIconColor(activeNav: string | undefined, navItem: string
 }
 
 function DefaultHeaderActions() {
+    const { t } = useTranslation();
+
     return (
         <>
-            <Button
-                variant="outline"
-                size="icon"
-                disabled
-                aria-disabled="true"
-                className="rounded-md border-[#E2E8F0] bg-white text-[#64748B] hover:bg-white"
-                aria-label="Open dashboard actions"
+            <Link
+                href="/scp/queues"
+                className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), "rounded-[4px] border-[#E2E8F0] bg-white text-xs font-medium uppercase tracking-[0.12em] text-[#64748B] hover:border-[#C4A5F3] hover:bg-[#F8FAFC] hover:text-[#0F172A]")}
             >
-                <span className="text-lg leading-none">•••</span>
-            </Button>
-
-            <div className="flex overflow-hidden rounded-md shadow-[0_10px_25px_-20px_rgba(91,97,157,0.7)]">
-                <Button
-                    disabled
-                    aria-disabled="true"
-                    className="rounded-none rounded-l-md bg-[#5B619D] px-4 text-sm text-white hover:bg-[#5B619D]"
-                >
-                    Export CSV
-                </Button>
-                <Button
-                    size="icon"
-                    disabled
-                    aria-disabled="true"
-                    className="rounded-none rounded-r-md border-l border-white/15 bg-[#5B619D] text-white hover:bg-[#5B619D]"
-                    aria-label="Open export options"
-                >
-                    <HugeiconsIcon icon={ArrowRight01Icon} size={14} className="rotate-90" />
-                </Button>
-            </div>
+                {t('dashboard.layout.my_queue')}
+            </Link>
+            <Link
+                href="/scp/tickets/create"
+                className={cn(buttonVariants({ size: 'sm' }), "rounded-[4px] bg-[#5B619D] px-4 text-xs font-medium uppercase tracking-[0.12em] text-white hover:bg-[#4F548C] shadow-[0_10px_25px_-20px_rgba(91,97,157,0.7)]")}
+            >
+                {t('dashboard.layout.new_ticket')}
+            </Link>
         </>
     );
 }
 
-function SearchField() {
+function SearchField({ defaultQuery = '' }: { defaultQuery?: string }) {
+    const { t } = useTranslation();
+
     return (
-        <InputGroup>
-            <InputGroupAddon align="inline-start">
-                <HugeiconsIcon icon={Search01Icon} size={16} />
-            </InputGroupAddon>
-            <InputGroupInput aria-label="Search dashboard" placeholder="Search..." />
-            <InputGroupAddon align="inline-end">
-                <Kbd>⌘</Kbd>
-                <Kbd>K</Kbd>
-            </InputGroupAddon>
-        </InputGroup>
+        <form
+            role="search"
+            onSubmit={(event) => {
+                event.preventDefault();
+                const query = new FormData(event.currentTarget).get('q')?.toString().trim() ?? '';
+                router.get('/scp/search', query === '' ? {} : { q: query });
+            }}
+        >
+            <InputGroup>
+                <InputGroupAddon align="inline-start">
+                    <HugeiconsIcon icon={Search01Icon} size={16} />
+                </InputGroupAddon>
+                <InputGroupInput name="q" defaultValue={defaultQuery} aria-label={t('dashboard.layout.search_tickets')} placeholder={t('dashboard.layout.search_placeholder')} />
+                <InputGroupAddon align="inline-end">
+                    <Kbd>⌘</Kbd>
+                    <Kbd>K</Kbd>
+                </InputGroupAddon>
+            </InputGroup>
+        </form>
     );
 }
 
@@ -154,10 +153,13 @@ export default function DashboardLayout({
     subtitle,
     eyebrow,
     activeNav = 'dashboard',
+    headerLeft,
     headerActions,
     contentClassName = 'w-full',
+    searchQuery,
     children,
 }: DashboardLayoutProps) {
+    const { t } = useTranslation();
     const resolvedHeaderActions = headerActions === undefined
         ? <DefaultHeaderActions />
         : (Children.count(headerActions) > 0 ? headerActions : null);
@@ -182,8 +184,8 @@ export default function DashboardLayout({
 
     return (
         <div className="auth-theme relative flex h-screen overflow-hidden bg-[#E9ECEF] text-[#0F172A]">
-            <div className="auth-mesh pointer-events-none absolute inset-0"></div>
-            <div className="auth-grain pointer-events-none absolute inset-0"></div>
+            <div className="auth-mesh pointer-events-none absolute inset-0" aria-hidden />
+            <div className="auth-grain pointer-events-none absolute inset-0" aria-hidden />
 
             <div className="relative z-10 flex h-full w-full">
                 <div className="flex h-full w-full overflow-hidden bg-white">
@@ -191,12 +193,12 @@ export default function DashboardLayout({
                         <div className="px-5 py-5 transition-colors hover:bg-white/70">
                             <div className="flex items-center justify-between gap-3">
                                 <div className="flex items-center gap-3">
-                                    <div className="auth-gradient flex h-10 w-10 items-center justify-center rounded-full text-xs font-semibold tracking-[0.14em] text-white shadow-[0_12px_24px_-18px_rgba(91,97,157,0.9)]">
+                                    <div className="auth-gradient flex h-9 w-9 items-center justify-center rounded-full text-[11px] font-semibold tracking-[0.02em] text-white shadow-[0_12px_24px_-18px_rgba(91,97,157,0.9)]">
                                         SCP
                                     </div>
                                     <div>
-                                        <div className="font-body text-sm font-semibold leading-none text-[#0F172A]">osTicket SCP</div>
-                                        <div className="mt-1 text-xs text-[#94A3B8]">Agent Admin</div>
+                                        <div className="font-body text-sm font-medium leading-none text-[#0F172A]">osTicket SCP</div>
+                                        <div className="mt-1 text-[10px] font-medium uppercase tracking-[0.1em] text-[#94A3B8]">Agent Admin</div>
                                     </div>
                                 </div>
                                 <HugeiconsIcon icon={ArrowRight01Icon} size={16} color="#94A3B8" className="rotate-90" />
@@ -206,16 +208,16 @@ export default function DashboardLayout({
                         <Separator className="bg-[#E2E8F0]" />
 
                         <div className="px-5 py-4">
-                            <SearchField />
+                            <SearchField defaultQuery={searchQuery} />
                         </div>
 
                         <div className="custom-scrollbar flex-1 overflow-y-auto pb-6">
                             <nav className="space-y-0.5 px-3">
-                                {NAV_ITEMS.map(({ id, label, icon, href }) => {
+                                {NAV_ITEMS.map(({ id, labelKey, icon, href }) => {
                                     const content = (
                                         <>
                                             <HugeiconsIcon icon={icon} size={18} color={getNavIconColor(activeNav, id, !href)} />
-                                            <span>{label}</span>
+                                            <span>{t(labelKey)}</span>
                                         </>
                                     );
 
@@ -238,7 +240,7 @@ export default function DashboardLayout({
                             </nav>
 
                             <section className="mt-7 px-6">
-                                <div className="auth-caption mb-3">Conversation</div>
+                                <div className="auth-caption mb-3">{t('dashboard.layout.conversation')}</div>
                                 <div className="space-y-2">
                                     {CONVERSATION_ITEMS.map(({ id, label, subtitle, icon, badge, badgeActive }) => (
                                         <Card key={id} className={cn(
@@ -280,23 +282,23 @@ export default function DashboardLayout({
                             </section>
 
                             <section className="mt-7 px-6">
-                                <div className="auth-caption mb-2">Favorites</div>
+                                <div className="auth-caption mb-2">{t('dashboard.layout.favorites')}</div>
                                 <p className="max-w-47.5 text-xs leading-5 text-[#94A3B8]">
-                                    Hover over any table and click the star to add it here.
+                                    {t('dashboard.layout.favorites_hint')}
                                 </p>
                             </section>
 
                             <section className="mt-7 px-6">
                                 <div className="mb-3 flex items-center justify-between gap-3">
-                                    <div className="auth-caption">Pinned Tickets</div>
+                                    <div className="auth-caption">{t('dashboard.layout.pinned_tickets')}</div>
                                     <Button
                                         variant="ghost"
                                         size="xs"
                                         disabled
                                         aria-disabled="true"
-                                        className="h-auto rounded-md px-0 text-[11px] text-[#94A3B8] hover:bg-transparent hover:text-[#94A3B8]"
+                                        className="h-auto rounded-[4px] px-0 text-[11px] text-[#94A3B8] hover:bg-transparent hover:text-[#94A3B8]"
                                     >
-                                        Unpin all
+                                        {t('dashboard.layout.unpin_all')}
                                     </Button>
                                 </div>
                                 <div className="space-y-3">
@@ -327,10 +329,10 @@ export default function DashboardLayout({
                                         variant="ghost"
                                         disabled
                                         aria-disabled="true"
-                                        className="mt-1 h-auto justify-start rounded-md px-0 text-sm font-medium text-[#64748B] hover:bg-transparent hover:text-[#64748B]"
+                                        className="mt-1 h-auto justify-start rounded-[4px] px-0 text-sm font-medium text-[#64748B] hover:bg-transparent hover:text-[#0F172A]"
                                     >
                                         <span className="text-lg leading-none">+</span>
-                                        Add new
+                                        {t('dashboard.layout.add_new')}
                                     </Button>
                                 </div>
                             </section>
@@ -339,23 +341,31 @@ export default function DashboardLayout({
                         <Separator className="bg-[#E2E8F0]" />
 
                         <div className="mt-auto px-5 py-5">
-                            <Button
-                                variant="ghost"
-                                disabled
-                                aria-disabled="true"
-                                className="mb-4 h-auto justify-start rounded-md px-0 text-sm text-[#64748B] hover:bg-transparent hover:text-[#64748B]"
+                            <Link
+                                href="/scp/preferences"
+                                className={cn(
+                                    'mb-4 inline-flex h-auto items-center gap-2 rounded-md px-0 text-sm transition-colors',
+                                    activeNav === 'preferences'
+                                        ? 'text-[#0F172A]'
+                                        : 'text-[#64748B] hover:text-[#0F172A]',
+                                )}
+                                aria-current={activeNav === 'preferences' ? 'page' : undefined}
                             >
-                                <HugeiconsIcon icon={HelpCircleIcon} size={18} color="#94A3B8" />
-                                <span>Help &amp; Support</span>
-                            </Button>
+                                <HugeiconsIcon
+                                    icon={Settings01Icon}
+                                    size={18}
+                                    color={activeNav === 'preferences' ? '#5B619D' : '#94A3B8'}
+                                />
+                                <span>{t('dashboard.layout.preferences')}</span>
+                            </Link>
 
-                            <Card className="mb-4 rounded-xl border-[#E2E8F0] py-0 shadow-sm shadow-[#0F172A]/[0.03] ring-0">
+                            <Card className="mb-4 rounded-[7px] border-[#E2E8F0] py-0 shadow-sm shadow-[#0F172A]/[0.03] ring-0">
                                 <CardContent className="flex items-center justify-between gap-3 px-3 py-3">
                                     <div>
-                                        <div className="text-[9px] font-semibold uppercase tracking-[0.16em] text-[#94A3B8]">Powered by</div>
+                                        <div className="text-[9px] font-semibold uppercase tracking-[0.16em] text-[#94A3B8]">{t('dashboard.layout.powered_by')}</div>
                                         <div className="mt-1 font-display text-lg font-medium tracking-tight text-[#0F172A]">osTicket 2.0</div>
                                     </div>
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F1F5F9] text-[#5B619D]">
+                                    <div className="flex h-8 w-8 items-center justify-center rounded-[4px] bg-[#F1F5F9] text-[#5B619D]">
                                         <HugeiconsIcon icon={DashboardSquare01Icon} size={18} color="#5B619D" />
                                     </div>
                                 </CardContent>
@@ -368,17 +378,17 @@ export default function DashboardLayout({
                                     aria-current={activeNav === 'security' ? 'page' : undefined}
                                 >
                                     <HugeiconsIcon icon={ShieldCheck} size={14} color={getFooterActionIconColor(activeNav, 'security')} />
-                                    Security
+                                    {t('dashboard.layout.security')}
                                 </Link>
                                 <Button
                                     variant="outline"
                                     size="sm"
                                     disabled={isLoggingOut}
                                     onClick={logout}
-                                    className="rounded-md border-[#E2E8F0] bg-white text-xs text-[#64748B] hover:text-red-600 cursor-pointer"
+                                    className="cursor-pointer rounded-[4px] border-[#E2E8F0] bg-white text-xs text-[#64748B] hover:bg-[#F8FAFC] hover:text-red-600"
                                 >
                                     <HugeiconsIcon icon={LogoutSquare01Icon} size={14} color="#94A3B8" />
-                                    Sign out
+                                    {t('actions.logout')}
                                 </Button>
                             </div>
                         </div>
@@ -387,9 +397,13 @@ export default function DashboardLayout({
                     <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-white">
                         <header className="relative z-10 flex shrink-0 items-center justify-between gap-6 border-b border-[#E2E8F0] bg-white px-8 py-5 xl:px-10">
                             <div>
-                                {eyebrow && <div className="auth-eyebrow mb-2 text-[#94A3B8]">{eyebrow}</div>}
-                                <h1 className="font-display text-[28px] font-medium tracking-tight text-[#0F172A]">{title}</h1>
-                                {subtitle && <p className="mt-1 font-body text-sm text-[#94A3B8]">{subtitle}</p>}
+                                {headerLeft ?? (
+                                    <>
+                                        {eyebrow && <div className="auth-eyebrow mb-2 text-[#94A3B8]">{eyebrow}</div>}
+                                        {title && <h1 className="font-display text-xl font-medium tracking-[-0.02em] text-[#0F172A]">{title}</h1>}
+                                        {subtitle && <p className="mt-1 font-body text-sm text-[#94A3B8]">{subtitle}</p>}
+                                    </>
+                                )}
                             </div>
                             <div className="flex items-center gap-3">{resolvedHeaderActions}</div>
                         </header>

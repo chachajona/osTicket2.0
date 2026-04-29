@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Eloquent\Scopes\TicketAccessibleScope;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
@@ -29,6 +30,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property string $updated
  * @property-read Staff|null      $staff
  * @property-read Department|null $department
+ * @property-read TicketStatus|null $status
  * @property-read Thread|null     $thread
  * @property-read LegacyUser|null $user
  * @property-read TicketCdata|null $cdata
@@ -48,6 +50,11 @@ class Ticket extends LegacyModel
      * @var string
      */
     protected $primaryKey = 'ticket_id';
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new TicketAccessibleScope);
+    }
 
     /**
      * Get the staff member assigned to the ticket.
@@ -75,6 +82,16 @@ class Ticket extends LegacyModel
             'dept_id',
             'id'
         );
+    }
+
+    /**
+     * Get the ticket status.
+     *
+     * @return BelongsTo<TicketStatus, $this>
+     */
+    public function status()
+    {
+        return $this->belongsTo(TicketStatus::class, 'status_id', 'id');
     }
 
     /**
