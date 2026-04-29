@@ -441,7 +441,7 @@
 
 .prose-ticket p { margin: 0 0 0.75rem 0; }
 .prose-ticket p:last-child { margin-bottom: 0; }
-.prose-ticket a { color: #5B619D; text-decoration: underline; word-break: break-word; }
+.prose-ticket a { color: #5B619D; text-decoration: underline; overflow-wrap: anywhere; }
 .prose-ticket a:hover { color: #4F548C; }
 .prose-ticket ul, .prose-ticket ol { padding-left: 1.25rem; margin: 0 0 0.75rem 0; }
 .prose-ticket ul { list-style: disc; }

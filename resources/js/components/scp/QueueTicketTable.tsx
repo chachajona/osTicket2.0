@@ -1,5 +1,5 @@
 import { Link, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
     ArrowDown01Icon,
@@ -112,13 +112,19 @@ function buildFilterParams(filters: QueueFilters): Record<string, string | numbe
 
 export function QueueTicketTable({ queueId, tickets, pagination, sort, filters }: QueueTicketTableProps) {
     const [selected, setSelected] = useState<Set<number>>(new Set());
-    const allSelected = tickets.length > 0 && selected.size === tickets.length;
+    const visibleIds = useMemo(() => tickets.map((ticket) => ticket.id), [tickets]);
+    const visibleIdSet = useMemo(() => new Set(visibleIds), [visibleIds]);
+    const allSelected = tickets.length > 0 && tickets.every((ticket) => selected.has(ticket.id));
 
     const sortBy = sort.by;
     const sortDir: SortDirection = sort.dir === 'asc' ? 'asc' : 'desc';
 
+    useEffect(() => {
+        setSelected((current) => new Set([...current].filter((id) => visibleIdSet.has(id))));
+    }, [visibleIdSet]);
+
     function toggleAll() {
-        setSelected(allSelected ? new Set() : new Set(tickets.map((ticket) => ticket.id)));
+        setSelected(allSelected ? new Set() : new Set(visibleIds));
     }
 
     function toggle(id: number) {

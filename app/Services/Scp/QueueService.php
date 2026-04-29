@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\QueryException;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 
 class QueueService
 {
@@ -128,7 +129,6 @@ class QueueService
      *   created_from?: ?string,
      *   created_to?: ?string
      * }  $filters
-     *
      * @return array{
      *   tickets: array<int, array{id:int,number:string,created:?string,subject:?string,from:?string,priority:?string,assignee:?string,status:?string,status_state:?string,source:?string}>,
      *   pagination: array{page:int,perPage:int,total:int},
@@ -149,17 +149,37 @@ class QueueService
             ->select('ticket.*')
             ->with(['cdata', 'staff', 'status', 'user.defaultEmail']);
 
-        $unsupportedReasons = $this->criteriaParser->apply($query, $queue->config, $staff);
+        $unsupportedReasons = [];
 
-        $this->applyFilters($query, $filters);
-        $this->applySort($query, $sort, $direction);
+        try {
+            $unsupportedReasons = $this->criteriaParser->apply($query, $queue->config, $staff);
+            $this->applyFilters($query, $filters);
+            $this->applySort($query, $sort, $direction);
 
-        $paginator = $query->paginate(
-            perPage: $perPage,
-            columns: ['ticket.*'],
-            pageName: 'page',
-            page: $page,
-        );
+            $paginator = $query->paginate(
+                perPage: $perPage,
+                columns: ['ticket.*'],
+                pageName: 'page',
+                page: $page,
+            );
+        } catch (QueryException $exception) {
+            Log::warning('Unable to read SCP queue ticket rows from legacy database.', [
+                'queue_id' => (int) $queue->id,
+                'staff_id' => (int) $staff->staff_id,
+                'error' => $exception->getMessage(),
+            ]);
+
+            return [
+                'tickets' => [],
+                'pagination' => [
+                    'page' => $page,
+                    'perPage' => $perPage,
+                    'total' => 0,
+                ],
+                'unsupported' => false,
+                'unsupportedReasons' => $unsupportedReasons,
+            ];
+        }
 
         return [
             'tickets' => $this->mapRows($paginator),
@@ -257,7 +277,7 @@ class QueueService
                 break;
             case 'priority':
                 $query->leftJoin('ticket__cdata as sort_cdata', 'sort_cdata.ticket_id', '=', 'ticket.ticket_id')
-                    ->orderBy('sort_cdata.priority', $direction);
+                    ->orderByRaw($this->numericPrioritySortExpression().' '.$direction);
                 break;
             case 'from':
                 $query->leftJoin('user as sort_user', 'sort_user.id', '=', 'ticket.user_id')
@@ -275,6 +295,16 @@ class QueueService
         }
 
         $query->orderBy('ticket.ticket_id', 'desc');
+    }
+
+    private function numericPrioritySortExpression(): string
+    {
+        $driver = Ticket::query()->getConnection()->getDriverName();
+        $alias = Ticket::query()->getConnection()->getTablePrefix().'sort_cdata';
+
+        return in_array($driver, ['mysql', 'mariadb'], true)
+            ? "CAST({$alias}.priority AS UNSIGNED)"
+            : "CAST({$alias}.priority AS INTEGER)";
     }
 
     /**

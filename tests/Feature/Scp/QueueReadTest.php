@@ -355,12 +355,14 @@ test('queue sort orders rows server-side', function () {
         ['ticket_id' => 900, 'number' => '900', 'dept_id' => 1, 'staff_id' => 0, 'created' => '2026-04-20 09:00:00'],
         ['ticket_id' => 901, 'number' => '901', 'dept_id' => 1, 'staff_id' => 0, 'created' => '2026-04-22 09:00:00'],
         ['ticket_id' => 902, 'number' => '902', 'dept_id' => 1, 'staff_id' => 0, 'created' => '2026-04-21 09:00:00'],
+        ['ticket_id' => 903, 'number' => '903', 'dept_id' => 1, 'staff_id' => 0, 'created' => '2026-04-23 09:00:00'],
     ]);
 
     DB::connection('legacy')->table('ticket__cdata')->insert([
         ['ticket_id' => 900, 'subject' => 'A', 'priority' => '3'],
         ['ticket_id' => 901, 'subject' => 'B', 'priority' => '1'],
         ['ticket_id' => 902, 'subject' => 'C', 'priority' => '2'],
+        ['ticket_id' => 903, 'subject' => 'D', 'priority' => '10'],
     ]);
 
     $createdAsc = $this->actingAs($staff, 'staff')
@@ -368,28 +370,59 @@ test('queue sort orders rows server-side', function () {
         ->get('/scp/queues/81?sort=created&dir=asc');
 
     expect(collect($createdAsc->json('props.tickets'))->pluck('id')->all())
-        ->toBe([900, 902, 901]);
+        ->toBe([900, 902, 901, 903]);
 
     $createdDesc = $this->actingAs($staff, 'staff')
         ->withHeaders(inertiaHeaders())
         ->get('/scp/queues/81?sort=created&dir=desc');
 
     expect(collect($createdDesc->json('props.tickets'))->pluck('id')->all())
-        ->toBe([901, 902, 900]);
+        ->toBe([903, 901, 902, 900]);
 
     $priorityAsc = $this->actingAs($staff, 'staff')
         ->withHeaders(inertiaHeaders())
         ->get('/scp/queues/81?sort=priority&dir=asc');
 
     expect(collect($priorityAsc->json('props.tickets'))->pluck('id')->all())
-        ->toBe([901, 902, 900]);
+        ->toBe([901, 902, 900, 903]);
 
     $numberDesc = $this->actingAs($staff, 'staff')
         ->withHeaders(inertiaHeaders())
         ->get('/scp/queues/81?sort=number&dir=desc');
 
     expect(collect($numberDesc->json('props.tickets'))->pluck('id')->all())
-        ->toBe([902, 901, 900]);
+        ->toBe([903, 902, 901, 900]);
+});
+
+test('queue read degrades to empty rows when the legacy ticket query fails', function () {
+    $staff = queueReadStaff(['staff_id' => 83]);
+
+    DB::connection('legacy')->table('queue')->insert([
+        'id' => 83,
+        'parent_id' => null,
+        'staff_id' => 0,
+        'flags' => 3,
+        'title' => 'Broken legacy query',
+        'config' => null,
+        'sort' => 1,
+    ]);
+
+    DB::connection('legacy')->table('ticket')->insert([
+        'ticket_id' => 830,
+        'number' => '830',
+        'dept_id' => 1,
+        'created' => '2026-04-25 09:00:00',
+    ]);
+
+    Schema::connection('legacy')->dropIfExists('ticket__cdata');
+
+    $response = $this->actingAs($staff, 'staff')
+        ->withHeaders(inertiaHeaders())
+        ->get('/scp/queues/83?sort=priority&dir=asc');
+
+    $response->assertOk();
+    $response->assertJsonPath('props.pagination.total', 0);
+    $response->assertJsonPath('props.tickets', []);
 });
 
 test('queue filters do not bypass ticket rbac', function () {

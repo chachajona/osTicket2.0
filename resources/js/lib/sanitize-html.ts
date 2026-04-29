@@ -22,11 +22,37 @@ const ALLOWED_ATTRS: Record<string, Set<string>> = {
 
 const URL_ATTRS = new Set(['href', 'src']);
 
+function decodeHtmlEntities(value: string): string {
+    let decoded = value;
+
+    for (let index = 0; index < 3; index += 1) {
+        const textarea = document.createElement('textarea');
+        textarea.innerHTML = decoded;
+        const next = textarea.value;
+
+        if (next === decoded) break;
+
+        decoded = next;
+    }
+
+    return decoded;
+}
+
 function isUnsafeUrl(value: string): boolean {
-    const trimmed = value.trim().toLowerCase();
-    if (trimmed.startsWith('javascript:')) return true;
-    if (trimmed.startsWith('vbscript:')) return true;
-    if (trimmed.startsWith('data:') && !trimmed.startsWith('data:image/')) return true;
+    const normalized = decodeHtmlEntities(value)
+        .replace(/[\u0000-\u001F\u007F\s]+/g, '')
+        .trim()
+        .toLowerCase();
+    const schemeEnd = normalized.indexOf(':');
+
+    if (schemeEnd === -1) return false;
+
+    const scheme = normalized.slice(0, schemeEnd);
+
+    if (scheme === 'javascript') return true;
+    if (scheme === 'vbscript') return true;
+    if (scheme === 'data' && !normalized.startsWith('data:image/')) return true;
+
     return false;
 }
 
