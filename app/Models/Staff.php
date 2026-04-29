@@ -38,6 +38,7 @@ class Staff extends LegacyModel implements Authenticatable
 {
     /** @use HasFactory<StaffFactory> */
     use HasFactory;
+
     use HasRoles;
     use StaffTwoFactorAuthenticatable;
 
@@ -163,6 +164,11 @@ class Staff extends LegacyModel implements Authenticatable
             $this->passwd = Hash::make($plainPassword);
             $this->save();
         }
+    }
+
+    public function displayName(): string
+    {
+        return trim($this->firstname.' '.$this->lastname) ?: $this->username;
     }
 
     public function hasTotpEnabled(): bool

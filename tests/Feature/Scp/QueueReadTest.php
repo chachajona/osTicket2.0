@@ -1,0 +1,295 @@
+<?php
+
+use App\Models\Staff;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+
+beforeEach(function (): void {
+    $schema = Schema::connection('legacy');
+
+    foreach (['queue', 'ticket', 'ticket__cdata', 'ticket_status', 'ticket_priority', 'user', 'user_email'] as $table) {
+        $schema->dropIfExists($table);
+    }
+
+    $schema->create('queue', function (Blueprint $table): void {
+        $table->unsignedInteger('id')->primary();
+        $table->unsignedInteger('parent_id')->nullable();
+        $table->unsignedInteger('staff_id')->default(0);
+        $table->unsignedInteger('flags')->default(0);
+        $table->string('title')->default('');
+        $table->text('config')->nullable();
+        $table->unsignedInteger('sort')->default(0);
+        $table->dateTime('created')->nullable();
+        $table->dateTime('updated')->nullable();
+    });
+
+    $schema->create('ticket', function (Blueprint $table): void {
+        $table->unsignedInteger('ticket_id')->primary();
+        $table->string('number')->default('');
+        $table->unsignedInteger('user_id')->default(0);
+        $table->unsignedInteger('status_id')->default(1);
+        $table->unsignedInteger('dept_id')->default(0);
+        $table->unsignedInteger('staff_id')->default(0);
+        $table->unsignedInteger('team_id')->default(0);
+        $table->unsignedInteger('topic_id')->default(0);
+        $table->unsignedInteger('sla_id')->default(0);
+        $table->unsignedInteger('email_id')->default(0);
+        $table->string('source')->default('');
+        $table->string('ip_address')->default('');
+        $table->tinyInteger('isoverdue')->default(0);
+        $table->tinyInteger('isanswered')->default(0);
+        $table->dateTime('duedate')->nullable();
+        $table->dateTime('closed')->nullable();
+        $table->dateTime('lastupdate')->nullable();
+        $table->dateTime('lastmessage')->nullable();
+        $table->dateTime('lastresponse')->nullable();
+        $table->dateTime('created')->nullable();
+        $table->dateTime('updated')->nullable();
+    });
+
+    $schema->create('ticket__cdata', function (Blueprint $table): void {
+        $table->unsignedInteger('ticket_id')->primary();
+        $table->string('subject')->nullable();
+        $table->string('priority')->nullable();
+    });
+
+    $schema->create('ticket_status', function (Blueprint $table): void {
+        $table->unsignedInteger('id')->primary();
+        $table->string('name');
+        $table->string('state');
+        $table->unsignedInteger('mode')->default(0);
+        $table->unsignedInteger('flags')->default(0);
+        $table->unsignedInteger('sort')->default(0);
+        $table->text('properties')->nullable();
+        $table->dateTime('created')->nullable();
+        $table->dateTime('updated')->nullable();
+    });
+
+    $schema->create('ticket_priority', function (Blueprint $table): void {
+        $table->unsignedInteger('priority_id')->primary();
+        $table->string('priority');
+        $table->string('priority_desc')->default('');
+        $table->string('priority_color')->default('');
+        $table->unsignedInteger('priority_urgency')->default(0);
+        $table->tinyInteger('ispublic')->default(1);
+    });
+
+    $schema->create('user', function (Blueprint $table): void {
+        $table->unsignedInteger('id')->primary();
+        $table->unsignedInteger('org_id')->default(0);
+        $table->unsignedInteger('default_email_id')->default(0);
+        $table->string('name')->default('');
+        $table->dateTime('created')->nullable();
+        $table->dateTime('updated')->nullable();
+    });
+
+    $schema->create('user_email', function (Blueprint $table): void {
+        $table->unsignedInteger('id')->primary();
+        $table->unsignedInteger('user_id')->default(0);
+        $table->unsignedInteger('flags')->default(0);
+        $table->string('address')->default('');
+    });
+});
+
+afterEach(function (): void {
+    $schema = Schema::connection('legacy');
+
+    foreach (['queue', 'ticket', 'ticket__cdata', 'ticket_status', 'ticket_priority', 'user', 'user_email'] as $table) {
+        $schema->dropIfExists($table);
+    }
+});
+
+function queueReadStaff(array $attributes = []): Staff
+{
+    DB::connection('legacy')->table('staff')->insert(array_merge([
+        'staff_id' => 70,
+        'dept_id' => 1,
+        'username' => 'queuereader',
+        'firstname' => 'Queue',
+        'lastname' => 'Reader',
+        'email' => 'queue-reader@example.com',
+        'passwd' => bcrypt('password'),
+        'isactive' => 1,
+        'isadmin' => 0,
+        'created' => now(),
+    ], $attributes));
+
+    return Staff::on('legacy')->find($attributes['staff_id'] ?? 70);
+}
+
+test('queue show renders translated criteria rows through ticket rbac', function () {
+    $staff = queueReadStaff();
+
+    DB::connection('legacy')->table('queue')->insert([
+        'id' => 10,
+        'parent_id' => null,
+        'staff_id' => 0,
+        'flags' => 3,
+        'title' => 'Open urgent',
+        'config' => json_encode([
+            ['status__state', 'exact', 'open'],
+            ['cdata.priority', 'in', [2]],
+        ]),
+        'sort' => 1,
+    ]);
+
+    DB::connection('legacy')->table('ticket_status')->insert([
+        ['id' => 1, 'name' => 'Open', 'state' => 'open'],
+        ['id' => 2, 'name' => 'Closed', 'state' => 'closed'],
+    ]);
+
+    DB::connection('legacy')->table('ticket_priority')->insert([
+        'priority_id' => 2,
+        'priority' => 'High',
+    ]);
+
+    DB::connection('legacy')->table('user')->insert([
+        'id' => 1,
+        'default_email_id' => 5,
+        'name' => 'Ada Lovelace',
+    ]);
+
+    DB::connection('legacy')->table('user_email')->insert([
+        'id' => 5,
+        'user_id' => 1,
+        'address' => 'ada@example.com',
+    ]);
+
+    DB::connection('legacy')->table('ticket')->insert([
+        ['ticket_id' => 100, 'number' => '100100', 'user_id' => 1, 'status_id' => 1, 'dept_id' => 1, 'created' => '2026-04-20 10:00:00'],
+        ['ticket_id' => 101, 'number' => '100101', 'user_id' => 1, 'status_id' => 2, 'dept_id' => 1, 'created' => '2026-04-20 11:00:00'],
+        ['ticket_id' => 102, 'number' => '100102', 'user_id' => 1, 'status_id' => 1, 'dept_id' => 1, 'created' => '2026-04-20 12:00:00'],
+        ['ticket_id' => 103, 'number' => '100103', 'user_id' => 1, 'status_id' => 1, 'dept_id' => 3, 'created' => '2026-04-20 13:00:00'],
+    ]);
+
+    DB::connection('legacy')->table('ticket__cdata')->insert([
+        ['ticket_id' => 100, 'subject' => 'Visible ticket', 'priority' => '2'],
+        ['ticket_id' => 101, 'subject' => 'Closed ticket', 'priority' => '2'],
+        ['ticket_id' => 102, 'subject' => 'Low ticket', 'priority' => '1'],
+        ['ticket_id' => 103, 'subject' => 'Forbidden ticket', 'priority' => '2'],
+    ]);
+
+    $response = $this->actingAs($staff, 'staff')
+        ->withHeaders(inertiaHeaders())
+        ->get('/scp/queues/10');
+
+    $response->assertOk();
+    $response->assertJsonPath('component', 'Scp/Queues/Show');
+    $response->assertJsonPath('props.unsupported', false);
+    $response->assertJsonPath('props.pagination.total', 1);
+    $response->assertJsonPath('props.tickets.0.id', 100);
+    $response->assertJsonPath('props.tickets.0.subject', 'Visible ticket');
+    $response->assertJsonPath('props.tickets.0.priority', 'High');
+});
+
+test('private queues owned by another staff member are hidden', function () {
+    $staff = queueReadStaff(['staff_id' => 71]);
+
+    DB::connection('legacy')->table('queue')->insert([
+        'id' => 11,
+        'parent_id' => null,
+        'staff_id' => 999,
+        'flags' => 2,
+        'title' => 'Other personal queue',
+        'config' => null,
+        'sort' => 1,
+    ]);
+
+    $this->actingAs($staff, 'staff')->get('/scp/queues/11')->assertNotFound();
+});
+
+test('unsupported queue criteria are reported without crashing', function () {
+    $staff = queueReadStaff(['staff_id' => 72]);
+
+    DB::connection('legacy')->table('queue')->insert([
+        'id' => 12,
+        'parent_id' => null,
+        'staff_id' => 0,
+        'flags' => 3,
+        'title' => 'Unsupported queue',
+        'config' => json_encode([
+            ['unknown__field', 'exact', 'value'],
+        ]),
+        'sort' => 1,
+    ]);
+
+    $response = $this->actingAs($staff, 'staff')
+        ->withHeaders(inertiaHeaders())
+        ->get('/scp/queues/12');
+
+    $response->assertOk();
+    $response->assertJsonPath('props.unsupported', true);
+    $response->assertJsonPath('props.unsupportedReasons.0', 'Unsupported queue field [unknown__field].');
+});
+
+test('queue show supports legacy includes operator with option objects', function () {
+    $staff = queueReadStaff(['staff_id' => 73]);
+
+    DB::connection('legacy')->table('queue')->insert([
+        'id' => 13,
+        'parent_id' => null,
+        'staff_id' => 0,
+        'flags' => 3,
+        'title' => 'CCM source',
+        'config' => json_encode([
+            'criteria' => [
+                ['source', 'includes', ['CCM' => 'CCM']],
+            ],
+            'conditions' => [],
+        ]),
+        'sort' => 1,
+    ]);
+
+    DB::connection('legacy')->table('ticket')->insert([
+        ['ticket_id' => 130, 'number' => '130130', 'dept_id' => 1, 'staff_id' => 0, 'source' => 'CCM'],
+        ['ticket_id' => 131, 'number' => '130131', 'dept_id' => 1, 'staff_id' => 0, 'source' => 'MMS'],
+    ]);
+
+    DB::connection('legacy')->table('ticket__cdata')->insert([
+        ['ticket_id' => 130, 'subject' => 'CCM ticket', 'priority' => '1'],
+        ['ticket_id' => 131, 'subject' => 'MMS ticket', 'priority' => '1'],
+    ]);
+
+    $response = $this->actingAs($staff, 'staff')
+        ->withHeaders(inertiaHeaders())
+        ->get('/scp/queues/13');
+
+    $response->assertOk();
+    $response->assertJsonPath('props.unsupported', false);
+    $response->assertJsonPath('props.pagination.total', 1);
+    $response->assertJsonPath('props.tickets.0.id', 130);
+});
+
+test('assigned to me queue filters by authenticated staff', function () {
+    $staff = queueReadStaff(['staff_id' => 74]);
+
+    DB::connection('legacy')->table('queue')->insert([
+        'id' => 14,
+        'parent_id' => null,
+        'staff_id' => 0,
+        'flags' => 3,
+        'title' => 'Assigned to me',
+        'config' => json_encode([
+            'criteria' => [
+                ['assignee', 'includes', ['M' => 'Me']],
+            ],
+            'conditions' => [],
+        ]),
+        'sort' => 1,
+    ]);
+
+    DB::connection('legacy')->table('ticket')->insert([
+        ['ticket_id' => 140, 'number' => '140140', 'dept_id' => 1, 'staff_id' => 74],
+        ['ticket_id' => 141, 'number' => '140141', 'dept_id' => 1, 'staff_id' => 75],
+    ]);
+
+    $response = $this->actingAs($staff, 'staff')
+        ->withHeaders(inertiaHeaders())
+        ->get('/scp/queues/14');
+
+    $response->assertOk();
+    $response->assertJsonPath('props.unsupported', false);
+    $response->assertJsonPath('props.pagination.total', 1);
+    $response->assertJsonPath('props.tickets.0.id', 140);
+});
