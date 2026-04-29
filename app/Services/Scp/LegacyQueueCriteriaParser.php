@@ -288,6 +288,11 @@ class LegacyQueueCriteriaParser
         }
 
         if ($operator === '!includes') {
+            if (! $includeMe && (! $includeTeams || $teamIds === [])) {
+                // Excluding no recognized assignee target intentionally leaves the queue unconstrained.
+                return;
+            }
+
             $query->where(function (Builder $query) use ($staff, $includeMe, $includeTeams, $teamIds): void {
                 if ($includeMe) {
                     $query->where(function (Builder $query) use ($staff): void {

@@ -128,6 +128,10 @@ class LegacyFilesystemReader implements FileStorageReader
         }
 
         $normalizedRoot = rtrim(str_replace('\\', '/', $resolvedRoot), '/');
+        if ($normalizedRoot === '') {
+            return null;
+        }
+
         $normalizedPath = str_replace('\\', '/', $resolvedPath);
 
         if ($normalizedPath !== $normalizedRoot && ! str_starts_with($normalizedPath, $normalizedRoot.'/')) {

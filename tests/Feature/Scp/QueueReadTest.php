@@ -532,3 +532,40 @@ test('assigned to my teams queue returns no tickets when staff has no teams', fu
     $response->assertJsonPath('props.unsupported', false);
     $response->assertJsonPath('props.pagination.total', 0);
 });
+
+test('assignee exclusion with no recognized targets leaves queue unconstrained', function () {
+    $staff = queueReadStaff(['staff_id' => 76]);
+
+    DB::connection('legacy')->table('queue')->insert([
+        'id' => 16,
+        'parent_id' => null,
+        'staff_id' => 0,
+        'flags' => 3,
+        'title' => 'Unknown assignee exclusion',
+        'config' => json_encode([
+            'criteria' => [
+                ['assignee', '!includes', ['D' => 'Department']],
+            ],
+            'conditions' => [],
+        ]),
+        'sort' => 1,
+    ]);
+
+    DB::connection('legacy')->table('ticket')->insert([
+        ['ticket_id' => 160, 'number' => '160160', 'dept_id' => 1, 'staff_id' => 76],
+        ['ticket_id' => 161, 'number' => '160161', 'dept_id' => 1, 'staff_id' => 0],
+    ]);
+
+    DB::connection('legacy')->table('ticket__cdata')->insert([
+        ['ticket_id' => 160, 'subject' => 'Assigned', 'priority' => '1'],
+        ['ticket_id' => 161, 'subject' => 'Unassigned', 'priority' => '1'],
+    ]);
+
+    $response = $this->actingAs($staff, 'staff')
+        ->withHeaders(inertiaHeaders())
+        ->get('/scp/queues/16');
+
+    $response->assertOk();
+    $response->assertJsonPath('props.unsupported', false);
+    $response->assertJsonPath('props.pagination.total', 2);
+});

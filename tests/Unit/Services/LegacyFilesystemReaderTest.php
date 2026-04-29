@@ -99,3 +99,15 @@ test('legacy filesystem reader fails closed without configured root', function (
         'attrs' => __FILE__,
     ])))->toBeFalse();
 });
+
+test('legacy filesystem reader rejects filesystem root as configured root', function () {
+    config(['services.osticket.filesystem_root' => DIRECTORY_SEPARATOR]);
+
+    $reader = app(LegacyFilesystemReader::class);
+
+    expect($reader->exists(new File([
+        'id' => 6,
+        'bk' => '6',
+        'attrs' => __FILE__,
+    ])))->toBeFalse();
+});

@@ -252,18 +252,7 @@ class DashboardService
      */
     private function openCreatedCountsByMonth(CarbonInterface $start, CarbonInterface $end): array
     {
-        $counts = [];
-
-        Ticket::query()
-            ->whereNotNull('created')
-            ->whereBetween('created', [$start->toDateTimeString(), $end->toDateTimeString()])
-            ->pluck('created')
-            ->each(function (string $created) use (&$counts): void {
-                $month = Carbon::parse($created)->startOfMonth()->toDateString();
-                $counts[$month] = ($counts[$month] ?? 0) + 1;
-            });
-
-        return $counts;
+        return $this->countsByMonth('created', $start, $end);
     }
 
     /**
@@ -271,18 +260,33 @@ class DashboardService
      */
     private function solvedCountsByMonth(CarbonInterface $start, CarbonInterface $end): array
     {
-        $counts = [];
+        return $this->countsByMonth('closed', $start, $end);
+    }
 
-        Ticket::query()
-            ->whereNotNull('closed')
-            ->whereBetween('closed', [$start->toDateTimeString(), $end->toDateTimeString()])
-            ->pluck('closed')
-            ->each(function (string $closed) use (&$counts): void {
-                $month = Carbon::parse($closed)->startOfMonth()->toDateString();
-                $counts[$month] = ($counts[$month] ?? 0) + 1;
-            });
+    /**
+     * @return array<string, int>
+     */
+    private function countsByMonth(string $column, CarbonInterface $start, CarbonInterface $end): array
+    {
+        $monthExpression = $this->monthExpression($column);
 
-        return $counts;
+        return Ticket::query()
+            ->selectRaw("{$monthExpression} as month")
+            ->selectRaw('COUNT(*) as total')
+            ->whereNotNull($column)
+            ->whereBetween($column, [$start->toDateTimeString(), $end->toDateTimeString()])
+            ->groupByRaw($monthExpression)
+            ->pluck('total', 'month')
+            ->map(fn (int|string $total): int => (int) $total)
+            ->all();
+    }
+
+    private function monthExpression(string $column): string
+    {
+        return match (Ticket::query()->getConnection()->getDriverName()) {
+            'sqlite' => "strftime('%Y-%m-01', {$column})",
+            default => "DATE_FORMAT({$column}, '%Y-%m-01')",
+        };
     }
 
     /**
@@ -335,13 +339,16 @@ class DashboardService
         $labels = [];
 
         Ticket::query()
+            ->select('source')
+            ->selectRaw('COUNT(*) as total')
             ->whereNotNull('created')
             ->whereBetween('created', [$rangeStart->toDateTimeString(), $today->toDateTimeString()])
-            ->pluck('source')
-            ->each(function (?string $source) use (&$counts, &$labels): void {
-                $label = $this->channelLabel($source);
+            ->groupBy('source')
+            ->get()
+            ->each(function (Ticket $ticket) use (&$counts, &$labels): void {
+                $label = $this->channelLabel($ticket->source);
                 $key = $this->channelKey($label);
-                $counts[$key] = ($counts[$key] ?? 0) + 1;
+                $counts[$key] = ($counts[$key] ?? 0) + (int) $ticket->getAttribute('total');
                 $labels[$key] = $label;
             });
 
