@@ -12,9 +12,8 @@ test('outbound mail guard bypasses non-production environments', function () {
         ->to('customer@example.com')
         ->subject('Customer Reply');
 
-    app(OutboundMailGuard::class)->handle(new MessageSending($email));
-
-    expect(true)->toBeTrue();
+    expect(fn () => app(OutboundMailGuard::class)->handle(new MessageSending($email)))
+        ->not->toThrow(RuntimeException::class);
 });
 
 test('outbound mail guard allows password reset in production', function () {
@@ -24,11 +23,9 @@ test('outbound mail guard allows password reset in production', function () {
         ->to('staff@example.com')
         ->subject('Reset Your Password');
 
-    app(OutboundMailGuard::class)->handle(new MessageSending($email, [
+    expect(fn () => app(OutboundMailGuard::class)->handle(new MessageSending($email, [
         '__laravel_mailable' => PasswordResetLinkMail::class,
-    ]));
-
-    expect(true)->toBeTrue();
+    ])))->not->toThrow(RuntimeException::class);
 });
 
 test('outbound mail guard does not bypass arbitrary mail by subject', function () {

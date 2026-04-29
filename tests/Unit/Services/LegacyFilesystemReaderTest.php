@@ -2,6 +2,13 @@
 
 use App\Models\File;
 use App\Services\FileStorage\LegacyFilesystemReader;
+use Illuminate\Support\Facades\File as Filesystem;
+
+afterEach(function (): void {
+    Filesystem::deleteDirectory(storage_path('framework/testing/legacy-files'));
+    Filesystem::deleteDirectory(storage_path('framework/testing/plugin-files'));
+    Filesystem::delete(storage_path('framework/testing/outside-legacy.txt'));
+});
 
 test('legacy filesystem reader only serves files inside configured root', function () {
     $root = storage_path('framework/testing/legacy-files');
