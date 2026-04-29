@@ -191,7 +191,14 @@ function computeSlaProgress(ticket: Ticket, now: Date): SlaProgress | null {
         const total = dueMs - created.getTime();
         const elapsed = nowMs - created.getTime();
         const percent = total > 0 ? Math.max(0, Math.min(100, (elapsed / total) * 100)) : 0;
-        const tone: SlaProgress['tone'] = percent >= 75 ? 'danger' : percent >= 50 ? 'warn' : 'safe';
+        let tone: SlaProgress['tone'];
+        if (percent >= 75) {
+            tone = 'danger';
+        } else if (percent >= 50) {
+            tone = 'warn';
+        } else {
+            tone = 'safe';
+        }
 
         return {
             label: 'On track',
@@ -219,26 +226,25 @@ function Metric({ label, value, helper }: { label: string; value: ReactNode; hel
     );
 }
 
-function SlaBar({ progress }: { progress: SlaProgress }) {
-    const trackColor = progress.tone === 'overdue'
-        ? 'bg-red-500'
-        : progress.tone === 'danger'
-        ? 'bg-amber-500'
-        : progress.tone === 'warn'
-        ? 'bg-yellow-400'
-        : progress.tone === 'closed'
-        ? 'bg-zinc-400'
-        : 'bg-emerald-500';
+const SLA_TRACK_COLOR: Record<SlaProgress['tone'], string> = {
+    overdue: 'bg-red-500',
+    danger: 'bg-amber-500',
+    warn: 'bg-yellow-400',
+    closed: 'bg-zinc-400',
+    safe: 'bg-emerald-500',
+};
 
-    const labelTone = progress.tone === 'overdue'
-        ? 'text-red-600'
-        : progress.tone === 'danger'
-        ? 'text-amber-600'
-        : progress.tone === 'warn'
-        ? 'text-yellow-700'
-        : progress.tone === 'closed'
-        ? 'text-zinc-500'
-        : 'text-emerald-600';
+const SLA_LABEL_TONE: Record<SlaProgress['tone'], string> = {
+    overdue: 'text-red-600',
+    danger: 'text-amber-600',
+    warn: 'text-yellow-700',
+    closed: 'text-zinc-500',
+    safe: 'text-emerald-600',
+};
+
+function SlaBar({ progress }: { progress: SlaProgress }) {
+    const trackColor = SLA_TRACK_COLOR[progress.tone];
+    const labelTone = SLA_LABEL_TONE[progress.tone];
 
     return (
         <div className="rounded-md bg-[#F8FAFC] px-3 py-2.5">

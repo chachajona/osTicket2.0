@@ -172,7 +172,11 @@ class DashboardService
             'previous' => $previous,
             'change' => $change,
             'percent' => round(($change / $previous) * 100, 1),
-            'direction' => $change > 0 ? 'up' : ($change < 0 ? 'down' : 'flat'),
+            'direction' => match (true) {
+                $change > 0 => 'up',
+                $change < 0 => 'down',
+                default => 'flat',
+            },
         ];
     }
 
