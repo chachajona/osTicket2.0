@@ -126,9 +126,33 @@ abstract class TestCase extends BaseTestCase
                 });
             }
 
+            $this->ensureLegacyTable($osticket2, 'staff_preferences', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('staff_id')->unique();
+                $table->string('theme', 16)->default('system');
+                $table->string('language', 16)->nullable();
+                $table->string('timezone', 64)->nullable();
+                $table->json('notifications')->nullable();
+                $table->timestamps();
+            });
+
+            $this->ensureLegacyTable($osticket2, 'access_log', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('staff_id')->index();
+                $table->string('action', 128);
+                $table->string('subject_type', 64)->nullable();
+                $table->unsignedBigInteger('subject_id')->nullable();
+                $table->json('metadata')->nullable();
+                $table->string('ip_address', 45)->nullable();
+                $table->text('user_agent')->nullable();
+                $table->timestamp('created_at')->useCurrent();
+            });
+
+            foreach (['access_log', 'staff_preferences', 'staff_auth_migrations', 'staff_two_factor'] as $table) {
+                $osticket2Connection->table($table)->delete();
+            }
+
             foreach ([
-                'staff_auth_migrations',
-                'staff_two_factor',
                 'role_has_permissions',
                 'model_has_roles',
                 'model_has_permissions',
@@ -138,12 +162,6 @@ abstract class TestCase extends BaseTestCase
                 'session',
                 'staff',
             ] as $table) {
-                if (in_array($table, ['staff_two_factor', 'staff_auth_migrations'], true)) {
-                    $osticket2Connection->table($table)->delete();
-
-                    continue;
-                }
-
                 $legacyConnection->table($table)->delete();
             }
         }

@@ -3,13 +3,16 @@
 namespace App\Providers;
 
 use App\Auth\StaffUserProvider;
+use App\Mail\OutboundMailGuard;
 use App\Models\Staff;
 use App\Models\Task;
 use App\Models\Ticket;
 use App\Services\LegacyHasher;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Hashing\HashManager;
+use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -44,5 +47,7 @@ class AppServiceProvider extends ServiceProvider
                 $app['cache']->store(),
             );
         });
+
+        Event::listen(MessageSending::class, OutboundMailGuard::class);
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Models\Eloquent\Scopes\TicketAccessibleScope;
 use App\Models\Ticket;
 use Illuminate\Console\Command;
 
@@ -24,6 +25,7 @@ final class CheckOverdueTicketsCommand extends Command
         $now = now();
 
         $query = Ticket::query()
+            ->withoutGlobalScope(TicketAccessibleScope::class)
             ->where('isoverdue', 0)
             ->whereNull('closed')
             ->whereNotNull('duedate')

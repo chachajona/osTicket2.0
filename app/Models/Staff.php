@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Auth\StaffTwoFactorAuthenticatable;
+use App\Models\Eloquent\Scopes\TicketAccessibleScope;
 use Database\Factories\StaffFactory;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Collection;
@@ -38,6 +39,7 @@ class Staff extends LegacyModel implements Authenticatable
 {
     /** @use HasFactory<StaffFactory> */
     use HasFactory;
+
     use HasRoles;
     use StaffTwoFactorAuthenticatable;
 
@@ -84,7 +86,8 @@ class Staff extends LegacyModel implements Authenticatable
      */
     public function assignedTickets()
     {
-        return $this->hasMany(Ticket::class, 'staff_id', 'staff_id');
+        return $this->hasMany(Ticket::class, 'staff_id', 'staff_id')
+            ->withoutGlobalScope(TicketAccessibleScope::class);
     }
 
     /**
@@ -163,6 +166,11 @@ class Staff extends LegacyModel implements Authenticatable
             $this->passwd = Hash::make($plainPassword);
             $this->save();
         }
+    }
+
+    public function displayName(): string
+    {
+        return trim($this->firstname.' '.$this->lastname) ?: $this->username;
     }
 
     public function hasTotpEnabled(): bool

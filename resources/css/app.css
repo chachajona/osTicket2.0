@@ -438,3 +438,55 @@
     background: #e2e8f0;
     border-radius: 9999px;
 }
+
+.prose-ticket p { margin: 0 0 0.75rem 0; }
+.prose-ticket p:last-child { margin-bottom: 0; }
+.prose-ticket a { color: #5B619D; text-decoration: underline; overflow-wrap: anywhere; }
+.prose-ticket a:hover { color: #4F548C; }
+.prose-ticket ul, .prose-ticket ol { padding-left: 1.25rem; margin: 0 0 0.75rem 0; }
+.prose-ticket ul { list-style: disc; }
+.prose-ticket ol { list-style: decimal; }
+.prose-ticket li { margin: 0.125rem 0; }
+.prose-ticket blockquote {
+    margin: 0 0 0.75rem 0;
+    padding: 0.5rem 0.875rem;
+    border-left: 3px solid #E2E8F0;
+    background: #F8FAFC;
+    color: #475569;
+    border-radius: 0 6px 6px 0;
+}
+.prose-ticket pre {
+    margin: 0 0 0.75rem 0;
+    padding: 0.625rem 0.75rem;
+    background: #0F172A;
+    color: #E2E8F0;
+    border-radius: 8px;
+    font-size: 0.8125rem;
+    overflow-x: auto;
+}
+.prose-ticket code {
+    background: #F1F5F9;
+    border-radius: 4px;
+    padding: 0 0.25rem;
+    font-size: 0.875em;
+}
+.prose-ticket pre code { background: transparent; padding: 0; }
+.prose-ticket img { max-width: 100%; height: auto; border-radius: 6px; }
+.prose-ticket h1, .prose-ticket h2, .prose-ticket h3, .prose-ticket h4 {
+    font-weight: 600; color: #0F172A; margin: 1rem 0 0.5rem 0;
+}
+.prose-ticket h1 { font-size: 1.125rem; }
+.prose-ticket h2 { font-size: 1.0625rem; }
+.prose-ticket h3, .prose-ticket h4 { font-size: 1rem; }
+.prose-ticket table {
+    border-collapse: collapse;
+    margin: 0 0 0.75rem 0;
+    font-size: 0.8125rem;
+}
+.prose-ticket th, .prose-ticket td {
+    border: 1px solid #E2E8F0;
+    padding: 0.375rem 0.625rem;
+    text-align: left;
+}
+.prose-ticket th { background: #F8FAFC; font-weight: 600; }
+.prose-ticket hr { border: 0; border-top: 1px solid #E2E8F0; margin: 1rem 0; }

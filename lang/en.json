@@ -2,7 +2,12 @@
     "nav": {
         "dashboard": "Dashboard",
         "tickets": "Tickets",
+        "inbox": "Inbox",
+        "notifications": "Notifications",
         "knowledgebase": "Knowledgebase",
+        "customers": "Customers",
+        "forum": "Forum",
+        "reports": "Reports",
         "my_tickets": "My Tickets",
         "open_tickets": "Open Tickets",
         "new_ticket": "New Ticket",
@@ -101,6 +106,119 @@
             "resending": "Resending...",
             "back_to_login": "Back to login"
         }
+    },
+    "dashboard": {
+        "banner": {
+            "title": "Live dashboard",
+            "description": "Counts are queried from the legacy database on each page load{{refreshedAt}}."
+        },
+        "metrics": {
+            "open_tickets": {
+                "label": "Open Tickets",
+                "helper": "Visible tickets with status state open"
+            },
+            "assigned_to_me": {
+                "label": "Assigned to Me",
+                "helper": "{{percent}} of visible open tickets"
+            },
+            "unassigned": {
+                "label": "Unassigned",
+                "helper": "No staff or team owner"
+            },
+            "overdue": {
+                "label": "Overdue",
+                "helper": "{{percent}} of visible open tickets"
+            },
+            "trend": {
+                "up": "+{{percent}}",
+                "down": "-{{percent}}",
+                "flat": "0%",
+                "new": "New",
+                "compare_to_last_month": "Compare to last month"
+            }
+        },
+        "chart": {
+            "tickets": "Tickets",
+            "open": "Open",
+            "assigned": "Assigned",
+            "unassigned": "Unassigned",
+            "overdue": "Overdue"
+        },
+        "live_counts": {
+            "title": "Live Ticket Counts",
+            "description": "Queried from the legacy ticket tables for your visible departments."
+        },
+        "ticket_status_chart": {
+            "title": "Open vs Solved Tickets",
+            "description": "{{rangeStart}} - {{rangeEnd}}.",
+            "open": "Open",
+            "solved": "Solved",
+            "open_total": "Open: {{count}}",
+            "solved_total": "Solved: {{count}}"
+        },
+        "ownership": {
+            "title": "Open Ticket Ownership",
+            "description": "Staff assignment split for visible open tickets.",
+            "assigned": "Assigned",
+            "assigned_to_me": "Assigned to me",
+            "assigned_elsewhere": "Assigned elsewhere",
+            "unassigned": "Unassigned",
+            "select_segment": "Select segment",
+            "empty": "No open tickets are visible right now."
+        },
+        "quick_actions": {
+            "title": "Command Center",
+            "description": "Fast paths for the ticket work agents repeat most.",
+            "open_queues": "Open ticket queues",
+            "open_queues_hint": "Review assigned, unassigned, and overdue queues.",
+            "search_tickets": "Search tickets",
+            "search_tickets_hint": "Jump directly to a ticket, requester, or phrase.",
+            "staff_preferences": "Staff preferences",
+            "staff_preferences_hint": "Adjust your SCP language and display settings.",
+            "live_hint": "Actions use live staff access and current ticket visibility."
+        },
+        "channels": {
+            "title": "Tickets by Channel",
+            "description": "{{rangeStart}} - {{rangeEnd}}.",
+            "total": "Tickets",
+            "empty": "No visible ticket channels in this range."
+        },
+        "recent_activity": {
+            "title": "Live Ticket Stream",
+            "description": "Latest visible ticket events from legacy thread history.",
+            "empty": "No visible ticket activity yet.",
+            "thread": "Thread {{id}}",
+            "unknown_time": "Unknown time",
+            "ticket_activity": "ticket activity",
+            "untitled_ticket": "Untitled ticket",
+            "actor": "Updated by {{username}}",
+            "by_user": " by {{username}}"
+        },
+        "layout": {
+            "open_dashboard_actions": "Open dashboard actions",
+            "open_export_options": "Open export options",
+            "search_tickets": "Search tickets",
+            "search_placeholder": "Search...",
+            "conversation": "Conversation",
+            "favorites": "Favorites",
+            "favorites_hint": "Hover over any table and click the star to add it here.",
+            "pinned_tickets": "Pinned Tickets",
+            "unpin_all": "Unpin all",
+            "add_new": "Add new",
+            "preferences": "Preferences",
+            "powered_by": "Powered by",
+            "security": "Security",
+            "my_queue": "My Queue",
+            "new_ticket": "New Ticket"
+        },
+        "date_range": {
+            "label": "Date range",
+            "last_7_days": "Last 7 days",
+            "last_30_days": "Last 30 days",
+            "last_3_months": "Last 3 months",
+            "last_6_months": "Last 6 months"
+        },
+        "overview": "Overview"
     },
     "actions": {
         "submit": "Submit",
