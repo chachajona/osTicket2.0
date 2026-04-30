@@ -426,6 +426,48 @@ test('search treats fallback like wildcards as literal characters', function () 
     expect($response->json('props.results'))->toBe([]);
 });
 
+test('search preserves relevance order across more accessible candidates than the result limit', function () {
+    $staff = phaseOneStaff(['staff_id' => 84]);
+    $tickets = [];
+    $cdata = [];
+    $searchRows = [];
+
+    foreach (range(226, 300) as $ticketId) {
+        $tickets[] = [
+            'ticket_id' => $ticketId,
+            'number' => (string) $ticketId,
+            'user_id' => 1,
+            'status_id' => 1,
+            'dept_id' => 1,
+            'staff_id' => 0,
+            'created' => '2026-04-20 12:00:00',
+        ];
+        $cdata[] = [
+            'ticket_id' => $ticketId,
+            'subject' => "Search candidate {$ticketId}",
+            'priority' => '2',
+        ];
+        $searchRows[] = [
+            'object_type' => 'T',
+            'object_id' => $ticketId,
+            'title' => "Search candidate {$ticketId}",
+            'content' => 'rankneedle',
+        ];
+    }
+
+    DB::connection('legacy')->table('ticket')->insert($tickets);
+    DB::connection('legacy')->table('ticket__cdata')->insert($cdata);
+    DB::connection('legacy')->table('_search')->insert($searchRows);
+
+    $response = $this->actingAs($staff, 'staff')
+        ->withHeaders(inertiaHeaders())
+        ->get('/scp/search?q=rankneedle');
+
+    $response->assertOk();
+    expect(collect($response->json('props.results'))->pluck('id')->all())
+        ->toBe(range(300, 276));
+});
+
 test('dashboard uses live visible open ticket counts', function () {
     $this->travelTo('2026-04-28 12:00:00');
     $staff = phaseOneStaff();

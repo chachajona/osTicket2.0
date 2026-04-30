@@ -32,7 +32,6 @@ class SearchService
             $tickets = Ticket::query()
                 ->with(['cdata', 'user.defaultEmail'])
                 ->whereIn('ticket_id', $ids->all())
-                ->limit($limit)
                 ->get()
                 ->keyBy('ticket_id');
 
