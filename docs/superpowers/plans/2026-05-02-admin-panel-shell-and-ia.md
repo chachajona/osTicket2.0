@@ -1,6 +1,6 @@
 # Admin Panel Shell + IA Restructure Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Wire up the missing Admin↔Agent panel switcher in the SCP shell, replace the flat-sidebar `AdminLayout` with the legacy-style top-tabs + sub-strip information architecture, and align each `Admin/*/Edit.tsx` page with the legacy inner-tab layout for its surface.
 
@@ -54,7 +54,7 @@ Top-tabs + submenu, exact order from `AdminNav::getTabs()` / `AdminNav::getSubMe
 - Modify: `app/Http/Middleware/HandleInertiaRequests.php:44-62`
 - Test: `tests/Feature/Inertia/SharedPropsTest.php` (new)
 
-- [ ] **Step 1: Create the failing test**
+- [x] **Step 1: Create the failing test**
 
 Create `tests/Feature/Inertia/SharedPropsTest.php`:
 
@@ -86,12 +86,12 @@ it('returns null auth.staff for guests', function () {
 });
 ```
 
-- [ ] **Step 2: Run the test and confirm it fails**
+- [x] **Step 2: Run the test and confirm it fails**
 
 Run: `vendor/bin/pest tests/Feature/Inertia/SharedPropsTest.php`
 Expected: 2 failures — `auth.staff.isAdmin` does not exist (the third test passes already).
 
-- [ ] **Step 3: Add `isAdmin` to the shared prop**
+- [x] **Step 3: Add `isAdmin` to the shared prop**
 
 In `app/Http/Middleware/HandleInertiaRequests.php`, replace lines 47-55 (the `'staff' => …` block) with:
 
@@ -107,12 +107,12 @@ In `app/Http/Middleware/HandleInertiaRequests.php`, replace lines 47-55 (the `'s
     : null,
 ```
 
-- [ ] **Step 4: Run the test and confirm it passes**
+- [x] **Step 4: Run the test and confirm it passes**
 
 Run: `vendor/bin/pest tests/Feature/Inertia/SharedPropsTest.php`
 Expected: 3 passing.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/Http/Middleware/HandleInertiaRequests.php tests/Feature/Inertia/SharedPropsTest.php
@@ -126,7 +126,7 @@ git commit -m "feat(admin): expose isAdmin in shared Inertia auth prop"
 **Files:**
 - Create: `resources/js/components/admin/AdminTabs.constants.ts`
 
-- [ ] **Step 1: Create the constants file**
+- [x] **Step 1: Create the constants file**
 
 Create `resources/js/components/admin/AdminTabs.constants.ts`:
 
@@ -244,12 +244,12 @@ export const ADMIN_TAB_BY_SUB_ID: Record<string, { tabId: string; subId: string 
     }, {});
 ```
 
-- [ ] **Step 2: Verify the icons resolve**
+- [x] **Step 2: Verify the icons resolve**
 
 Run: `npx tsc --noEmit -p tsconfig.json`
 Expected: No errors. (If `ToolsIcon` or `Mail01Icon` does not exist in `@hugeicons/core-free-icons`, swap to the closest available — search the package's exports for `Mail` and `Wrench`/`Tools`/`Settings` and pick a sensible alternative; document the substitution in a one-line comment above the import.)
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add resources/js/components/admin/AdminTabs.constants.ts
@@ -263,7 +263,7 @@ git commit -m "feat(admin): define legacy IA tree as shared constants"
 **Files:**
 - Create: `resources/js/components/admin/AdminTabs.tsx`
 
-- [ ] **Step 1: Create the component**
+- [x] **Step 1: Create the component**
 
 Create `resources/js/components/admin/AdminTabs.tsx`:
 
@@ -362,12 +362,12 @@ export function AdminTabs({ activeSubId }: AdminTabsProps) {
 export default AdminTabs;
 ```
 
-- [ ] **Step 2: Type-check**
+- [x] **Step 2: Type-check**
 
 Run: `npx tsc --noEmit -p tsconfig.json`
 Expected: No errors.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add resources/js/components/admin/AdminTabs.tsx
@@ -381,7 +381,7 @@ git commit -m "feat(admin): add top-tabs + sub-strip nav component"
 **Files:**
 - Modify: `resources/js/components/admin/AdminLayout.tsx` (full rewrite)
 
-- [ ] **Step 1: Replace the file contents**
+- [x] **Step 1: Replace the file contents**
 
 Replace the entire contents of `resources/js/components/admin/AdminLayout.tsx`:
 
@@ -436,17 +436,17 @@ export function AdminLayout({ activeAdminNav, children, contentClassName, ...pro
 export default AdminLayout;
 ```
 
-- [ ] **Step 2: Type-check**
+- [x] **Step 2: Type-check**
 
 Run: `npx tsc --noEmit -p tsconfig.json`
 Expected: No errors.
 
-- [ ] **Step 3: Build to verify Vite picks up the new components**
+- [x] **Step 3: Build to verify Vite picks up the new components**
 
 Run: `npm run build`
 Expected: Build succeeds.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add resources/js/components/admin/AdminLayout.tsx
@@ -462,7 +462,7 @@ git commit -m "feat(admin): replace flat sidebar with legacy 5-tab IA + agent pa
 
 The current `DashboardLayout` renders `<DefaultHeaderActions />` (My Queue + New Ticket) when no `headerActions` prop is supplied. We will inject an "Admin Panel" link **before** those default actions when the authenticated staff member is an admin. The `usePage().props.auth.staff` shape now includes `isAdmin` (Task 1).
 
-- [ ] **Step 1: Add `usePage` import + admin-gated link**
+- [x] **Step 1: Add `usePage` import + admin-gated link**
 
 In `resources/js/layouts/DashboardLayout.tsx`:
 
@@ -513,12 +513,12 @@ function DefaultHeaderActions() {
 
 The "Admin Panel" link points at `/admin/help-topics` (Manage tab default — first enabled surface in legacy order). When the user lands there, `AdminLayout` shows the full top-tab strip and they can navigate from there.
 
-- [ ] **Step 2: Type-check**
+- [x] **Step 2: Type-check**
 
 Run: `npx tsc --noEmit -p tsconfig.json`
 Expected: No errors.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add resources/js/layouts/DashboardLayout.tsx
@@ -534,7 +534,7 @@ git commit -m "feat(scp): show Admin Panel link in header for admin staff"
 
 Currently the form is one long page with a single `Department Details` `FormSection`. Legacy splits this into a `Settings` tab (department info, signature, manager, SLA, email, public flag) and an `Access` tab (members and per-dept role overrides). For Phase 2a we have data only for the Settings side — so the Access tab renders a placeholder pointing the user to the Staff page for now.
 
-- [ ] **Step 1: Wrap the form in `<Tabs>`**
+- [x] **Step 1: Wrap the form in `<Tabs>`**
 
 In `resources/js/pages/Admin/Departments/Edit.tsx`:
 
@@ -611,12 +611,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 Note: in the actual edit, leave all existing form fields verbatim inside the `<TabsContent value="settings">` `<FormGrid>` block — do NOT delete them. Only the wrapping changes.
 
-- [ ] **Step 2: Type-check + run existing department test to make sure controller still binds correctly**
+- [x] **Step 2: Type-check + run existing department test to make sure controller still binds correctly**
 
 Run: `npx tsc --noEmit -p tsconfig.json && vendor/bin/pest tests/Feature/Admin/DepartmentAdminTest.php`
 Expected: No type errors; all department tests pass (we did not change form field names, only wrapping).
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add resources/js/pages/Admin/Departments/Edit.tsx
@@ -638,7 +638,7 @@ Current sections: Basic Info / Account / Department Access / Teams. Legacy tabs:
 - **Teams tab** = current Teams section.
 - **2FA tab** = the existing 2FA status panel pulled out of the Account section.
 
-- [ ] **Step 1: Add `Tabs` import + restructure**
+- [x] **Step 1: Add `Tabs` import + restructure**
 
 In `resources/js/pages/Admin/Staff/Edit.tsx`:
 
@@ -717,12 +717,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 Form field names stay identical so no controller/test changes are needed.
 
-- [ ] **Step 2: Type-check + run staff tests**
+- [x] **Step 2: Type-check + run staff tests**
 
 Run: `npx tsc --noEmit -p tsconfig.json && vendor/bin/pest tests/Feature/Admin/StaffAdminTest.php`
 Expected: No type errors; all staff tests pass.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add resources/js/pages/Admin/Staff/Edit.tsx
@@ -738,7 +738,7 @@ git commit -m "feat(admin/staff): split edit form into Account/Access/Permission
 
 Legacy splits role editing into `Definition` (name, notes) and `Permissions` (the matrix). Current page renders both as sequential sections. Wrap in tabs.
 
-- [ ] **Step 1: Add `Tabs` import + restructure**
+- [x] **Step 1: Add `Tabs` import + restructure**
 
 In `resources/js/pages/Admin/Roles/Edit.tsx`:
 
@@ -799,12 +799,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 </div>
 ```
 
-- [ ] **Step 2: Type-check + run role tests**
+- [x] **Step 2: Type-check + run role tests**
 
 Run: `npx tsc --noEmit -p tsconfig.json && vendor/bin/pest tests/Feature/Admin/RoleAdminTest.php`
 Expected: No type errors; all role tests pass.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add resources/js/pages/Admin/Roles/Edit.tsx
@@ -819,12 +819,12 @@ git commit -m "feat(admin/roles): split edit form into Definition/Permissions in
 
 The earlier tasks ran type checks and PHP feature tests. Frontend layout changes need a browser pass.
 
-- [ ] **Step 1: Start the dev server**
+- [x] **Step 1: Start the dev server**
 
 Run: `npm run dev` (in one terminal) and `php artisan serve` (in another).
 Wait until both are listening.
 
-- [ ] **Step 2: Verify the Agent → Admin switcher**
+- [x] **Step 2: Verify the Agent → Admin switcher**
 
 1. Log in as an admin staff member (`isadmin = 1`) — pick one from the seed/factory.
 2. Land on `/scp` (dashboard).
@@ -832,13 +832,13 @@ Wait until both are listening.
 4. Log out, log in as a non-admin staff member (`isadmin = 0`).
 5. Confirm the **Admin Panel** button is NOT shown.
 
-- [ ] **Step 3: Verify the Admin → Agent switcher**
+- [x] **Step 3: Verify the Admin → Agent switcher**
 
 1. As an admin, click **Admin Panel**. You land on `/admin/help-topics`.
 2. Confirm the header shows an **Agent Panel** button (replacing My Queue / New Ticket).
 3. Click it; you return to `/scp`.
 
-- [ ] **Step 4: Verify the IA tabs and sub-strip**
+- [x] **Step 4: Verify the IA tabs and sub-strip**
 
 1. Navigate to `/admin/staff`.
 2. Confirm the **Agents** top tab is active (highlighted) and the **Agents** row in the sub-strip shows Agents/Teams/Roles/Departments with **Agents** highlighted.
@@ -846,7 +846,7 @@ Wait until both are listening.
 4. Confirm disabled items (System Logs, Audit Logs, Information, all Settings items, Schedules, API, Pages, Forms, Lists, Plugins, Settings/Banlist/Templates/Diagnostic under Emails) are visually muted and not clickable.
 5. Confirm clicking an enabled sub-item navigates correctly: e.g., Manage → Filters loads `/admin/filters`.
 
-- [ ] **Step 5: Verify the inner tabs on each Edit page**
+- [x] **Step 5: Verify the inner tabs on each Edit page**
 
 For each surface, open the **edit** page (visit the `/admin/{resource}` index, click into one row), and confirm:
 
@@ -862,7 +862,7 @@ For each surface, open the **edit** page (visit the `/admin/{resource}` index, c
 | `/admin/slas/{id}/edit` | (no inner tabs) | Form renders |
 | `/admin/canned-responses/{id}/edit` | (no inner tabs) | Form renders |
 
-- [ ] **Step 6: Verify form submissions on a sample of pages**
+- [x] **Step 6: Verify form submissions on a sample of pages**
 
 Edit and save:
 - A department (changes name) → save → list shows updated name.
@@ -871,7 +871,7 @@ Edit and save:
 
 Confirm no console errors and audit log entries are written (`SELECT * FROM scp_admin_audit_log ORDER BY id DESC LIMIT 5`).
 
-- [ ] **Step 7: If everything works, do not commit (no code change here). If anything is broken, fix and commit per the affected task.**
+- [x] **Step 7: If everything works, do not commit (no code change here). If anything is broken, fix and commit per the affected task.**
 
 ---
 

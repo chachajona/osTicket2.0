@@ -46,7 +46,7 @@ export default function CannedResponsesEdit({ cannedResponse, departments }: Pro
     const isEdit = !!cannedResponse;
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-    const { data, setData, post, put, processing, errors } = useForm({
+    const { data, setData, post, put, processing, errors, transform } = useForm({
         title: cannedResponse?.title ?? '',
         dept_id: cannedResponse?.dept_id !== null && cannedResponse?.dept_id !== undefined ? String(cannedResponse.dept_id) : 'none',
         response: cannedResponse?.response ?? '',
@@ -57,18 +57,18 @@ export default function CannedResponsesEdit({ cannedResponse, departments }: Pro
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
-        const payload = {
+        transform((data) => ({
             ...data,
             dept_id: data.dept_id === 'none' ? null : Number(data.dept_id),
-        };
+        }));
 
         if (isEdit && cannedResponse) {
-            put(route('admin.canned-responses.update', cannedResponse.id), payload);
+            put(route('admin.canned-responses.update', cannedResponse.id));
 
             return;
         }
 
-        post(route('admin.canned-responses.store'), payload);
+        post(route('admin.canned-responses.store'));
     };
 
     const handleDelete = () => {
