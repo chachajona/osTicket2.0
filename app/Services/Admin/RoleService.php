@@ -12,6 +12,8 @@ use Spatie\Permission\PermissionRegistrar;
 
 class RoleService
 {
+    use NormalizesInput;
+
     public function __construct(
         private readonly AuditLogger $auditLogger,
         private readonly PermissionRegistrar $permissions,
@@ -27,7 +29,7 @@ class RoleService
                 'flags' => 1,
                 'name' => trim((string) $data['name']),
                 'permissions' => $this->encodePermissions($permissions),
-                'notes' => $this->normalizeNotes($data['notes'] ?? null),
+                'notes' => $this->normalizeString($data['notes'] ?? null),
                 'created' => now(),
                 'updated' => now(),
             ]);
@@ -61,7 +63,7 @@ class RoleService
 
             $role->forceFill([
                 'name' => trim((string) $data['name']),
-                'notes' => $this->normalizeNotes($data['notes'] ?? null),
+                'notes' => $this->normalizeString($data['notes'] ?? null),
                 'permissions' => $this->encodePermissions($permissions),
                 'updated' => now(),
             ])->save();
@@ -156,11 +158,6 @@ class RoleService
     private function encodePermissions(array $permissions): string
     {
         return json_encode($permissions) ?: '[]';
-    }
-
-    private function normalizeNotes(mixed $notes): string
-    {
-        return trim((string) ($notes ?? ''));
     }
 
     private function findOrCreateSpatieRole(string $name): LegacyRole

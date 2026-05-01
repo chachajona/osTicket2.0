@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Hash;
 
 class StaffService
 {
+    use NormalizesInput;
+
     public function __construct(
         private readonly AuditLogger $auditLogger,
     ) {}
@@ -95,9 +97,9 @@ class StaffService
             'firstname' => trim((string) $data['firstname']),
             'lastname' => trim((string) $data['lastname']),
             'email' => trim((string) $data['email']),
-            'phone' => $this->nullableString($data['phone'] ?? null),
-            'mobile' => $this->nullableString($data['mobile'] ?? null),
-            'signature' => $this->nullableString($data['signature'] ?? null),
+            'phone' => $this->normalizeNullableString($data['phone'] ?? null),
+            'mobile' => $this->normalizeNullableString($data['mobile'] ?? null),
+            'signature' => $this->normalizeNullableString($data['signature'] ?? null),
             'isactive' => ! empty($data['isactive']) ? 1 : 0,
             'isadmin' => ! empty($data['isadmin']) ? 1 : 0,
             'isvisible' => ! empty($data['isvisible']) ? 1 : 0,
@@ -144,9 +146,9 @@ class StaffService
             'firstname' => (string) $staff->firstname,
             'lastname' => (string) $staff->lastname,
             'email' => (string) $staff->email,
-            'phone' => $this->nullableString($staff->phone ?? null),
-            'mobile' => $this->nullableString($staff->mobile ?? null),
-            'signature' => $this->nullableString($staff->signature ?? null),
+            'phone' => $this->normalizeNullableString($staff->phone ?? null),
+            'mobile' => $this->normalizeNullableString($staff->mobile ?? null),
+            'signature' => $this->normalizeNullableString($staff->signature ?? null),
             'dept_id' => (int) $staff->dept_id,
             'department_name' => $staff->department?->name,
             'role_id' => $staff->role_id !== null ? (int) $staff->role_id : null,
@@ -285,12 +287,5 @@ class StaffService
     private function syncPrimaryRole(Staff $staff, int $roleId): void
     {
         $staff->syncRoles([$roleId]);
-    }
-
-    private function nullableString(mixed $value): ?string
-    {
-        $normalized = trim((string) ($value ?? ''));
-
-        return $normalized !== '' ? $normalized : null;
     }
 }

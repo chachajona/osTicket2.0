@@ -205,6 +205,19 @@ class Staff extends LegacyModel implements Authenticatable, AuthorizableContract
         }
     }
 
+    /**
+     * Override to prevent the legacy `permissions` column from shadowing
+     * Spatie's permissions relationship.
+     */
+    public function getAttribute($key)
+    {
+        if ($key === 'permissions') {
+            return $this->getRelationValue('permissions') ?? new Collection;
+        }
+
+        return parent::getAttribute($key);
+    }
+
     public function displayName(): string
     {
         return trim($this->firstname.' '.$this->lastname) ?: $this->username;

@@ -239,54 +239,32 @@ abstract class AbstractMigrator
 
     protected function markRunning(string $tableName, string|int|null $lastId): void
     {
-        $this->targetConnection()->table($this->progressTable())->updateOrInsert(
-            ['table_name' => $tableName],
-            [
-                'last_id' => $lastId,
-                'status' => 'running',
-                'completed_at' => null,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-        );
+        $this->writeProgress($tableName, $lastId, 'running');
     }
 
     protected function updateWatermark(string $tableName, string|int|null $lastId): void
     {
-        $this->targetConnection()->table($this->progressTable())->updateOrInsert(
-            ['table_name' => $tableName],
-            [
-                'last_id' => $lastId,
-                'status' => 'running',
-                'completed_at' => null,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-        );
+        $this->writeProgress($tableName, $lastId, 'running');
     }
 
     protected function markCompleted(string $tableName, string|int|null $lastId): void
     {
-        $this->targetConnection()->table($this->progressTable())->updateOrInsert(
-            ['table_name' => $tableName],
-            [
-                'last_id' => $lastId,
-                'status' => 'completed',
-                'completed_at' => now(),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-        );
+        $this->writeProgress($tableName, $lastId, 'completed', now()->toDateTimeString());
     }
 
     protected function markFailed(string $tableName, string|int|null $lastId): void
+    {
+        $this->writeProgress($tableName, $lastId, 'failed');
+    }
+
+    protected function writeProgress(string $tableName, string|int|null $lastId, string $status, ?string $completedAt = null): void
     {
         $this->targetConnection()->table($this->progressTable())->updateOrInsert(
             ['table_name' => $tableName],
             [
                 'last_id' => $lastId,
-                'status' => 'failed',
-                'completed_at' => null,
+                'status' => $status,
+                'completed_at' => $completedAt,
                 'created_at' => now(),
                 'updated_at' => now(),
             ],

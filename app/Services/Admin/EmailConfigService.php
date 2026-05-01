@@ -19,6 +19,8 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class EmailConfigService
 {
+    use NormalizesInput;
+
     public function __construct(
         private readonly AuditLogger $auditLogger,
     ) {}
@@ -663,12 +665,5 @@ class EmailConfigService
     private function hasColumn(string $table, string $column): bool
     {
         return Schema::connection('legacy')->hasColumn($table, $column);
-    }
-
-    private function normalizeNullableString(mixed $value): ?string
-    {
-        $normalized = trim((string) ($value ?? ''));
-
-        return $normalized !== '' ? $normalized : null;
     }
 }

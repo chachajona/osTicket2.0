@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\DB;
 
 class CannedResponseService
 {
+    use NormalizesInput;
+
     public function __construct(
         private readonly AuditLogger $auditLogger,
     ) {}
@@ -61,7 +63,7 @@ class CannedResponseService
         $payload = [
             'title' => trim((string) $data['title']),
             'response' => trim((string) $data['response']),
-            'notes' => $this->normalizeNotes($data['notes'] ?? null),
+            'notes' => $this->normalizeNullableString($data['notes'] ?? null),
             'dept_id' => $data['dept_id'] !== null ? (int) $data['dept_id'] : null,
             'isactive' => ! empty($data['isactive']) ? 1 : 0,
             'updated' => now(),
@@ -88,12 +90,5 @@ class CannedResponseService
             'department_name' => $cannedResponse->department?->name,
             'isactive' => (bool) ($cannedResponse->isactive ?? 0),
         ];
-    }
-
-    private function normalizeNotes(mixed $notes): ?string
-    {
-        $normalized = trim((string) ($notes ?? ''));
-
-        return $normalized !== '' ? $normalized : null;
     }
 }

@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\DB;
 
 class SlaService
 {
+    use NormalizesInput;
+
     public function __construct(
         private readonly AuditLogger $auditLogger,
     ) {}
@@ -24,8 +26,8 @@ class SlaService
             return Sla::query()->create([
                 'name' => trim((string) $data['name']),
                 'grace_period' => (int) $data['grace_period'],
-                'schedule_id' => $this->normalizeScheduleId($data['schedule_id'] ?? null),
-                'notes' => $this->normalizeNotes($data['notes'] ?? null),
+                'schedule_id' => $this->normalizeNullableInt($data['schedule_id'] ?? null),
+                'notes' => $this->normalizeString($data['notes'] ?? null),
                 'flags' => $this->normalizeFlags($data['flags'] ?? null),
                 'created' => now(),
                 'updated' => now(),
@@ -49,8 +51,8 @@ class SlaService
             $sla->forceFill([
                 'name' => trim((string) $data['name']),
                 'grace_period' => (int) $data['grace_period'],
-                'schedule_id' => $this->normalizeScheduleId($data['schedule_id'] ?? null),
-                'notes' => $this->normalizeNotes($data['notes'] ?? null),
+                'schedule_id' => $this->normalizeNullableInt($data['schedule_id'] ?? null),
+                'notes' => $this->normalizeString($data['notes'] ?? null),
                 'flags' => $this->normalizeFlags($data['flags'] ?? null),
                 'updated' => now(),
             ])->save();
@@ -88,20 +90,6 @@ class SlaService
             'notes' => $sla->notes !== '' ? $sla->notes : null,
             'flags' => (int) ($sla->flags ?? 0),
         ];
-    }
-
-    private function normalizeScheduleId(mixed $scheduleId): ?int
-    {
-        if ($scheduleId === null || $scheduleId === '') {
-            return null;
-        }
-
-        return (int) $scheduleId;
-    }
-
-    private function normalizeNotes(mixed $notes): string
-    {
-        return trim((string) ($notes ?? ''));
     }
 
     private function normalizeFlags(mixed $flags): int

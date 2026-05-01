@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Schema;
 
 class HelpTopicService
 {
+    use NormalizesInput;
+
     public function __construct(
         private readonly AuditLogger $auditLogger,
     ) {}
@@ -78,7 +80,7 @@ class HelpTopicService
             'ispublic' => $this->normalizeBool($data['ispublic'] ?? false),
             'isactive' => $this->normalizeBool($data['isactive'] ?? true),
             'noautoresp' => $this->normalizeBool($data['noautoresp'] ?? false),
-            'notes' => $this->normalizeNotes($data['notes'] ?? null),
+            'notes' => $this->normalizeString($data['notes'] ?? null),
             'updated' => now(),
         ];
 
@@ -122,21 +124,6 @@ class HelpTopicService
     private function normalizeParentId(mixed $value): int
     {
         return $value === null || $value === '' ? 0 : (int) $value;
-    }
-
-    private function normalizeNullableInt(mixed $value): ?int
-    {
-        return $value === null || $value === '' ? null : (int) $value;
-    }
-
-    private function normalizeBool(mixed $value): int
-    {
-        return (bool) $value ? 1 : 0;
-    }
-
-    private function normalizeNotes(mixed $value): string
-    {
-        return trim((string) ($value ?? ''));
     }
 
     private function serializeNullableInt(mixed $value): ?int

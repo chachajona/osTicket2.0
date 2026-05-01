@@ -7,10 +7,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Staff\StoreStaffRequest;
 use App\Http\Requests\Admin\Staff\UpdateStaffRequest;
-use App\Models\Department;
 use App\Models\LegacyRole;
 use App\Models\Staff;
-use App\Models\Team;
 use App\Services\Admin\StaffService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,6 +17,8 @@ use Inertia\Response;
 
 class StaffController extends Controller
 {
+    use ProvidesModelOptions;
+
     public function __construct(
         private readonly StaffService $staffService,
     ) {}
@@ -149,15 +149,7 @@ class StaffController extends Controller
     private function options(): array
     {
         return [
-            'departmentOptions' => Department::query()
-                ->orderBy('name')
-                ->get(['id', 'name'])
-                ->map(fn (Department $department): array => [
-                    'id' => (int) $department->getKey(),
-                    'name' => (string) $department->name,
-                ])
-                ->values()
-                ->all(),
+            'departmentOptions' => $this->departmentOptions(),
             'roleOptions' => LegacyRole::query()
                 ->orderBy('name')
                 ->get(['id', 'name'])
@@ -167,15 +159,7 @@ class StaffController extends Controller
                 ])
                 ->values()
                 ->all(),
-            'teamOptions' => Team::query()
-                ->orderBy('name')
-                ->get(['team_id', 'name'])
-                ->map(fn (Team $team): array => [
-                    'id' => (int) $team->getKey(),
-                    'name' => (string) $team->name,
-                ])
-                ->values()
-                ->all(),
+            'teamOptions' => $this->teamOptions(),
         ];
     }
 }

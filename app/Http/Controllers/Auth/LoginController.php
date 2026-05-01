@@ -75,12 +75,6 @@ class LoginController extends Controller
         $this->legacyMigration->migrateIfNeeded($staff);
         $this->ensureDashboardIsTheFallbackIntendedUrl($request);
 
-        // TEMP: Skip 2FA for manual admin verification
-        if ($staff->username === 'admsupport') {
-            Auth::guard('staff')->login($staff, $request->boolean('remember'));
-            return redirect()->intended(route('scp.dashboard'));
-        }
-
         if ($staff->hasTotpEnabled()) {
             $this->twoFactor->clearToken($staff->staff_id);
             $this->appChallenge->begin($staff->staff_id);

@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\DB;
 
 class FilterService
 {
+    use NormalizesInput;
+
     public function __construct(
         private readonly AuditLogger $auditLogger,
     ) {}
@@ -30,7 +32,7 @@ class FilterService
                 'name' => trim((string) $data['name']),
                 'execorder' => (int) $data['exec_order'],
                 'isactive' => ! empty($data['isactive']) ? 1 : 0,
-                'notes' => $this->normalizeNotes($data['notes'] ?? null),
+                'notes' => $this->normalizeString($data['notes'] ?? null),
                 'created' => now(),
                 'updated' => now(),
             ]);
@@ -73,7 +75,7 @@ class FilterService
                 'name' => trim((string) $data['name']),
                 'execorder' => (int) $data['exec_order'],
                 'isactive' => ! empty($data['isactive']) ? 1 : 0,
-                'notes' => $this->normalizeNotes($data['notes'] ?? null),
+                'notes' => $this->normalizeString($data['notes'] ?? null),
                 'updated' => now(),
             ])->save();
 
@@ -171,11 +173,6 @@ class FilterService
             ],
             $actions,
         ));
-    }
-
-    private function normalizeNotes(mixed $notes): string
-    {
-        return trim((string) ($notes ?? ''));
     }
 
     /**

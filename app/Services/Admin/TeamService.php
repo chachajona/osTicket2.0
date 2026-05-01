@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\DB;
 
 class TeamService
 {
+    use NormalizesInput;
+
     public function __construct(
         private readonly AuditLogger $auditLogger,
     ) {}
@@ -25,10 +27,10 @@ class TeamService
         /** @var Team $team */
         $team = DB::connection('legacy')->transaction(function () use ($data, $memberIds): Team {
             $team = Team::query()->create([
-                'lead_id' => $this->normalizeLeadId($data['lead_id'] ?? null),
-                'flags' => $this->normalizeStatus($data['status'] ?? true),
+                'lead_id' => $this->normalizeNullableInt($data['lead_id'] ?? null),
+                'flags' => $this->normalizeBool($data['status'] ?? true),
                 'name' => trim((string) $data['name']),
-                'notes' => $this->normalizeNotes($data['notes'] ?? null),
+                'notes' => $this->normalizeString($data['notes'] ?? null),
                 'created' => now(),
                 'updated' => now(),
             ]);
@@ -56,10 +58,10 @@ class TeamService
 
         DB::connection('legacy')->transaction(function () use ($team, $data, $memberIds): void {
             $team->forceFill([
-                'lead_id' => $this->normalizeLeadId($data['lead_id'] ?? null),
-                'flags' => $this->normalizeStatus($data['status'] ?? true),
+                'lead_id' => $this->normalizeNullableInt($data['lead_id'] ?? null),
+                'flags' => $this->normalizeBool($data['status'] ?? true),
                 'name' => trim((string) $data['name']),
-                'notes' => $this->normalizeNotes($data['notes'] ?? null),
+                'notes' => $this->normalizeString($data['notes'] ?? null),
                 'updated' => now(),
             ])->save();
 
@@ -116,25 +118,6 @@ class TeamService
         sort($normalized);
 
         return $normalized;
-    }
-
-    private function normalizeLeadId(mixed $leadId): ?int
-    {
-        if ($leadId === null || $leadId === '') {
-            return null;
-        }
-
-        return (int) $leadId;
-    }
-
-    private function normalizeStatus(mixed $status): int
-    {
-        return (bool) $status ? 1 : 0;
-    }
-
-    private function normalizeNotes(mixed $notes): string
-    {
-        return trim((string) ($notes ?? ''));
     }
 
     /**

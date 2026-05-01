@@ -7,13 +7,10 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\HelpTopic\StoreHelpTopicRequest;
 use App\Http\Requests\Admin\HelpTopic\UpdateHelpTopicRequest;
-use App\Models\Department;
 use App\Models\DynamicForm;
 use App\Models\HelpTopic;
 use App\Models\HelpTopicForm;
-use App\Models\Sla;
 use App\Models\Staff;
-use App\Models\Team;
 use App\Models\TicketPriority;
 use App\Services\Admin\HelpTopicService;
 use Illuminate\Http\RedirectResponse;
@@ -23,6 +20,8 @@ use Inertia\Response;
 
 class HelpTopicController extends Controller
 {
+    use ProvidesModelOptions;
+
     public function __construct(
         private readonly HelpTopicService $helpTopics,
     ) {}
@@ -137,73 +136,6 @@ class HelpTopicController extends Controller
             ->map(fn (HelpTopic $helpTopic): array => [
                 'id' => (int) $helpTopic->getKey(),
                 'name' => (string) $helpTopic->topic,
-            ])
-            ->values()
-            ->all();
-    }
-
-    /**
-     * @return list<array{id:int,name:string}>
-     */
-    private function departmentOptions(): array
-    {
-        return Department::query()
-            ->orderBy('name')
-            ->get(['id', 'name'])
-            ->map(fn (Department $department): array => [
-                'id' => (int) $department->getKey(),
-                'name' => (string) $department->name,
-            ])
-            ->values()
-            ->all();
-    }
-
-    /**
-     * @return list<array{id:int,name:string}>
-     */
-    private function slaOptions(): array
-    {
-        return Sla::query()
-            ->orderBy('name')
-            ->get(['id', 'name'])
-            ->map(fn (Sla $sla): array => [
-                'id' => (int) $sla->getKey(),
-                'name' => (string) $sla->name,
-            ])
-            ->values()
-            ->all();
-    }
-
-    /**
-     * @return list<array{id:int,name:string}>
-     */
-    private function staffOptions(): array
-    {
-        return Staff::query()
-            ->where('isactive', 1)
-            ->orderBy('firstname')
-            ->orderBy('lastname')
-            ->orderBy('username')
-            ->get()
-            ->map(fn (Staff $staff): array => [
-                'id' => (int) $staff->getKey(),
-                'name' => $staff->displayName(),
-            ])
-            ->values()
-            ->all();
-    }
-
-    /**
-     * @return list<array{id:int,name:string}>
-     */
-    private function teamOptions(): array
-    {
-        return Team::query()
-            ->orderBy('name')
-            ->get(['team_id', 'name'])
-            ->map(fn (Team $team): array => [
-                'id' => (int) $team->getKey(),
-                'name' => (string) $team->name,
             ])
             ->values()
             ->all();

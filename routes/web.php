@@ -24,6 +24,7 @@ use App\Http\Controllers\Scp\QueueController;
 use App\Http\Controllers\Scp\SearchController;
 use App\Http\Controllers\Scp\StaffPreferencesController;
 use App\Http\Controllers\Scp\TicketController;
+use App\Http\Middleware\AuthenticateStaff;
 use Illuminate\Auth\Middleware\RequirePassword;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -83,7 +84,7 @@ Route::prefix('scp')->name('scp.')->group(function () {
     });
 });
 
-Route::middleware(['auth:staff', 'admin.access'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware([AuthenticateStaff::class, 'admin.access'])->prefix('admin')->name('admin.')->group(function () {
     Route::resource('canned-responses', CannedResponseController::class)->except(['show']);
     Route::resource('departments', DepartmentController::class)->except(['show']);
     Route::resource('email-config', EmailConfigController::class)->except(['show']);

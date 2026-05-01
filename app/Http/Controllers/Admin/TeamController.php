@@ -17,6 +17,8 @@ use Inertia\Response;
 
 class TeamController extends Controller
 {
+    use ProvidesModelOptions;
+
     public function __construct(
         private readonly TeamService $teams,
     ) {}
@@ -114,24 +116,5 @@ class TeamController extends Controller
         return redirect()
             ->route('admin.teams.index')
             ->with('status', 'Team deleted.');
-    }
-
-    /**
-     * @return list<array{id:int,name:string}>
-     */
-    private function staffOptions(): array
-    {
-        return Staff::query()
-            ->where('isactive', 1)
-            ->orderBy('firstname')
-            ->orderBy('lastname')
-            ->orderBy('username')
-            ->get()
-            ->map(fn (Staff $staff): array => [
-                'id' => (int) $staff->getKey(),
-                'name' => $staff->displayName(),
-            ])
-            ->values()
-            ->all();
     }
 }

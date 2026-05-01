@@ -8,7 +8,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\CannedResponse\StoreCannedResponseRequest;
 use App\Http\Requests\Admin\CannedResponse\UpdateCannedResponseRequest;
 use App\Models\CannedResponse;
-use App\Models\Department;
 use App\Models\Staff;
 use App\Services\Admin\CannedResponseService;
 use Illuminate\Http\RedirectResponse;
@@ -18,6 +17,8 @@ use Inertia\Response;
 
 class CannedResponseController extends Controller
 {
+    use ProvidesModelOptions;
+
     public function __construct(
         private readonly CannedResponseService $cannedResponses,
     ) {}
@@ -96,21 +97,6 @@ class CannedResponseController extends Controller
         return redirect()
             ->route('admin.canned-responses.index')
             ->with('status', 'Canned response deleted.');
-    }
-
-    /**
-     * @return list<array{id:int,name:string}>
-     */
-    private function departmentOptions(): array
-    {
-        return Department::query()
-            ->orderBy('name')
-            ->get(['id', 'name'])
-            ->map(fn (Department $department): array => [
-                'id' => (int) $department->getKey(),
-                'name' => (string) $department->name,
-            ])
-            ->all();
     }
 
     /**

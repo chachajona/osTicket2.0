@@ -8,9 +8,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Department\StoreDepartmentRequest;
 use App\Http\Requests\Admin\Department\UpdateDepartmentRequest;
 use App\Models\Department;
-use App\Models\EmailModel;
-use App\Models\EmailTemplateGroup;
-use App\Models\Sla;
 use App\Models\Staff;
 use App\Services\Admin\DepartmentService;
 use Illuminate\Http\RedirectResponse;
@@ -20,6 +17,8 @@ use Inertia\Response;
 
 class DepartmentController extends Controller
 {
+    use ProvidesModelOptions;
+
     public function __construct(
         private readonly DepartmentService $departments,
     ) {}
@@ -106,93 +105,6 @@ class DepartmentController extends Controller
         return redirect()
             ->route('admin.departments.index')
             ->with('status', 'Department deleted.');
-    }
-
-    /**
-     * @return list<array{id:int,name:string}>
-     */
-    private function departmentOptions(?int $excludeId = null): array
-    {
-        return Department::query()
-            ->when($excludeId !== null, fn ($query) => $query->where('id', '!=', $excludeId))
-            ->orderBy('name')
-            ->get(['id', 'name'])
-            ->map(fn (Department $department): array => [
-                'id' => (int) $department->getKey(),
-                'name' => (string) $department->name,
-            ])
-            ->values()
-            ->all();
-    }
-
-    /**
-     * @return list<array{id:int,name:string}>
-     */
-    private function staffOptions(): array
-    {
-        return Staff::query()
-            ->where('isactive', 1)
-            ->orderBy('firstname')
-            ->orderBy('lastname')
-            ->orderBy('username')
-            ->get()
-            ->map(fn (Staff $staff): array => [
-                'id' => (int) $staff->getKey(),
-                'name' => $staff->displayName(),
-            ])
-            ->values()
-            ->all();
-    }
-
-    /**
-     * @return list<array{id:int,name:string}>
-     */
-    private function slaOptions(): array
-    {
-        return Sla::query()
-            ->orderBy('name')
-            ->get(['id', 'name'])
-            ->map(fn (Sla $sla): array => [
-                'id' => (int) $sla->getKey(),
-                'name' => (string) $sla->name,
-            ])
-            ->values()
-            ->all();
-    }
-
-    /**
-     * @return list<array{id:int,name:string}>
-     */
-    private function emailOptions(): array
-    {
-        return EmailModel::query()
-            ->orderBy('name')
-            ->orderBy('email')
-            ->get(['email_id', 'name', 'email'])
-            ->map(fn (EmailModel $email): array => [
-                'id' => (int) $email->getKey(),
-                'name' => trim((string) $email->name) !== ''
-                    ? sprintf('%s <%s>', (string) $email->name, (string) $email->email)
-                    : (string) $email->email,
-            ])
-            ->values()
-            ->all();
-    }
-
-    /**
-     * @return list<array{id:int,name:string}>
-     */
-    private function templateOptions(): array
-    {
-        return EmailTemplateGroup::query()
-            ->orderBy('name')
-            ->get(['tpl_id', 'name'])
-            ->map(fn (EmailTemplateGroup $template): array => [
-                'id' => (int) $template->getKey(),
-                'name' => (string) $template->name,
-            ])
-            ->values()
-            ->all();
     }
 
     /**

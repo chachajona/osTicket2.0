@@ -12,6 +12,8 @@ use Illuminate\Validation\ValidationException;
 
 class DepartmentService
 {
+    use NormalizesInput;
+
     public function __construct(
         private readonly AuditLogger $auditLogger,
     ) {}
@@ -86,7 +88,7 @@ class DepartmentService
             'email_id' => $this->normalizeNullableInt($data['email_id'] ?? null),
             'tpl_id' => $this->normalizeNullableInt($data['template_id'] ?? null),
             'dept_id' => $this->normalizeNullableInt($data['dept_id'] ?? null),
-            'signature' => $this->normalizeSignature($data['signature'] ?? null),
+            'signature' => $this->normalizeNullableString($data['signature'] ?? null),
             'ispublic' => ! empty($data['ispublic']) ? 1 : 0,
         ];
     }
@@ -112,22 +114,6 @@ class DepartmentService
             'signature' => filled($department->signature) ? (string) $department->signature : null,
             'ispublic' => (bool) ($department->ispublic ?? 0),
         ];
-    }
-
-    private function normalizeNullableInt(mixed $value): ?int
-    {
-        if ($value === null || $value === '') {
-            return null;
-        }
-
-        return (int) $value;
-    }
-
-    private function normalizeSignature(mixed $signature): ?string
-    {
-        $normalized = trim((string) ($signature ?? ''));
-
-        return $normalized !== '' ? $normalized : null;
     }
 
     /**
