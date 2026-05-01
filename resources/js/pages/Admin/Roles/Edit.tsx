@@ -5,6 +5,7 @@ import { FormGrid } from '@/components/admin/FormGrid';
 import { FormSection } from '@/components/admin/FormSection';
 import { PermissionMatrix, type PermissionGroup } from '@/components/admin/PermissionMatrix';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -87,57 +88,68 @@ export default function RolesEdit({ role, permissions, selectedPermissions }: Pr
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
-                <FormSection
-                    title="Role Details"
-                    description="Basic information about this role."
-                    collapsible={false}
-                >
-                    <FormGrid columns={1} className="max-w-3xl">
-                        <div className="space-y-2">
-                            <Label htmlFor="name">Role Name</Label>
-                            <Input
-                                id="name"
-                                value={data.name}
-                                onChange={(e) => setData('name', e.target.value)}
-                                placeholder="e.g. Support Manager"
-                                className={errors.name ? 'border-red-500 focus-visible:ring-red-500' : ''}
-                            />
-                            {errors.name && (
-                                <p className="text-sm text-red-500">{errors.name}</p>
-                            )}
-                        </div>
+                <Tabs defaultValue="definition" className="space-y-6">
+                    <TabsList>
+                        <TabsTrigger value="definition">Definition</TabsTrigger>
+                        <TabsTrigger value="permissions">Permissions</TabsTrigger>
+                    </TabsList>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="notes">Internal Notes</Label>
-                            <Textarea
-                                id="notes"
-                                value={data.notes}
-                                onChange={(e) => setData('notes', e.target.value)}
-                                placeholder="Optional notes about when to use this role..."
-                                rows={3}
-                                className={errors.notes ? 'border-red-500 focus-visible:ring-red-500' : ''}
-                            />
-                            {errors.notes && (
-                                <p className="text-sm text-red-500">{errors.notes}</p>
-                            )}
-                        </div>
-                    </FormGrid>
-                </FormSection>
+                    <TabsContent value="definition">
+                        <FormSection
+                            title="Role Details"
+                            description="Basic information about this role."
+                            collapsible={false}
+                        >
+                            <FormGrid columns={1} className="max-w-3xl">
+                                <div className="space-y-2">
+                                    <Label htmlFor="name">Role Name</Label>
+                                    <Input
+                                        id="name"
+                                        value={data.name}
+                                        onChange={(e) => setData('name', e.target.value)}
+                                        placeholder="e.g. Support Manager"
+                                        className={errors.name ? 'border-red-500 focus-visible:ring-red-500' : ''}
+                                    />
+                                    {errors.name && (
+                                        <p className="text-sm text-red-500">{errors.name}</p>
+                                    )}
+                                </div>
 
-                <FormSection
-                    title="Permissions"
-                    description="Select the permissions granted to agents with this role."
-                    collapsible={false}
-                >
-                    <PermissionMatrix
-                        groups={permissions}
-                        selectedPermissions={data.permissions}
-                        onChange={(selected) => setData('permissions', selected)}
-                    />
-                    {errors.permissions && (
-                        <p className="text-sm text-red-500 mt-4">{errors.permissions}</p>
-                    )}
-                </FormSection>
+                                <div className="space-y-2">
+                                    <Label htmlFor="notes">Internal Notes</Label>
+                                    <Textarea
+                                        id="notes"
+                                        value={data.notes}
+                                        onChange={(e) => setData('notes', e.target.value)}
+                                        placeholder="Optional notes about when to use this role..."
+                                        rows={3}
+                                        className={errors.notes ? 'border-red-500 focus-visible:ring-red-500' : ''}
+                                    />
+                                    {errors.notes && (
+                                        <p className="text-sm text-red-500">{errors.notes}</p>
+                                    )}
+                                </div>
+                            </FormGrid>
+                        </FormSection>
+                    </TabsContent>
+
+                    <TabsContent value="permissions">
+                        <FormSection
+                            title="Permissions"
+                            description="Select the permissions granted to agents with this role."
+                            collapsible={false}
+                        >
+                            <PermissionMatrix
+                                groups={permissions}
+                                selectedPermissions={data.permissions}
+                                onChange={(selected) => setData('permissions', selected)}
+                            />
+                            {errors.permissions && (
+                                <p className="text-sm text-red-500 mt-4">{errors.permissions}</p>
+                            )}
+                        </FormSection>
+                    </TabsContent>
+                </Tabs>
 
                 <div className="flex items-center justify-end gap-4 pt-4">
                     <Link
