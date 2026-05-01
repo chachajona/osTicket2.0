@@ -8,6 +8,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { ArrowLeft01Icon, Delete01Icon, FloppyDiskIcon, PlusSignIcon } from '@hugeicons/core-free-icons';
@@ -202,183 +203,224 @@ export default function StaffEdit({ staffMember, departmentOptions, roleOptions,
                 }}
                 className="space-y-6"
             >
-                <FormSection title="Basic Info" description="Core identity and contact details." collapsible={false}>
-                    <FormGrid columns={2} className="max-w-5xl">
-                        <div className="space-y-2">
-                            <Label htmlFor="username">Username</Label>
-                            <Input id="username" value={data.username} onChange={(e) => setData('username', e.target.value)} />
-                            {errors.username && <p className="text-sm text-red-500">{errors.username}</p>}
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="email">Email</Label>
-                            <Input id="email" type="email" value={data.email} onChange={(e) => setData('email', e.target.value)} />
-                            {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="firstname">First Name</Label>
-                            <Input id="firstname" value={data.firstname} onChange={(e) => setData('firstname', e.target.value)} />
-                            {errors.firstname && <p className="text-sm text-red-500">{errors.firstname}</p>}
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="lastname">Last Name</Label>
-                            <Input id="lastname" value={data.lastname} onChange={(e) => setData('lastname', e.target.value)} />
-                            {errors.lastname && <p className="text-sm text-red-500">{errors.lastname}</p>}
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="phone">Phone</Label>
-                            <Input id="phone" value={data.phone} onChange={(e) => setData('phone', e.target.value)} />
-                            {errors.phone && <p className="text-sm text-red-500">{errors.phone}</p>}
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="mobile">Mobile</Label>
-                            <Input id="mobile" value={data.mobile} onChange={(e) => setData('mobile', e.target.value)} />
-                            {errors.mobile && <p className="text-sm text-red-500">{errors.mobile}</p>}
-                        </div>
-                        <div className="space-y-2 md:col-span-2">
-                            <Label htmlFor="signature">Signature</Label>
-                            <Textarea
-                                id="signature"
-                                rows={4}
-                                value={data.signature}
-                                onChange={(e) => setData('signature', e.target.value)}
-                            />
-                            {errors.signature && <p className="text-sm text-red-500">{errors.signature}</p>}
-                        </div>
-                    </FormGrid>
-                </FormSection>
+                <Tabs defaultValue="account" className="space-y-6">
+                    <TabsList>
+                        <TabsTrigger value="account">Account</TabsTrigger>
+                        <TabsTrigger value="access">Access</TabsTrigger>
+                        <TabsTrigger value="permissions">Permissions</TabsTrigger>
+                        <TabsTrigger value="teams">Teams</TabsTrigger>
+                        <TabsTrigger value="2fa">2FA</TabsTrigger>
+                    </TabsList>
 
-                <FormSection title="Account" description="Primary role, password, visibility, and admin flags." collapsible={false}>
-                    <FormGrid columns={2} className="max-w-5xl">
-                        <SelectField
-                            id="dept_id"
-                            label="Primary Department"
-                            value={data.dept_id}
-                            options={departmentOptions}
-                            placeholder="Select a department"
-                            error={errors.dept_id}
-                            onChange={(value) => setData('dept_id', value)}
-                        />
-                        <SelectField
-                            id="role_id"
-                            label="Role"
-                            value={data.role_id}
-                            options={roleOptions}
-                            placeholder="Select a role"
-                            error={errors.role_id}
-                            onChange={(value) => setData('role_id', value)}
-                        />
-
-                        <div className="space-y-2 md:col-span-2">
-                            <Label htmlFor="password">{isEdit ? 'Set / Reset Password' : 'Password'}</Label>
-                            <Input
-                                id="password"
-                                type="password"
-                                value={data.password}
-                                onChange={(e) => setData('password', e.target.value)}
-                                placeholder={isEdit ? 'Leave blank to keep the current password' : 'Minimum 8 characters'}
-                            />
-                            {errors.password && <p className="text-sm text-red-500">{errors.password}</p>}
-                        </div>
-
-                        <div className="rounded-lg border border-slate-200 p-4 md:col-span-2">
-                            <p className="text-sm font-medium text-slate-900">Two-factor authentication</p>
-                            <p className="mt-1 text-sm text-slate-500">
-                                {staffMember?.two_factor.enabled
-                                    ? `Enabled${staffMember.two_factor.confirmed_at ? ` · Confirmed ${new Date(staffMember.two_factor.confirmed_at).toLocaleString()}` : ''}`
-                                    : 'Not enabled'}
-                            </p>
-                            {staffMember && (
-                                <p className="mt-1 text-xs text-slate-500">
-                                    Recovery codes: {staffMember.two_factor.recovery_codes_count}
-                                </p>
-                            )}
-                        </div>
-
-                        {[
-                            ['isactive', 'Active account'],
-                            ['isadmin', 'Admin access'],
-                            ['isvisible', 'Visible in staff lists'],
-                            ['change_passwd', 'Require password change'],
-                        ].map(([field, label]) => (
-                            <div key={field} className="flex min-h-10 items-center gap-3 rounded-md border border-slate-200 px-3">
-                                <Checkbox
-                                    id={field}
-                                    checked={data[field as keyof typeof data] as boolean}
-                                    onCheckedChange={(checked) =>
-                                        setData(field as 'isactive' | 'isadmin' | 'isvisible' | 'change_passwd', checked === true)
-                                    }
-                                />
-                                <Label htmlFor={field} className="cursor-pointer text-sm font-medium text-slate-700">
-                                    {label}
-                                </Label>
-                            </div>
-                        ))}
-                    </FormGrid>
-                </FormSection>
-
-                <FormSection
-                    title="Department Access"
-                    description="Add department-specific role overrides beyond the primary department."
-                    collapsible={false}
-                >
-                    <div className="max-w-5xl space-y-4">
-                        {data.dept_access.map((access, index) => (
-                            <div key={`${index}-${access.dept_id}-${access.role_id}`} className="grid gap-4 rounded-lg border border-slate-200 p-4 md:grid-cols-[1fr_1fr_auto]">
-                                <SelectField
-                                    id={`dept_access_${index}_dept_id`}
-                                    label="Department"
-                                    value={access.dept_id}
-                                    options={departmentOptions.filter((department) => String(department.id) !== data.dept_id)}
-                                    placeholder="Select department"
-                                    error={errors[`dept_access.${index}.dept_id`]}
-                                    onChange={(value) => updateDepartmentAccess(index, 'dept_id', value)}
-                                />
-                                <SelectField
-                                    id={`dept_access_${index}_role_id`}
-                                    label="Role Override"
-                                    value={access.role_id}
-                                    options={roleOptions}
-                                    placeholder="Select role"
-                                    error={errors[`dept_access.${index}.role_id`]}
-                                    onChange={(value) => updateDepartmentAccess(index, 'role_id', value)}
-                                />
-                                <div className="flex items-end">
-                                    <Button type="button" variant="outline" onClick={() => removeDepartmentAccess(index)}>
-                                        Remove
-                                    </Button>
+                    <TabsContent value="account" className="space-y-6">
+                        <FormSection title="Basic Info" description="Core identity and contact details." collapsible={false}>
+                            <FormGrid columns={2} className="max-w-5xl">
+                                <div className="space-y-2">
+                                    <Label htmlFor="username">Username</Label>
+                                    <Input id="username" value={data.username} onChange={(e) => setData('username', e.target.value)} />
+                                    {errors.username && <p className="text-sm text-red-500">{errors.username}</p>}
                                 </div>
-                            </div>
-                        ))}
+                                <div className="space-y-2">
+                                    <Label htmlFor="email">Email</Label>
+                                    <Input id="email" type="email" value={data.email} onChange={(e) => setData('email', e.target.value)} />
+                                    {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="firstname">First Name</Label>
+                                    <Input id="firstname" value={data.firstname} onChange={(e) => setData('firstname', e.target.value)} />
+                                    {errors.firstname && <p className="text-sm text-red-500">{errors.firstname}</p>}
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="lastname">Last Name</Label>
+                                    <Input id="lastname" value={data.lastname} onChange={(e) => setData('lastname', e.target.value)} />
+                                    {errors.lastname && <p className="text-sm text-red-500">{errors.lastname}</p>}
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="phone">Phone</Label>
+                                    <Input id="phone" value={data.phone} onChange={(e) => setData('phone', e.target.value)} />
+                                    {errors.phone && <p className="text-sm text-red-500">{errors.phone}</p>}
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="mobile">Mobile</Label>
+                                    <Input id="mobile" value={data.mobile} onChange={(e) => setData('mobile', e.target.value)} />
+                                    {errors.mobile && <p className="text-sm text-red-500">{errors.mobile}</p>}
+                                </div>
+                                <div className="space-y-2 md:col-span-2">
+                                    <Label htmlFor="signature">Signature</Label>
+                                    <Textarea
+                                        id="signature"
+                                        rows={4}
+                                        value={data.signature}
+                                        onChange={(e) => setData('signature', e.target.value)}
+                                    />
+                                    {errors.signature && <p className="text-sm text-red-500">{errors.signature}</p>}
+                                </div>
+                            </FormGrid>
+                        </FormSection>
 
-                        <Button type="button" variant="outline" onClick={addDepartmentAccess}>
-                            <HugeiconsIcon icon={PlusSignIcon} size={16} className="mr-2" />
-                            Add Department Access
-                        </Button>
-                    </div>
-                </FormSection>
+                        <FormSection title="Account" description="Primary role, password, visibility, and admin flags." collapsible={false}>
+                            <FormGrid columns={2} className="max-w-5xl">
+                                <SelectField
+                                    id="dept_id"
+                                    label="Primary Department"
+                                    value={data.dept_id}
+                                    options={departmentOptions}
+                                    placeholder="Select a department"
+                                    error={errors.dept_id}
+                                    onChange={(value) => setData('dept_id', value)}
+                                />
+                                <SelectField
+                                    id="role_id"
+                                    label="Role"
+                                    value={data.role_id}
+                                    options={roleOptions}
+                                    placeholder="Select a role"
+                                    error={errors.role_id}
+                                    onChange={(value) => setData('role_id', value)}
+                                />
 
-                <FormSection title="Teams" description="Assign team memberships for this staff member." collapsible={false}>
-                    <div className="max-w-5xl space-y-2">
-                        <Label htmlFor="teams">Team Membership</Label>
-                        <select
-                            id="teams"
-                            multiple
-                            value={data.teams}
-                            onChange={(event) => setData('teams', Array.from(event.target.selectedOptions, (option) => option.value))}
-                            className="flex min-h-56 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                <div className="space-y-2 md:col-span-2">
+                                    <Label htmlFor="password">{isEdit ? 'Set / Reset Password' : 'Password'}</Label>
+                                    <Input
+                                        id="password"
+                                        type="password"
+                                        value={data.password}
+                                        onChange={(e) => setData('password', e.target.value)}
+                                        placeholder={isEdit ? 'Leave blank to keep the current password' : 'Minimum 8 characters'}
+                                    />
+                                    {errors.password && <p className="text-sm text-red-500">{errors.password}</p>}
+                                </div>
+
+                                {[
+                                    ['isactive', 'Active account'],
+                                    ['isadmin', 'Admin access'],
+                                    ['isvisible', 'Visible in staff lists'],
+                                    ['change_passwd', 'Require password change'],
+                                ].map(([field, label]) => (
+                                    <div key={field} className="flex min-h-10 items-center gap-3 rounded-md border border-slate-200 px-3">
+                                        <Checkbox
+                                            id={field}
+                                            checked={data[field as keyof typeof data] as boolean}
+                                            onCheckedChange={(checked) =>
+                                                setData(field as 'isactive' | 'isadmin' | 'isvisible' | 'change_passwd', checked === true)
+                                            }
+                                        />
+                                        <Label htmlFor={field} className="cursor-pointer text-sm font-medium text-slate-700">
+                                            {label}
+                                        </Label>
+                                    </div>
+                                ))}
+                            </FormGrid>
+                        </FormSection>
+                    </TabsContent>
+
+                    <TabsContent value="access" className="space-y-6">
+                        <FormSection
+                            title="Department Access"
+                            description="Add department-specific role overrides beyond the primary department."
+                            collapsible={false}
                         >
-                            {teamOptions.map((team) => (
-                                <option key={team.id} value={team.id}>
-                                    {team.name}
-                                </option>
-                            ))}
-                        </select>
-                        <p className="text-xs text-slate-500">
-                            Hold Command on macOS or Control on Windows/Linux to select multiple teams.
-                        </p>
-                        {errors.teams && <p className="text-sm text-red-500">{errors.teams}</p>}
-                    </div>
-                </FormSection>
+                            <div className="max-w-5xl space-y-4">
+                                {data.dept_access.map((access, index) => (
+                                    <div key={`${index}-${access.dept_id}-${access.role_id}`} className="grid gap-4 rounded-lg border border-slate-200 p-4 md:grid-cols-[1fr_1fr_auto]">
+                                        <SelectField
+                                            id={`dept_access_${index}_dept_id`}
+                                            label="Department"
+                                            value={access.dept_id}
+                                            options={departmentOptions.filter((department) => String(department.id) !== data.dept_id)}
+                                            placeholder="Select department"
+                                            error={errors[`dept_access.${index}.dept_id`]}
+                                            onChange={(value) => updateDepartmentAccess(index, 'dept_id', value)}
+                                        />
+                                        <SelectField
+                                            id={`dept_access_${index}_role_id`}
+                                            label="Role Override"
+                                            value={access.role_id}
+                                            options={roleOptions}
+                                            placeholder="Select role"
+                                            error={errors[`dept_access.${index}.role_id`]}
+                                            onChange={(value) => updateDepartmentAccess(index, 'role_id', value)}
+                                        />
+                                        <div className="flex items-end">
+                                            <Button type="button" variant="outline" onClick={() => removeDepartmentAccess(index)}>
+                                                Remove
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
+
+                                <Button type="button" variant="outline" onClick={addDepartmentAccess}>
+                                    <HugeiconsIcon icon={PlusSignIcon} size={16} className="mr-2" />
+                                    Add Department Access
+                                </Button>
+                            </div>
+                        </FormSection>
+                    </TabsContent>
+
+                    <TabsContent value="permissions">
+                        <FormSection
+                            title="Permissions"
+                            description="Per-staff permission overrides are not configurable here."
+                            collapsible={false}
+                        >
+                            <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-500">
+                                Permissions are inherited from this staff member's <strong>Role</strong>.
+                                To change permissions, edit the role under{' '}
+                                <Link href={route('admin.roles.index')} className="font-medium text-[#5B619D] underline">
+                                    Agents → Roles
+                                </Link>{' '}
+                                or assign a different role on the <strong>Account</strong> tab.
+                            </div>
+                        </FormSection>
+                    </TabsContent>
+
+                    <TabsContent value="teams" className="space-y-6">
+                        <FormSection title="Teams" description="Assign team memberships for this staff member." collapsible={false}>
+                            <div className="max-w-5xl space-y-2">
+                                <Label htmlFor="teams">Team Membership</Label>
+                                <select
+                                    id="teams"
+                                    multiple
+                                    value={data.teams}
+                                    onChange={(event) => setData('teams', Array.from(event.target.selectedOptions, (option) => option.value))}
+                                    className="flex min-h-56 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                >
+                                    {teamOptions.map((team) => (
+                                        <option key={team.id} value={team.id}>
+                                            {team.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                <p className="text-xs text-slate-500">
+                                    Hold Command on macOS or Control on Windows/Linux to select multiple teams.
+                                </p>
+                                {errors.teams && <p className="text-sm text-red-500">{errors.teams}</p>}
+                            </div>
+                        </FormSection>
+                    </TabsContent>
+
+                    <TabsContent value="2fa">
+                        <FormSection
+                            title="Two-factor Authentication"
+                            description="Two-factor authentication status for this staff member."
+                            collapsible={false}
+                        >
+                            <div className="rounded-lg border border-slate-200 p-4">
+                                <p className="text-sm font-medium text-slate-900">Two-factor authentication</p>
+                                <p className="mt-1 text-sm text-slate-500">
+                                    {staffMember?.two_factor.enabled
+                                        ? `Enabled${staffMember.two_factor.confirmed_at ? ` · Confirmed ${new Date(staffMember.two_factor.confirmed_at).toLocaleString()}` : ''}`
+                                        : 'Not enabled'}
+                                </p>
+                                {staffMember && (
+                                    <p className="mt-1 text-xs text-slate-500">
+                                        Recovery codes: {staffMember.two_factor.recovery_codes_count}
+                                    </p>
+                                )}
+                            </div>
+                        </FormSection>
+                    </TabsContent>
+                </Tabs>
 
                 <div className="flex items-center justify-end gap-4 pt-4">
                     <Link href={route('admin.staff.index')} className={buttonVariants({ variant: 'outline' })}>
