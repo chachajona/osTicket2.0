@@ -4,6 +4,15 @@ use App\Http\Controllers\Account\MigrationBannerController;
 use App\Http\Controllers\Account\SecurityController;
 use App\Http\Controllers\Account\TwoFactorSecurityController;
 use App\Http\Controllers\Account\TwoFactorWizardController;
+use App\Http\Controllers\Admin\CannedResponseController;
+use App\Http\Controllers\Admin\DepartmentController;
+use App\Http\Controllers\Admin\EmailConfigController;
+use App\Http\Controllers\Admin\FilterController;
+use App\Http\Controllers\Admin\HelpTopicController;
+use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\Admin\SlaController;
+use App\Http\Controllers\Admin\StaffController;
+use App\Http\Controllers\Admin\TeamController;
 use App\Http\Controllers\Auth\ConfirmPasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
@@ -72,6 +81,18 @@ Route::prefix('scp')->name('scp.')->group(function () {
         Route::get('/preferences', [StaffPreferencesController::class, 'show'])->name('preferences.show');
         Route::patch('/preferences', [StaffPreferencesController::class, 'update'])->name('preferences.update');
     });
+});
+
+Route::middleware(['auth:staff', 'admin.access'])->prefix('admin')->name('admin.')->group(function () {
+    Route::resource('canned-responses', CannedResponseController::class)->except(['show']);
+    Route::resource('departments', DepartmentController::class)->except(['show']);
+    Route::resource('email-config', EmailConfigController::class)->except(['show']);
+    Route::resource('help-topics', HelpTopicController::class)->except(['show']);
+    Route::resource('filters', FilterController::class)->except(['show']);
+    Route::resource('roles', RoleController::class)->except(['show']);
+    Route::resource('slas', SlaController::class)->except(['show']);
+    Route::resource('staff', StaffController::class)->except(['show']);
+    Route::resource('teams', TeamController::class)->except(['show']);
 });
 
 Route::get('/scp/test-auth', function () {

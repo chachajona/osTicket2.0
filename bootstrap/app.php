@@ -1,13 +1,13 @@
 <?php
 
 use App\Http\Middleware\AuthenticateStaff;
+use App\Http\Middleware\EnsureAdminAccess;
 use App\Http\Middleware\EnsureScpStaff;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\LegacyAuthBridge;
 use App\Http\Middleware\LogScpAccess;
 use App\Http\Middleware\RequireDepartmentAccess;
 use Illuminate\Foundation\Application;
-use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 
@@ -33,12 +33,13 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->alias([
+            'admin.access' => EnsureAdminAccess::class,
             'auth.staff' => AuthenticateStaff::class,
             'dept.access' => RequireDepartmentAccess::class,
             'scp.access' => EnsureScpStaff::class,
             'scp.log' => LogScpAccess::class,
         ]);
     })
-    ->withExceptions(function (Exceptions $exceptions): void {
+    ->withExceptions(function (): void {
         //
     })->create();

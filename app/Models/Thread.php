@@ -2,17 +2,20 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
 /**
  * Thread model for the legacy osTicket ost_thread table.
  *
  * Threads are polymorphic containers: object_type='T' for tickets, 'A' for tasks.
  *
- * @property int    $id
- * @property int    $object_id
+ * @property int $id
+ * @property int $object_id
  * @property string $object_type
  * @property string $created
- *
- * @property-read \Illuminate\Database\Eloquent\Collection<int, ThreadEntry> $entries
+ * @property-read Collection<int, ThreadEntry> $entries
  * @property-read Ticket|null $ticket
  */
 class Thread extends LegacyModel
@@ -34,7 +37,7 @@ class Thread extends LegacyModel
     /**
      * Get the entries for the thread, ordered chronologically.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany<ThreadEntry, $this>
+     * @return HasMany<ThreadEntry, $this>
      */
     public function entries()
     {
@@ -47,7 +50,7 @@ class Thread extends LegacyModel
      * Uses object_id as the foreign key, mapping to ticket_id on the tickets table.
      * The thread's object_type column determines the polymorphic type (T=Ticket, A=Task).
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Ticket, $this>
+     * @return BelongsTo<Ticket, $this>
      */
     public function ticket()
     {

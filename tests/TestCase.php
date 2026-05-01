@@ -148,7 +148,21 @@ abstract class TestCase extends BaseTestCase
                 $table->timestamp('created_at')->useCurrent();
             });
 
-            foreach (['access_log', 'staff_preferences', 'staff_auth_migrations', 'staff_two_factor'] as $table) {
+            $this->ensureLegacyTable($osticket2, 'admin_audit_log', function (Blueprint $table) {
+                $table->bigIncrements('id');
+                $table->unsignedBigInteger('actor_id');
+                $table->string('action', 64);
+                $table->string('subject_type', 64);
+                $table->unsignedBigInteger('subject_id');
+                $table->json('before')->nullable();
+                $table->json('after')->nullable();
+                $table->json('metadata')->nullable();
+                $table->string('ip_address', 45)->nullable();
+                $table->string('user_agent', 255)->nullable();
+                $table->timestamp('created_at')->useCurrent();
+            });
+
+            foreach (['admin_audit_log', 'access_log', 'staff_preferences', 'staff_auth_migrations', 'staff_two_factor'] as $table) {
                 $osticket2Connection->table($table)->delete();
             }
 
@@ -169,8 +183,10 @@ abstract class TestCase extends BaseTestCase
 
     private function ensureLegacyTable($schema, string $table, \Closure $definition): void
     {
-        if (! $schema->hasTable($table)) {
-            $schema->create($table, $definition);
+        if ($schema->hasTable($table)) {
+            $schema->drop($table);
         }
+
+        $schema->create($table, $definition);
     }
 }

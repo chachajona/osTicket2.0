@@ -2,20 +2,21 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
 /**
  * ThreadEntry model for the legacy osTicket ost_thread_entry table.
  *
  * Represents individual messages, responses, and notes within a thread.
  *
- * @property int    $id
- * @property int    $thread_id
- * @property int    $staff_id
+ * @property int $id
+ * @property int $thread_id
+ * @property int $staff_id
  * @property string $type
  * @property string $body
  * @property string $format
  * @property string $created
  * @property string $updated
- *
  * @property-read Thread     $thread
  * @property-read Staff|null $staff
  */
@@ -38,7 +39,7 @@ class ThreadEntry extends LegacyModel
     /**
      * Get the thread that this entry belongs to.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Thread, $this>
+     * @return BelongsTo<Thread, $this>
      */
     public function thread()
     {
@@ -48,7 +49,7 @@ class ThreadEntry extends LegacyModel
     /**
      * Get the staff member who created this entry.
      *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Staff, $this>
+     * @return BelongsTo<Staff, $this>
      */
     public function staff()
     {

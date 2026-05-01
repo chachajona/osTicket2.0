@@ -96,9 +96,6 @@ class HandleInertiaRequests extends Middleware
         return $visible;
     }
 
-    /**
-     * @param  mixed  $cached
-     */
     private function hasFreshMigrationBannerCache(mixed $cached): bool
     {
         if (! is_array($cached) || ! array_key_exists('visible', $cached) || ! array_key_exists('cached_at', $cached)) {
