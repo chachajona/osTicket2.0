@@ -1,5 +1,5 @@
 import { Children, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Link, router } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -127,9 +127,20 @@ function useMediaQuery(query: string): boolean {
 
 function DefaultHeaderActions() {
     const { t } = useTranslation();
+    const { props } = usePage<{ auth?: { staff?: { isAdmin?: boolean } | null } }>();
+    const isAdmin = props.auth?.staff?.isAdmin === true;
 
     return (
         <>
+            {isAdmin && (
+                <Link
+                    href="/admin/help-topics"
+                    className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), "rounded-[4px] border-[#E2E8F0] bg-white text-xs font-medium uppercase tracking-[0.12em] text-[#64748B] hover:border-[#C4A5F3] hover:bg-[#F8FAFC] hover:text-[#0F172A]")}
+                >
+                    <HugeiconsIcon icon={ShieldCheck} size={14} className="mr-1.5" color="#94A3B8" />
+                    {t('dashboard.layout.admin_panel', { defaultValue: 'Admin Panel' })}
+                </Link>
+            )}
             <Link
                 href="/scp/queues"
                 className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), "rounded-[4px] border-[#E2E8F0] bg-white text-xs font-medium uppercase tracking-[0.12em] text-[#64748B] hover:border-[#C4A5F3] hover:bg-[#F8FAFC] hover:text-[#0F172A]")}
