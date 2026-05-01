@@ -50,6 +50,7 @@ class HandleInertiaRequests extends Middleware
                         'id' => $staff->staff_id,
                         'name' => trim(($staff->firstname ?? '').' '.($staff->lastname ?? '')) ?: $staff->username,
                         'username' => $staff->username,
+                        'isAdmin' => (bool) $staff->isadmin,
                         'migrationBanner' => $this->migrationBannerVisible($request, $staff),
                     ]
                     : null,
