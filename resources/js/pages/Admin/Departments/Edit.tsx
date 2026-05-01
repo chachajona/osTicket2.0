@@ -8,6 +8,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { ArrowLeft01Icon, Delete01Icon, FloppyDiskIcon } from '@hugeicons/core-free-icons';
@@ -180,11 +181,18 @@ export default function DepartmentsEdit({
                 }}
                 className="space-y-6"
             >
-                <FormSection
-                    title="Department Details"
-                    description="Configure ownership, routing defaults, and the department signature used in responses."
-                    collapsible={false}
-                >
+                <Tabs defaultValue="settings" className="space-y-6">
+                    <TabsList>
+                        <TabsTrigger value="settings">Settings</TabsTrigger>
+                        <TabsTrigger value="access">Access</TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="settings">
+                        <FormSection
+                            title="Department Details"
+                            description="Configure ownership, routing defaults, and the department signature used in responses."
+                            collapsible={false}
+                        >
                     <FormGrid columns={2} className="max-w-5xl">
                         <div className="space-y-2 md:col-span-2">
                             <Label htmlFor="name">Department Name</Label>
@@ -282,6 +290,24 @@ export default function DepartmentsEdit({
                         </div>
                     </FormGrid>
                 </FormSection>
+                </TabsContent>
+
+                <TabsContent value="access">
+                    <FormSection
+                        title="Department Access"
+                        description="Per-staff department access and role overrides are managed from the Staff page."
+                        collapsible={false}
+                    >
+                        <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-500">
+                            To grant or change a specific staff member's access to this department,
+                            open the staff member's profile under{' '}
+                            <Link href={route('admin.staff.index')} className="font-medium text-[#5B619D] underline">
+                                Agents → Staff
+                            </Link>{' '}
+                            and use the <strong>Department Access</strong> section.
+                        </div>
+                    </FormSection>
+                </TabsContent>
 
                 <div className="flex items-center justify-end gap-4 pt-4">
                     <Link href={route('admin.departments.index')} className={buttonVariants({ variant: 'outline' })}>
@@ -292,7 +318,8 @@ export default function DepartmentsEdit({
                         {isEdit ? 'Save Changes' : 'Create Department'}
                     </Button>
                 </div>
-            </form>
+            </Tabs>
+        </form>
 
             {isEdit && department && (
                 <ConfirmDialog
