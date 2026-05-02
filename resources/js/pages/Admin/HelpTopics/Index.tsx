@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import { appShellLayout } from '@/layouts/AppShell';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { buttonVariants } from '@/components/ui/button';
 import {
@@ -55,18 +56,16 @@ export default function HelpTopicsIndex({ helpTopics }: Props) {
         <>
             <Head title="Help Topics" />
 
-            <div className="mb-6 flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Help Topics</h1>
-                    <p className="mt-1 text-sm text-slate-500">
-                        Manage ticket help topics, department defaults, and SLA routing.
-                    </p>
-                </div>
-                <Link href={route('admin.help-topics.create')} className={buttonVariants({ variant: 'default' })}>
-                    <HugeiconsIcon icon={PlusSignIcon} size={18} className="mr-2" />
-                    Create Help Topic
-                </Link>
-            </div>
+            <PageHeader
+                title="Help Topics"
+                subtitle="Manage ticket help topics, department defaults, and SLA routing."
+                headerActions={
+                    <Link href={route('admin.help-topics.create')} className={buttonVariants({ variant: 'default' })}>
+                        <HugeiconsIcon icon={PlusSignIcon} size={18} className="mr-2" />
+                        Create Help Topic
+                    </Link>
+                }
+            />
 
             <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                 <Table>

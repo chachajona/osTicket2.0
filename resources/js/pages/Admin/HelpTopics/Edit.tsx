@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { appShellLayout } from '@/layouts/AppShell';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { FormGrid } from '@/components/admin/FormGrid';
 import { FormSection } from '@/components/admin/FormSection';
@@ -10,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { ArrowLeft01Icon, Delete01Icon, FloppyDiskIcon } from '@hugeicons/core-free-icons';
+import { Delete01Icon, FloppyDiskIcon } from '@hugeicons/core-free-icons';
 import type { ReactElement } from 'react';
 
 declare global {
@@ -109,40 +110,36 @@ export default function HelpTopicsEdit({
         <>
             <Head title={isEdit && helpTopic ? `Edit Help Topic: ${helpTopic.topic}` : 'Create Help Topic'} />
 
-            <div className="mb-6">
-                <Link
-                    href={route('admin.help-topics.index')}
-                    className="mb-4 inline-flex items-center text-sm font-medium text-slate-500 transition-colors hover:text-slate-900"
-                >
-                    <HugeiconsIcon icon={ArrowLeft01Icon} size={16} className="mr-1" />
-                    Back to Help Topics
-                </Link>
-
-                <div className="flex items-center justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-                            {isEdit ? 'Edit Help Topic' : 'Create Help Topic'}
-                        </h1>
-                        <p className="mt-1 text-sm text-slate-500">
-                            {isEdit
-                                ? 'Update ticket routing defaults, visibility, and ownership settings.'
-                                : 'Create a help topic with routing defaults for incoming tickets.'}
-                        </p>
-                    </div>
-
-                    {isEdit && helpTopic && (
-                        <Button
-                            type="button"
-                            variant="outline"
-                            className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                            onClick={() => setShowDeleteConfirm(true)}
+            <PageHeader
+                title={isEdit ? 'Edit Help Topic' : 'Create Help Topic'}
+                subtitle={
+                    isEdit
+                        ? 'Update ticket routing defaults, visibility, and ownership settings.'
+                        : 'Create a help topic with routing defaults for incoming tickets.'
+                }
+                headerActions={
+                    <>
+                        <Link
+                            href={route('admin.help-topics.index')}
+                            className="inline-flex h-7 items-center gap-1.5 rounded-[3px] border border-[#E2E0D8] bg-white px-3 text-[12px] font-medium uppercase leading-4 tracking-[1.2px] text-[#27272A] transition-colors hover:border-[#18181B] hover:bg-[#FAFAF8] hover:text-[#18181B]"
                         >
-                            <HugeiconsIcon icon={Delete01Icon} size={18} className="mr-2" />
-                            Delete Help Topic
-                        </Button>
-                    )}
-                </div>
-            </div>
+                            <span aria-hidden>&larr;</span>
+                            Back to Help Topics
+                        </Link>
+                        {isEdit && helpTopic && (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                                onClick={() => setShowDeleteConfirm(true)}
+                            >
+                                <HugeiconsIcon icon={Delete01Icon} size={18} className="mr-2" />
+                                Delete Help Topic
+                            </Button>
+                        )}
+                    </>
+                }
+            />
 
             <form
                 onSubmit={(event) => {
