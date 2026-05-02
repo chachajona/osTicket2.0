@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import { appShellLayout } from '@/layouts/AppShell';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { buttonVariants } from '@/components/ui/button';
 import {
@@ -54,19 +55,16 @@ export default function RolesIndex({ roles }: Props) {
         <>
             <Head title="Roles" />
 
-            <div className="flex items-center justify-between mb-6">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Roles</h1>
-                    <p className="text-sm text-slate-500 mt-1">Manage system roles and their permissions.</p>
-                </div>
-                <Link
-                    href={route('admin.roles.create')}
-                    className={buttonVariants({ variant: 'default' })}
-                >
-                    <HugeiconsIcon icon={PlusSignIcon} size={18} className="mr-2" />
-                    Create Role
-                </Link>
-            </div>
+            <PageHeader
+                title="Roles"
+                subtitle="Manage system roles and their permissions."
+                headerActions={
+                    <Link href={route('admin.roles.create')} className={buttonVariants({ variant: 'default' })}>
+                        <HugeiconsIcon icon={PlusSignIcon} size={18} className="mr-2" />
+                        Create Role
+                    </Link>
+                }
+            />
 
             <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                 <Table>

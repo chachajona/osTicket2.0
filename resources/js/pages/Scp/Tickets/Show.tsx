@@ -595,7 +595,7 @@ function AttachmentPreview({ attachment, onClose }: { attachment: Attachment | n
                                     <a
                                         href={attachment.download_url}
                                         download
-                                        className="inline-flex items-center gap-1.5 rounded-md border border-[#E2E0D8] bg-white px-2.5 py-1.5 text-xs font-medium text-[#71717A] transition-colors hover:border-[#E2E0D8] hover:text-[#18181B]"
+                                        className="inline-flex h-7 items-center gap-1.5 rounded-[3px] border border-[#E2E0D8] bg-white px-3 text-[12px] font-medium uppercase leading-4 tracking-[1.2px] text-[#27272A] transition-colors hover:border-[#18181B] hover:bg-[#FAFAF8] hover:text-[#18181B]"
                                     >
                                         <HugeiconsIcon icon={Download01Icon} size={12} />
                                         Download
@@ -748,9 +748,10 @@ export default function TicketShow({ ticket, customFields, timeline, attachments
                     <div className="flex shrink-0 items-center gap-2 sm:gap-3">
                         <Link
                             href="/scp/queues"
-                            className="inline-flex items-center gap-2 rounded-md border border-[#E2E0D8] bg-white px-3 py-2 text-xs font-medium text-[#71717A] transition-colors hover:text-[#18181B]"
+                            className="inline-flex h-7 items-center gap-1.5 rounded-[3px] border border-[#E2E0D8] bg-white px-3 text-[12px] font-medium uppercase leading-4 tracking-[1.2px] text-[#27272A] transition-colors hover:border-[#18181B] hover:bg-[#FAFAF8] hover:text-[#18181B]"
                         >
-                            Back to tickets
+                            <span aria-hidden>&larr;</span>
+                            Tickets
                         </Link>
                     </div>
                 </div>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Head, Link, useForm, router } from '@inertiajs/react';
 import { appShellLayout } from '@/layouts/AppShell';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { FormGrid } from '@/components/admin/FormGrid';
 import { FormSection } from '@/components/admin/FormSection';
 import { PermissionMatrix, type PermissionGroup } from '@/components/admin/PermissionMatrix';
@@ -11,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { buttonVariants, Button } from '@/components/ui/button';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { ArrowLeft01Icon, FloppyDiskIcon, Delete01Icon } from '@hugeicons/core-free-icons';
+import { FloppyDiskIcon, Delete01Icon } from '@hugeicons/core-free-icons';
 import type { ReactElement } from 'react';
 
 declare global {
@@ -58,35 +59,31 @@ export default function RolesEdit({ role, permissions, selectedPermissions }: Pr
         <>
             <Head title={isEdit ? `Edit Role: ${role.name}` : 'Create Role'} />
 
-            <div className="mb-6">
-                <Link
-                    href={route('admin.roles.index')}
-                    className="inline-flex items-center text-sm font-medium text-slate-500 hover:text-slate-900 mb-4 transition-colors"
-                >
-                    <HugeiconsIcon icon={ArrowLeft01Icon} size={16} className="mr-1" />
-                    Back to Roles
-                </Link>
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-                            {isEdit ? 'Edit Role' : 'Create Role'}
-                        </h1>
-                        <p className="text-sm text-slate-500 mt-1">
-                            {isEdit ? 'Update role details and permissions.' : 'Create a new role to assign to agents.'}
-                        </p>
-                    </div>
-                    {isEdit && (
-                        <Button
-                            variant="outline"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-                            onClick={() => setShowDeleteConfirm(true)}
+            <PageHeader
+                title={isEdit ? 'Edit Role' : 'Create Role'}
+                subtitle={isEdit ? 'Update role details and permissions.' : 'Create a new role to assign to agents.'}
+                headerActions={
+                    <>
+                        <Link
+                            href={route('admin.roles.index')}
+                            className="inline-flex h-7 items-center gap-1.5 rounded-[3px] border border-[#E2E0D8] bg-white px-3 text-[12px] font-medium uppercase leading-4 tracking-[1.2px] text-[#27272A] transition-colors hover:border-[#18181B] hover:bg-[#FAFAF8] hover:text-[#18181B]"
                         >
-                            <HugeiconsIcon icon={Delete01Icon} size={18} className="mr-2" />
-                            Delete Role
-                        </Button>
-                    )}
-                </div>
-            </div>
+                            <span aria-hidden>&larr;</span>
+                            Back to Roles
+                        </Link>
+                        {isEdit && (
+                            <Button
+                                variant="outline"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                                onClick={() => setShowDeleteConfirm(true)}
+                            >
+                                <HugeiconsIcon icon={Delete01Icon} size={18} className="mr-2" />
+                                Delete Role
+                            </Button>
+                        )}
+                    </>
+                }
+            />
 
             <form onSubmit={handleSubmit} className="space-y-6">
                 <Tabs defaultValue="definition" className="space-y-6">

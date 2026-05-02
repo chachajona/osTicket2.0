@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import { appShellLayout } from '@/layouts/AppShell';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { buttonVariants } from '@/components/ui/button';
 import {
@@ -72,27 +73,24 @@ export default function EmailConfigIndex({ items, summary, createUrls }: Props) 
         <>
             <Head title="Email Config" />
 
-            <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Email Config</h1>
-                    <p className="mt-1 text-sm text-slate-500">
-                        Manage mail accounts, templates, and template groups from one admin surface.
-                    </p>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                    <Link href={createUrls.account} className={buttonVariants({ variant: 'default' })}>
-                        <HugeiconsIcon icon={PlusSignIcon} size={18} className="mr-2" />
-                        New Mail Account
-                    </Link>
-                    <Link href={createUrls.template} className={buttonVariants({ variant: 'outline' })}>
-                        New Template
-                    </Link>
-                    <Link href={createUrls.group} className={buttonVariants({ variant: 'outline' })}>
-                        New Group
-                    </Link>
-                </div>
-            </div>
+            <PageHeader
+                title="Email Config"
+                subtitle="Manage mail accounts, templates, and template groups from one admin surface."
+                headerActions={
+                    <div className="flex flex-wrap gap-2">
+                        <Link href={createUrls.account} className={buttonVariants({ variant: 'default' })}>
+                            <HugeiconsIcon icon={PlusSignIcon} size={18} className="mr-2" />
+                            New Mail Account
+                        </Link>
+                        <Link href={createUrls.template} className={buttonVariants({ variant: 'outline' })}>
+                            New Template
+                        </Link>
+                        <Link href={createUrls.group} className={buttonVariants({ variant: 'outline' })}>
+                            New Group
+                        </Link>
+                    </div>
+                }
+            />
 
             <div className="mb-6 grid gap-4 md:grid-cols-4">
                 {[
