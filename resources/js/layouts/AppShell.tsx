@@ -13,12 +13,31 @@ import {
 import { Link, router, usePage } from '@inertiajs/react';
 import { useTranslation } from 'react-i18next';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { ArrowDown01Icon } from '@hugeicons/core-free-icons';
+import {
+  ArrowDown01Icon,
+  Logout01Icon,
+  Search01Icon,
+  Settings01Icon,
+  SidebarLeft01Icon,
+} from '@hugeicons/core-free-icons';
 
 import { cn } from '@/lib/utils';
 import { PANEL_NAV, type NavItem, type NavSubItem } from '@/lib/panelNavigation';
 import { PanelSwitcher } from '@/components/panel/PanelSwitcher';
 import { ADMIN_TAB_MAP } from '@/components/admin/AdminTabs';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '@/i18n';
+
+const MOBILE_BREAKPOINT = '(max-width: 1023px)';
+const SIDEBAR_COLLAPSED_KEY = 'app.sidebar.collapsed';
+const SIDEBAR_EXPANDED_WIDTH = 260;
+const SIDEBAR_COLLAPSED_WIDTH = 64;
 
 function useActiveNav(currentPanel: 'scp' | 'admin', url: string, subId?: string): string | undefined {
   if (currentPanel === 'admin') {
@@ -45,7 +64,30 @@ export function SetPageHeader({ children }: { children: ReactNode }) {
   return null;
 }
 
-const MOBILE_BREAKPOINT = '(max-width: 1023px)';
+interface SidebarContextValue {
+  collapsed: boolean;
+  toggleCollapsed: () => void;
+  isMobile: boolean;
+  mobileOpen: boolean;
+  setMobileOpen: (open: boolean) => void;
+}
+
+const SidebarContext = createContext<SidebarContextValue | null>(null);
+
+function useSidebar(): SidebarContextValue {
+  const ctx = useContext(SidebarContext);
+  if (!ctx) throw new Error('useSidebar must be used inside SidebarContext.Provider');
+  return ctx;
+}
+
+function readInitialCollapsed(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
 
 function useMediaQuery(query: string): boolean {
   const getInitial = () => {
@@ -64,7 +106,51 @@ function useMediaQuery(query: string): boolean {
   return matches;
 }
 
-function SearchField() {
+function getInitials(name?: string | null, username?: string | null): string {
+  const source = (name ?? username ?? '').trim();
+  if (!source) return '·';
+  const parts = source.split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return source.charAt(0).toUpperCase();
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+}
+
+function Avatar({ name, username, size = 28 }: { name?: string | null; username?: string | null; size?: number }) {
+  const initials = getInitials(name, username);
+  const fontSize = Math.round(size * 0.42);
+  return (
+    <span
+      aria-hidden
+      className="grid shrink-0 place-items-center rounded-full bg-[#F4F2EB] font-medium text-[#71717A]"
+      style={{ width: size, height: size, fontSize, letterSpacing: '0.02em' }}
+    >
+      {initials}
+    </span>
+  );
+}
+
+function SearchField({ collapsed }: { collapsed: boolean }) {
+  if (collapsed) {
+    return (
+      <Tooltip>
+        <TooltipTrigger
+          render={(props) => (
+            <button
+              {...props}
+              type="button"
+              onClick={() => router.get('/scp/search')}
+              aria-label="Search tickets"
+              className="grid h-9 w-9 place-items-center rounded-[6px] border border-[#E2E0D8] bg-white text-[#71717A] transition-colors hover:bg-[#F4F2EB] hover:text-[#18181B]"
+            />
+          )}
+        >
+          <HugeiconsIcon icon={Search01Icon} size={16} strokeWidth={1.75} />
+        </TooltipTrigger>
+        <TooltipContent side="right">Search tickets</TooltipContent>
+      </Tooltip>
+    );
+  }
+
   return (
     <form
       role="search"
@@ -75,10 +161,7 @@ function SearchField() {
       }}
     >
       <div className="flex items-center gap-2 rounded-[4px] border border-[#E2E0D8] bg-white px-3 py-2 transition-colors focus-within:border-[#18181B]">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A1A1AA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="11" cy="11" r="8" />
-          <path d="m21 21-4.3-4.3" />
-        </svg>
+        <HugeiconsIcon icon={Search01Icon} size={16} strokeWidth={1.75} className="text-[#A1A1AA]" />
         <input
           name="q"
           type="text"
@@ -98,9 +181,10 @@ interface NavRowProps {
   onNavigate?: () => void;
 }
 
-function navRowClasses(state: 'active' | 'disabled' | 'idle'): string {
+function navRowClasses(state: 'active' | 'disabled' | 'idle', collapsed: boolean): string {
   return cn(
-    'group flex w-full items-center gap-2.5 rounded-[8px] px-3 py-2 text-left text-[14px] leading-[22.75px] transition-colors duration-150',
+    'group flex w-full items-center rounded-[8px] text-left text-[14px] leading-[22.75px] transition-colors duration-150',
+    collapsed ? 'h-9 justify-center px-0' : 'gap-2.5 px-3 py-2',
     state === 'active' && 'bg-[#F4F2EB] font-medium text-[#18181B]',
     state === 'disabled' && 'cursor-not-allowed text-[#A1A1AA] opacity-50',
     state === 'idle' && 'text-[#71717A] hover:bg-[#F4F2EB]/80 hover:text-[#18181B]',
@@ -113,7 +197,7 @@ function NavIcon({ icon, state }: { icon: NavItem['icon']; state: 'active' | 'di
     <span
       className={cn(
         'flex h-5 w-5 shrink-0 items-center justify-center transition-colors duration-150',
-        state === 'idle' && 'text-[#71717A] group-hover:text-[#18181B]',
+        state === 'idle' && 'group-hover:text-[#18181B]',
       )}
       style={{ color }}
       aria-hidden
@@ -123,38 +207,54 @@ function NavIcon({ icon, state }: { icon: NavItem['icon']; state: 'active' | 'di
   );
 }
 
+function MaybeTooltip({ collapsed, label, children }: { collapsed: boolean; label: string; children: ReactElement }) {
+  if (!collapsed) return children;
+  return (
+    <Tooltip>
+      <TooltipTrigger render={children} />
+      <TooltipContent side="right">{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
 function NavLeaf({ item, activeNav, onNavigate }: NavRowProps) {
+  const { collapsed } = useSidebar();
   const { t } = useTranslation();
   const { id, labelKey, icon, href } = item;
   const isActive = activeNav === id;
   const disabled = !href;
   const state: 'active' | 'disabled' | 'idle' = isActive ? 'active' : disabled ? 'disabled' : 'idle';
   const label = t(labelKey, { defaultValue: labelKey });
-  const className = navRowClasses(state);
+  const className = navRowClasses(state, collapsed);
 
-  const content = (
+  const inner = (
     <>
       <NavIcon icon={icon} state={state} />
-      <span className="min-w-0 flex-1 truncate">{label}</span>
+      {!collapsed && <span className="min-w-0 flex-1 truncate">{label}</span>}
     </>
   );
 
   if (disabled) {
     return (
-      <button type="button" disabled aria-disabled="true" className={className}>
-        {content}
-      </button>
+      <MaybeTooltip collapsed={collapsed} label={label}>
+        <button type="button" disabled aria-disabled="true" className={className}>
+          {inner}
+        </button>
+      </MaybeTooltip>
     );
   }
 
   return (
-    <Link href={href!} className={className} onClick={onNavigate} aria-current={isActive ? 'page' : undefined}>
-      {content}
-    </Link>
+    <MaybeTooltip collapsed={collapsed} label={label}>
+      <Link href={href!} className={className} onClick={onNavigate} aria-current={isActive ? 'page' : undefined}>
+        {inner}
+      </Link>
+    </MaybeTooltip>
   );
 }
 
 function NavGroup({ item, activeNav, activeSubId, onNavigate }: NavRowProps) {
+  const { collapsed } = useSidebar();
   const { t } = useTranslation();
   const { id, labelKey, icon, children = [] } = item;
   const groupActive = activeNav === id;
@@ -170,6 +270,11 @@ function NavGroup({ item, activeNav, activeSubId, onNavigate }: NavRowProps) {
 
   const state: 'active' | 'idle' = groupActive || childActive ? 'active' : 'idle';
   const label = t(labelKey, { defaultValue: labelKey });
+
+  if (collapsed) {
+    return <CollapsedNavGroupTrigger item={item} state={state} label={label} activeSubId={activeSubId} onNavigate={onNavigate} />;
+  }
+
   const triggerId = `nav-group-${id}`;
   const panelId = `nav-group-${id}-panel`;
 
@@ -181,7 +286,7 @@ function NavGroup({ item, activeNav, activeSubId, onNavigate }: NavRowProps) {
         onClick={() => setOpen((prev) => !prev)}
         aria-expanded={open}
         aria-controls={panelId}
-        className={navRowClasses(state)}
+        className={navRowClasses(state, false)}
       >
         <NavIcon icon={icon} state={state} />
         <span className="min-w-0 flex-1 truncate">{label}</span>
@@ -213,6 +318,56 @@ function NavGroup({ item, activeNav, activeSubId, onNavigate }: NavRowProps) {
         ))}
       </div>
     </div>
+  );
+}
+
+interface CollapsedNavGroupTriggerProps {
+  item: NavItem;
+  state: 'active' | 'idle';
+  label: string;
+  activeSubId: string | undefined;
+  onNavigate?: () => void;
+}
+
+function CollapsedNavGroupTrigger({ item, state, label, activeSubId, onNavigate }: CollapsedNavGroupTriggerProps) {
+  const [open, setOpen] = useState(false);
+  const className = navRowClasses(state, true);
+  const children = item.children ?? [];
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        render={(props) => (
+          <button
+            {...props}
+            type="button"
+            aria-label={label}
+            className={className}
+          />
+        )}
+      >
+        <NavIcon icon={item.icon} state={state} />
+      </PopoverTrigger>
+      <PopoverContent side="right" align="start" sideOffset={10} className="w-56 p-1.5">
+        <div className="px-2.5 pt-1 pb-2 text-[10px] font-medium uppercase tracking-[0.1em] text-[#A1A1AA]">
+          {label}
+        </div>
+        <ul className="flex flex-col gap-0.5">
+          {children.map((child) => (
+            <li key={child.id}>
+              <NavSubLink
+                child={child}
+                activeSubId={activeSubId}
+                onNavigate={() => {
+                  setOpen(false);
+                  onNavigate?.();
+                }}
+              />
+            </li>
+          ))}
+        </ul>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -265,6 +420,129 @@ function NavRow(props: NavRowProps) {
   );
 }
 
+interface AccountBlockProps {
+  staff: { name?: string; username?: string } | null | undefined;
+  isLoggingOut: boolean;
+  onLogout: () => void;
+}
+
+function LanguagePicker() {
+  const { t, i18n } = useTranslation();
+  const active = (i18n.resolvedLanguage ?? i18n.language ?? 'en').slice(0, 2);
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-[6px] px-2.5 py-1.5">
+      <span className="text-[10px] font-medium uppercase tracking-[0.1em] text-[#A1A1AA]">
+        {t('language_switcher.select_language', { defaultValue: 'Language' })}
+      </span>
+      <div className="inline-flex overflow-hidden rounded-[4px] border border-[#E2E0D8] bg-white">
+        {SUPPORTED_LANGUAGES.map((lang, index) => {
+          const isActive = active === lang.code || active.startsWith(lang.code);
+          return (
+            <button
+              key={lang.code}
+              type="button"
+              onClick={() => i18n.changeLanguage(lang.code as SupportedLanguage)}
+              aria-pressed={isActive}
+              className={cn(
+                'px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.08em] transition-colors',
+                index > 0 && 'border-l border-[#E2E0D8]',
+                isActive
+                  ? 'bg-[#18181B] text-white'
+                  : 'text-[#71717A] hover:bg-[#F4F2EB] hover:text-[#18181B]',
+              )}
+            >
+              {lang.code.toUpperCase()}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function AccountBlock({ staff, isLoggingOut, onLogout }: AccountBlockProps) {
+  const { collapsed } = useSidebar();
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+
+  if (!staff) return null;
+
+  const name = staff.name ?? staff.username ?? '—';
+  const username = staff.username ?? '';
+
+  const trigger = collapsed ? (
+    <PopoverTrigger
+      render={(props) => (
+        <button
+          {...props}
+          type="button"
+          aria-label={name}
+          className="grid h-10 w-10 place-items-center rounded-[8px] transition-colors hover:bg-[#F4F2EB]"
+        />
+      )}
+    >
+      <Avatar name={staff.name} username={staff.username} size={32} />
+    </PopoverTrigger>
+  ) : (
+    <PopoverTrigger
+      render={(props) => (
+        <button
+          {...props}
+          type="button"
+          className="flex w-full items-center gap-3 rounded-[8px] px-2 py-2 text-left transition-colors hover:bg-[#F4F2EB]"
+          aria-label={`${name} account menu`}
+        />
+      )}
+    >
+      <Avatar name={staff.name} username={staff.username} size={32} />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[13px] font-medium leading-[18px] text-[#18181B]">{name}</span>
+        {username && (
+          <span className="block truncate text-[11px] leading-[14px] text-[#A1A1AA]">{username}</span>
+        )}
+      </span>
+      <span aria-hidden className="text-[#A1A1AA]">
+        <HugeiconsIcon icon={ArrowDown01Icon} size={14} strokeWidth={1.75} />
+      </span>
+    </PopoverTrigger>
+  );
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      {trigger}
+      <PopoverContent side="top" align={collapsed ? 'center' : 'start'} sideOffset={8} className="w-60 p-1.5">
+        <div className="flex items-center gap-3 rounded-[6px] px-2 py-2">
+          <Avatar name={staff.name} username={staff.username} size={36} />
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[13px] font-medium text-[#18181B]">{name}</div>
+            {username && <div className="truncate text-[11px] text-[#A1A1AA]">{username}</div>}
+          </div>
+        </div>
+        <div className="my-1 h-px bg-[#E2E0D8]" />
+        <LanguagePicker />
+        <div className="my-1 h-px bg-[#E2E0D8]" />
+        <Link
+          href="/scp/preferences"
+          onClick={() => setOpen(false)}
+          className="flex items-center gap-2.5 rounded-[6px] px-2.5 py-2 text-[13px] text-[#27272A] transition-colors hover:bg-[#F4F2EB]"
+        >
+          <HugeiconsIcon icon={Settings01Icon} size={16} strokeWidth={1.5} />
+          <span className="flex-1">{t('dashboard.layout.preferences')}</span>
+        </Link>
+        <button
+          type="button"
+          onClick={() => { setOpen(false); onLogout(); }}
+          disabled={isLoggingOut}
+          className="flex w-full items-center gap-2.5 rounded-[6px] px-2.5 py-2 text-left text-[13px] text-[#DC2626] transition-colors hover:bg-[#FEF2F2] disabled:opacity-50"
+        >
+          <HugeiconsIcon icon={Logout01Icon} size={16} strokeWidth={1.5} />
+          <span className="flex-1">{t('dashboard.layout.logout')}</span>
+        </button>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 interface SidebarProps {
   navItems: NavItem[];
   activeNav: string | undefined;
@@ -275,7 +553,7 @@ interface SidebarProps {
 }
 
 function Sidebar({ navItems, activeNav, activeSubId, isLoggingOut, onLogout, onClose }: SidebarProps) {
-  const { t } = useTranslation();
+  const { collapsed } = useSidebar();
   const { props } = usePage<{
     auth?: { staff?: { name?: string; username?: string } | null };
   }>();
@@ -283,15 +561,15 @@ function Sidebar({ navItems, activeNav, activeSubId, isLoggingOut, onLogout, onC
 
   return (
     <div className="flex h-full flex-col bg-white">
-      <div className="flex items-center gap-3 px-5 py-4">
+      <div className={cn('flex items-center gap-3 py-4', collapsed ? 'justify-center px-2' : 'px-5')}>
         <div className="flex min-w-0 flex-1 items-center">
-          <PanelSwitcher />
+          <PanelSwitcher collapsed={collapsed} />
         </div>
         {onClose && (
           <button
             type="button"
             onClick={onClose}
-            className="grid h-8 w-8 place-items-center rounded-[4px] text-[#A1A1AA] transition-colors hover:bg-[#F4F2EB] hover:text-[#18181B]"
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-[4px] text-[#A1A1AA] transition-colors hover:bg-[#F4F2EB] hover:text-[#18181B]"
             aria-label="Close menu"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -302,11 +580,11 @@ function Sidebar({ navItems, activeNav, activeSubId, isLoggingOut, onLogout, onC
         )}
       </div>
 
-      <div className="px-5 pb-2">
-        <SearchField />
+      <div className={cn('pb-2', collapsed ? 'flex justify-center px-2' : 'px-5')}>
+        <SearchField collapsed={collapsed} />
       </div>
 
-      <nav aria-label="Primary" className="custom-scrollbar flex-1 overflow-y-auto px-4 py-3">
+      <nav aria-label="Primary" className={cn('custom-scrollbar flex-1 overflow-y-auto py-3', collapsed ? 'px-2' : 'px-4')}>
         <ul className="flex flex-col gap-0.5">
           {navItems.map((item) => (
             <li key={item.id}>
@@ -321,45 +599,33 @@ function Sidebar({ navItems, activeNav, activeSubId, isLoggingOut, onLogout, onC
         </ul>
       </nav>
 
-      <div className="border-t border-[#E2E0D8] px-4 py-3">
-        <div className="flex gap-2">
-          <Link
-            href="/scp/preferences"
-            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-[3px] bg-[#F4F2EB] px-3 py-2 text-[12px] font-medium uppercase tracking-[1.2px] text-[#27272A] transition-colors hover:bg-[#E2E0D8]"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.67 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.67 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.67a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.33 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-            </svg>
-            <span className="text-[12px] uppercase tracking-[1.2px]">{t('dashboard.layout.preferences')}</span>
-          </Link>
-
-          <button
-            type="button"
-            onClick={onLogout}
-            disabled={isLoggingOut}
-            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-[3px] border border-[#E2E0D8] bg-white px-3 py-2 text-[12px] font-medium uppercase tracking-[1.2px] text-[#71717A] transition-colors hover:border-[#18181B] hover:text-[#18181B] disabled:opacity-50"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" x2="9" y1="12" y2="12" />
-            </svg>
-            <span className="text-[12px] uppercase tracking-[1.2px]">{t('dashboard.layout.logout')}</span>
-          </button>
-        </div>
-
-        {staff && (
-          <div className="mt-3 flex items-center gap-2.5 px-1">
-            <div className="h-7 w-7 rounded-full bg-[#F4F2EB]" />
-            <div className="min-w-0">
-              <p className="truncate text-[12px] font-medium leading-[16px] text-[#18181B]">{staff.name}</p>
-              <p className="truncate text-[10px] uppercase tracking-[0.1em] text-[#A1A1AA]">{staff.username}</p>
-            </div>
-          </div>
-        )}
+      <div className={cn('border-t border-[#E2E0D8] py-2', collapsed ? 'flex justify-center px-2' : 'px-3')}>
+        <AccountBlock staff={staff} isLoggingOut={isLoggingOut} onLogout={onLogout} />
       </div>
     </div>
+  );
+}
+
+function SidebarTrigger({ className }: { className?: string }) {
+  const { collapsed, toggleCollapsed, isMobile, setMobileOpen } = useSidebar();
+  const handleClick = () => {
+    if (isMobile) setMobileOpen(true);
+    else toggleCollapsed();
+  };
+  const label = isMobile ? 'Open menu' : collapsed ? 'Expand sidebar' : 'Collapse sidebar';
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      aria-label={label}
+      title={label}
+      className={cn(
+        'grid h-9 w-9 shrink-0 place-items-center rounded-[6px] border border-[#E2E0D8] text-[#71717A] transition-colors hover:bg-[#F4F2EB] hover:text-[#18181B]',
+        className,
+      )}
+    >
+      <HugeiconsIcon icon={SidebarLeft01Icon} size={18} strokeWidth={1.5} />
+    </button>
   );
 }
 
@@ -379,6 +645,22 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const isLoggingOutRef = useRef(false);
   const isMobile = useMediaQuery(MOBILE_BREAKPOINT);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState<boolean>(readInitialCollapsed);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? '1' : '0');
+    } catch {
+      // ignore quota / privacy errors
+    }
+  }, [collapsed]);
+
+  const toggleCollapsed = useCallback(() => setCollapsed((prev) => !prev), []);
+
+  const sidebarCtx = useMemo<SidebarContextValue>(
+    () => ({ collapsed, toggleCollapsed, isMobile, mobileOpen, setMobileOpen }),
+    [collapsed, toggleCollapsed, isMobile, mobileOpen],
+  );
 
   const [pageHeaderNode, setPageHeaderNode] = useState<ReactNode>(null);
   const setNode = useCallback((node: ReactNode) => setPageHeaderNode(node), []);
@@ -395,69 +677,68 @@ export default function AppShell({ children }: { children: ReactNode }) {
     });
   }
 
+  const desktopWidth = collapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH;
+
   return (
     <PageHeaderSlotContext.Provider value={{ setNode }}>
-      <div className="flex h-screen overflow-hidden bg-white font-sans text-[#18181B]" style={{ fontFeatureSettings: '"ss01", "cv11"' }}>
-        {isMobile && mobileOpen && (
-          <>
-            <div
-              className="fixed inset-0 z-40 bg-[#18181B]/30 transition-opacity"
-              onClick={() => setMobileOpen(false)}
-            />
-            <aside
-              className="fixed inset-y-0 left-0 z-50 flex w-[260px] flex-col border-r border-[#E2E0D8] bg-white shadow-xl transition-transform"
-              style={{ transform: mobileOpen ? 'translateX(0)' : 'translateX(-100%)' }}
-            >
-              <Sidebar
-                navItems={navItems}
-                activeNav={activeNav}
-                activeSubId={subId}
-                isLoggingOut={isLoggingOut}
-                onLogout={() => { setMobileOpen(false); logout(); }}
-                onClose={() => setMobileOpen(false)}
-              />
-            </aside>
-          </>
-        )}
-
-        {!isMobile && (
-          <aside className="flex w-[260px] shrink-0 flex-col border-r border-[#E2E0D8] bg-white">
-            <Sidebar
-              navItems={navItems}
-              activeNav={activeNav}
-              activeSubId={subId}
-              isLoggingOut={isLoggingOut}
-              onLogout={logout}
-            />
-          </aside>
-        )}
-
-        <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-white">
-          <div className="flex shrink-0 items-center gap-4 border-b border-[#E2E0D8] bg-white px-6 py-4 sm:px-8 lg:px-10">
-            {isMobile && (
-              <button
-                type="button"
-                onClick={() => setMobileOpen(true)}
-                className="grid h-9 w-9 shrink-0 place-items-center rounded-[4px] border border-[#E2E0D8] text-[#71717A] transition-colors hover:bg-[#F4F2EB] hover:text-[#18181B]"
-                aria-label="Open menu"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="4" x2="20" y1="12" y2="12" />
-                  <line x1="4" x2="20" y1="6" y2="6" />
-                  <line x1="4" x2="20" y1="18" y2="18" />
-                </svg>
-              </button>
+      <SidebarContext.Provider value={sidebarCtx}>
+        <TooltipProvider delay={250}>
+          <div className="flex h-screen overflow-hidden bg-white font-sans text-[#18181B]" style={{ fontFeatureSettings: '"ss01", "cv11"' }}>
+            {isMobile && mobileOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-40 bg-[#18181B]/30 transition-opacity"
+                  onClick={() => setMobileOpen(false)}
+                />
+                <aside
+                  className="fixed inset-y-0 left-0 z-50 flex w-[260px] flex-col border-r border-[#E2E0D8] bg-white shadow-xl transition-transform"
+                  style={{ transform: mobileOpen ? 'translateX(0)' : 'translateX(-100%)' }}
+                >
+                  {/* Mobile sheet always renders expanded — wrap in its own context override */}
+                  <SidebarContext.Provider value={{ ...sidebarCtx, collapsed: false }}>
+                    <Sidebar
+                      navItems={navItems}
+                      activeNav={activeNav}
+                      activeSubId={subId}
+                      isLoggingOut={isLoggingOut}
+                      onLogout={() => { setMobileOpen(false); logout(); }}
+                      onClose={() => setMobileOpen(false)}
+                    />
+                  </SidebarContext.Provider>
+                </aside>
+              </>
             )}
-            <div className="min-w-0 flex-1">
-              {pageHeaderNode}
+
+            {!isMobile && (
+              <aside
+                className="flex shrink-0 flex-col border-r border-[#E2E0D8] bg-white transition-[width] duration-200 ease-in-out"
+                style={{ width: desktopWidth }}
+              >
+                <Sidebar
+                  navItems={navItems}
+                  activeNav={activeNav}
+                  activeSubId={subId}
+                  isLoggingOut={isLoggingOut}
+                  onLogout={logout}
+                />
+              </aside>
+            )}
+
+            <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-white">
+              <div className="flex shrink-0 items-center gap-3 border-b border-[#E2E0D8] bg-white px-6 py-4 sm:px-8 lg:px-10">
+                <SidebarTrigger />
+                <div className="min-w-0 flex-1">
+                  {pageHeaderNode}
+                </div>
+              </div>
+
+              <main className="custom-scrollbar flex-1 overflow-y-auto bg-white px-6 py-5 sm:px-8 lg:px-10">
+                {children}
+              </main>
             </div>
           </div>
-
-          <main className="custom-scrollbar flex-1 overflow-y-auto bg-white px-6 py-5 sm:px-8 lg:px-10">
-            {children}
-          </main>
-        </div>
-      </div>
+        </TooltipProvider>
+      </SidebarContext.Provider>
     </PageHeaderSlotContext.Provider>
   );
 }

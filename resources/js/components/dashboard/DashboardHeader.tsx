@@ -2,7 +2,6 @@ import { router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import LanguageSwitcher from '@/components/common/LanguageSwitcher';
 import { Button } from '@/components/ui/button';
 import {
     Select,
@@ -58,12 +57,10 @@ export function DashboardHeaderActions() {
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-7 rounded-[3px] border-transparent bg-[#F4F2EB] px-3 text-[12px] font-medium uppercase leading-4 tracking-[1.2px] text-[#27272A] transition-colors hover:bg-[#EDEAE0] hover:text-[#18181B]"
                 onClick={() => router.reload({ only: ['metrics'] })}
             >
                 {t('actions.refresh')}
             </Button>
-            <LanguageSwitcher />
         </>
     );
 }
