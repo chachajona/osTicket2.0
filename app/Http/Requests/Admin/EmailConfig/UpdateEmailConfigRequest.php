@@ -12,7 +12,7 @@ class UpdateEmailConfigRequest extends AdminFormRequest
 {
     public function authorize(): bool
     {
-        return parent::authorize() && ($this->user('staff')?->hasPermissionTo('admin.email.update') ?? false);
+        return parent::authorize() && ($this->user('staff')?->hasAdminPermission('admin.email.update') ?? false);
     }
 
     /**

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { AdminLayout } from '@/components/admin/AdminLayout';
+import { appShellLayout } from '@/layouts/AppShell';
 import { FormGrid } from '@/components/admin/FormGrid';
 import { FormSection } from '@/components/admin/FormSection';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { ArrowLeft01Icon, Delete01Icon, FloppyDiskIcon } from '@hugeicons/core-free-icons';
+import type { ReactElement } from 'react';
 
 declare global {
     function route(name: string, params?: any): string;
@@ -48,7 +49,7 @@ export default function SlasEdit({ sla }: Props) {
     };
 
     return (
-        <AdminLayout activeAdminNav="slas">
+        <>
             <Head title={isEdit && sla ? `Edit SLA: ${sla.name}` : 'Create SLA'} />
 
             <div className="mb-6">
@@ -187,6 +188,12 @@ export default function SlasEdit({ sla }: Props) {
                     onConfirm={handleDelete}
                 />
             )}
-        </AdminLayout>
+        </>
     );
 }
+
+type SlasEditComponent = typeof SlasEdit & {
+    layout?: (page: ReactElement) => React.ReactNode;
+};
+
+(SlasEdit as SlasEditComponent).layout = appShellLayout;

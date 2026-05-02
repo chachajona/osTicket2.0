@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { AdminLayout } from '@/components/admin/AdminLayout';
+import { appShellLayout } from '@/layouts/AppShell';
 import { FormGrid } from '@/components/admin/FormGrid';
 import { FormSection } from '@/components/admin/FormSection';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
@@ -18,6 +18,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { ArrowLeft01Icon, Delete01Icon, FloppyDiskIcon } from '@hugeicons/core-free-icons';
+import type { ReactElement } from 'react';
 
 declare global {
     function route(name: string, params?: any): string;
@@ -78,7 +79,7 @@ export default function CannedResponsesEdit({ cannedResponse, departments }: Pro
     };
 
     return (
-        <AdminLayout activeAdminNav="canned-responses">
+        <>
             <Head title={isEdit && cannedResponse ? `Edit Canned Response: ${cannedResponse.title}` : 'Create Canned Response'} />
 
             <div className="mb-6">
@@ -227,6 +228,12 @@ export default function CannedResponsesEdit({ cannedResponse, departments }: Pro
                     onConfirm={handleDelete}
                 />
             )}
-        </AdminLayout>
+        </>
     );
 }
+
+type CannedResponsesEditComponent = typeof CannedResponsesEdit & {
+    layout?: (page: ReactElement) => React.ReactNode;
+};
+
+(CannedResponsesEdit as CannedResponsesEditComponent).layout = appShellLayout;

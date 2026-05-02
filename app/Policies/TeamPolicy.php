@@ -16,23 +16,25 @@ class TeamPolicy
 
     public function create(Staff $staff): bool
     {
-        return $staff->hasPermissionTo('admin.team.create');
+        return $staff->hasAdminPermission('admin.team.create');
     }
 
     public function update(Staff $staff, Team $team): bool
     {
-        return $team instanceof Team && $staff->hasPermissionTo('admin.team.update');
+        return $team instanceof Team && $staff->hasAdminPermission('admin.team.update');
     }
 
     public function delete(Staff $staff, Team $team): bool
     {
-        return $team instanceof Team && $staff->hasPermissionTo('admin.team.delete');
+        return $team instanceof Team && $staff->hasAdminPermission('admin.team.delete');
     }
 
     private function canViewTeams(Staff $staff): bool
     {
-        return $staff->hasPermissionTo('admin.team.create')
-            || $staff->hasPermissionTo('admin.team.update')
-            || $staff->hasPermissionTo('admin.team.delete');
+        return $staff->hasAdminPermission(
+            'admin.team.create',
+            'admin.team.update',
+            'admin.team.delete',
+        );
     }
 }

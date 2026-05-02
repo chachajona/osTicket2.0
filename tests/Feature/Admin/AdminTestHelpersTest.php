@@ -1,13 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Http\Middleware\EnsureAdminAccess;
+use App\Http\Middleware\AuthenticateStaff;
 use App\Models\Admin\AdminAuditLog;
+use App\Models\HelpTopic;
+use App\Models\Staff;
+use App\Policies\HelpTopicPolicy;
 use App\Services\Admin\AuditLogger;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
 
 class FakeAdminHelperSubject extends Model
@@ -54,6 +61,57 @@ it('authenticates non-admin staff without admin access and the admin middleware 
         ->and($staff->fresh()->hasPermissionTo('admin.access'))->toBeFalse()
         ->and($response)->toBeInstanceOf(JsonResponse::class)
         ->and($response->getStatusCode())->toBe(403);
+});
+
+it('allows legacy admin flag through admin middleware and admin policies', function (): void {
+    seedPermissions();
+
+    $staff = Staff::factory()->create([
+        'isactive' => 1,
+        'isadmin' => 1,
+    ]);
+    $staff->syncRoles([]);
+    $staff->syncPermissions([]);
+
+    test()->actingAs($staff->fresh(), 'staff');
+
+    $request = Request::create('/admin/help-topics', 'GET', server: ['HTTP_ACCEPT' => 'application/json']);
+    app()->instance('request', $request);
+
+    $response = app(EnsureAdminAccess::class)->handle($request, fn () => response()->json(['ok' => true]));
+
+    expect($staff->fresh()->hasPermissionTo('admin.access'))->toBeFalse()
+        ->and($staff->fresh()->canAccessAdminPanel())->toBeTrue()
+        ->and(app(HelpTopicPolicy::class)->viewAny($staff->fresh()))->toBeTrue()
+        ->and($response)->toBeInstanceOf(JsonResponse::class)
+        ->and($response->getStatusCode())->toBe(200);
+});
+
+it('uses the staff guard for downstream admin authorization checks', function (): void {
+    seedPermissions();
+
+    $staff = Staff::factory()->create([
+        'isactive' => 1,
+        'isadmin' => 1,
+    ]);
+    $staff->syncRoles([]);
+    $staff->syncPermissions([]);
+
+    test()->actingAs($staff->fresh(), 'staff');
+    Auth::shouldUse('web');
+
+    $request = Request::create('/admin/test', 'GET', server: ['HTTP_ACCEPT' => 'application/json']);
+    app()->instance('request', $request);
+
+    $response = app(AuthenticateStaff::class)->handle($request, function () {
+        expect(Auth::getDefaultDriver())->toBe('staff')
+            ->and(Gate::allows('viewAny', HelpTopic::class))->toBeTrue();
+
+        return response()->json(['ok' => true]);
+    });
+
+    expect($response)->toBeInstanceOf(JsonResponse::class)
+        ->and($response->getStatusCode())->toBe(200);
 });
 
 it('asserts admin audit log entries through the shared helper', function (): void {

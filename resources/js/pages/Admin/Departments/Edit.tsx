@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { AdminLayout } from '@/components/admin/AdminLayout';
+import { appShellLayout } from '@/layouts/AppShell';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { FormGrid } from '@/components/admin/FormGrid';
 import { FormSection } from '@/components/admin/FormSection';
@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { ArrowLeft01Icon, Delete01Icon, FloppyDiskIcon } from '@hugeicons/core-free-icons';
+import type { ReactElement } from 'react';
 
 declare global {
     function route(name: string, params?: any): string;
@@ -126,7 +127,7 @@ export default function DepartmentsEdit({
     };
 
     return (
-        <AdminLayout activeAdminNav="departments">
+        <>
             <Head title={isEdit && department ? `Edit Department: ${department.name}` : 'Create Department'} />
 
             <div className="mb-6">
@@ -345,6 +346,12 @@ export default function DepartmentsEdit({
                     onConfirm={handleDelete}
                 />
             )}
-        </AdminLayout>
+        </>
     );
 }
+
+type DepartmentsEditComponent = typeof DepartmentsEdit & {
+    layout?: (page: ReactElement) => React.ReactNode;
+};
+
+(DepartmentsEdit as DepartmentsEditComponent).layout = appShellLayout;

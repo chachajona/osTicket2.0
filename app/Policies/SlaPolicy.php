@@ -21,23 +21,25 @@ class SlaPolicy
 
     public function create(Staff $staff): bool
     {
-        return $staff->hasPermissionTo('admin.sla.create');
+        return $staff->hasAdminPermission('admin.sla.create');
     }
 
     public function update(Staff $staff, Sla $sla): bool
     {
-        return $sla instanceof Sla && $staff->hasPermissionTo('admin.sla.update');
+        return $sla instanceof Sla && $staff->hasAdminPermission('admin.sla.update');
     }
 
     public function delete(Staff $staff, Sla $sla): bool
     {
-        return $sla instanceof Sla && $staff->hasPermissionTo('admin.sla.delete');
+        return $sla instanceof Sla && $staff->hasAdminPermission('admin.sla.delete');
     }
 
     private function canViewSlas(Staff $staff): bool
     {
-        return $staff->hasPermissionTo('admin.sla.create')
-            || $staff->hasPermissionTo('admin.sla.update')
-            || $staff->hasPermissionTo('admin.sla.delete');
+        return $staff->hasAdminPermission(
+            'admin.sla.create',
+            'admin.sla.update',
+            'admin.sla.delete',
+        );
     }
 }

@@ -10,9 +10,11 @@ class EmailConfigPolicy
 {
     public function viewAny(Staff $staff): bool
     {
-        return $staff->hasPermissionTo('admin.email.create')
-            || $staff->hasPermissionTo('admin.email.update')
-            || $staff->hasPermissionTo('admin.email.delete');
+        return $staff->hasAdminPermission(
+            'admin.email.create',
+            'admin.email.update',
+            'admin.email.delete',
+        );
     }
 
     public function view(Staff $staff, mixed $subject): bool
@@ -22,16 +24,16 @@ class EmailConfigPolicy
 
     public function create(Staff $staff): bool
     {
-        return $staff->hasPermissionTo('admin.email.create');
+        return $staff->hasAdminPermission('admin.email.create');
     }
 
     public function update(Staff $staff, mixed $subject): bool
     {
-        return $subject !== null && $staff->hasPermissionTo('admin.email.update');
+        return $subject !== null && $staff->hasAdminPermission('admin.email.update');
     }
 
     public function delete(Staff $staff, mixed $subject): bool
     {
-        return $subject !== null && $staff->hasPermissionTo('admin.email.delete');
+        return $subject !== null && $staff->hasAdminPermission('admin.email.delete');
     }
 }

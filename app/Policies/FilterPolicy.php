@@ -16,23 +16,25 @@ class FilterPolicy
 
     public function create(Staff $staff): bool
     {
-        return $staff->hasPermissionTo('admin.filter.create');
+        return $staff->hasAdminPermission('admin.filter.create');
     }
 
     public function update(Staff $staff, Filter $filter): bool
     {
-        return $filter instanceof Filter && $staff->hasPermissionTo('admin.filter.update');
+        return $filter instanceof Filter && $staff->hasAdminPermission('admin.filter.update');
     }
 
     public function delete(Staff $staff, Filter $filter): bool
     {
-        return $filter instanceof Filter && $staff->hasPermissionTo('admin.filter.delete');
+        return $filter instanceof Filter && $staff->hasAdminPermission('admin.filter.delete');
     }
 
     private function canViewFilters(Staff $staff): bool
     {
-        return $staff->hasPermissionTo('admin.filter.create')
-            || $staff->hasPermissionTo('admin.filter.update')
-            || $staff->hasPermissionTo('admin.filter.delete');
+        return $staff->hasAdminPermission(
+            'admin.filter.create',
+            'admin.filter.update',
+            'admin.filter.delete',
+        );
     }
 }
