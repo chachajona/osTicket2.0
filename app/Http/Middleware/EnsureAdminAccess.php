@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Middleware;
 
 use App\Models\Staff;
@@ -32,7 +34,7 @@ class EnsureAdminAccess
             abort(403, 'Your staff account is inactive.');
         }
 
-        if (! $staff->hasPermissionTo('admin.access')) {
+        if (! $staff->canAccessAdminPanel()) {
             if ($request->expectsJson()) {
                 return response()->json(['message' => 'Forbidden.'], 403);
             }

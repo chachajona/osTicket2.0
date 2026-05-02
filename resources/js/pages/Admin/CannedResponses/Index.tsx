@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
-import { AdminLayout } from '@/components/admin/AdminLayout';
+import { appShellLayout } from '@/layouts/AppShell';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { buttonVariants } from '@/components/ui/button';
 import {
@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/table';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Delete01Icon, PencilEdit01Icon, PlusSignIcon } from '@hugeicons/core-free-icons';
+import type { ReactElement } from 'react';
 
 declare global {
     function route(name: string, params?: any): string;
@@ -51,7 +52,7 @@ export default function CannedResponsesIndex({ cannedResponses }: Props) {
     };
 
     return (
-        <AdminLayout activeAdminNav="canned-responses">
+        <>
             <Head title="Canned Responses" />
 
             <div className="mb-6 flex items-center justify-between">
@@ -150,6 +151,12 @@ export default function CannedResponsesIndex({ cannedResponses }: Props) {
                 variant="destructive"
                 onConfirm={handleDelete}
             />
-        </AdminLayout>
+        </>
     );
 }
+
+type CannedResponsesIndexComponent = typeof CannedResponsesIndex & {
+    layout?: (page: ReactElement) => React.ReactNode;
+};
+
+(CannedResponsesIndex as CannedResponsesIndexComponent).layout = appShellLayout;

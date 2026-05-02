@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests;
 
 use Illuminate\Database\Schema\Blueprint;
@@ -133,6 +135,9 @@ abstract class TestCase extends BaseTestCase
                 $table->string('language', 16)->nullable();
                 $table->string('timezone', 64)->nullable();
                 $table->json('notifications')->nullable();
+                $table->string('last_active_panel', 16)->default('scp');
+                $table->string('default_scp_tab', 64)->nullable();
+                $table->string('default_admin_tab', 64)->nullable();
                 $table->timestamps();
             });
 

@@ -21,23 +21,25 @@ class RolePolicy
 
     public function create(Staff $staff): bool
     {
-        return $staff->hasPermissionTo('admin.role.create');
+        return $staff->hasAdminPermission('admin.role.create');
     }
 
     public function update(Staff $staff, Role $role): bool
     {
-        return $role instanceof Role && $staff->hasPermissionTo('admin.role.update');
+        return $role instanceof Role && $staff->hasAdminPermission('admin.role.update');
     }
 
     public function delete(Staff $staff, Role $role): bool
     {
-        return $role instanceof Role && $staff->hasPermissionTo('admin.role.delete');
+        return $role instanceof Role && $staff->hasAdminPermission('admin.role.delete');
     }
 
     private function canViewRoles(Staff $staff): bool
     {
-        return $staff->hasPermissionTo('admin.role.create')
-            || $staff->hasPermissionTo('admin.role.update')
-            || $staff->hasPermissionTo('admin.role.delete');
+        return $staff->hasAdminPermission(
+            'admin.role.create',
+            'admin.role.update',
+            'admin.role.delete',
+        );
     }
 }

@@ -101,7 +101,7 @@ export const ADMIN_TABS: AdminTopTab[] = [
     },
 ];
 
-export const ADMIN_TAB_BY_SUB_ID: Record<string, { tabId: string; subId: string }> = ADMIN_TABS
+export const ADMIN_TAB_MAP: Record<string, { tabId: string; subId: string }> = ADMIN_TABS
     .flatMap((tab) =>
         tab.submenu.map((sub) => [sub.id, { tabId: tab.id, subId: sub.id }] as const),
     )

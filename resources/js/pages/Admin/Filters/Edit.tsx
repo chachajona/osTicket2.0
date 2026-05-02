@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { AdminLayout } from '@/components/admin/AdminLayout';
+import { appShellLayout } from '@/layouts/AppShell';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { FormGrid } from '@/components/admin/FormGrid';
 import { FormSection } from '@/components/admin/FormSection';
@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { ArrowLeft01Icon, Delete01Icon, FloppyDiskIcon, PlusSignIcon } from '@hugeicons/core-free-icons';
+import type { ReactElement } from 'react';
 
 declare global {
     function route(name: string, params?: any): string;
@@ -95,7 +96,7 @@ export default function FiltersEdit({ filter }: Props) {
     };
 
     return (
-        <AdminLayout activeAdminNav="filters">
+        <>
             <Head title={isEdit && filter ? `Edit Filter: ${filter.name}` : 'Create Filter'} />
 
             <div className="mb-6">
@@ -440,6 +441,12 @@ export default function FiltersEdit({ filter }: Props) {
                     onConfirm={handleDelete}
                 />
             )}
-        </AdminLayout>
+        </>
     );
 }
+
+type FiltersEditComponent = typeof FiltersEdit & {
+    layout?: (page: ReactElement) => React.ReactNode;
+};
+
+(FiltersEdit as FiltersEditComponent).layout = appShellLayout;

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
-import { AdminLayout } from '@/components/admin/AdminLayout';
+import { appShellLayout } from '@/layouts/AppShell';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { buttonVariants } from '@/components/ui/button';
 import {
@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/table';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { PlusSignIcon, PencilEdit01Icon, Delete01Icon } from '@hugeicons/core-free-icons';
+import type { ReactElement } from 'react';
 
 declare global {
     function route(name: string, params?: any): string;
@@ -50,7 +51,7 @@ export default function RolesIndex({ roles }: Props) {
     };
 
     return (
-        <AdminLayout activeAdminNav="roles">
+        <>
             <Head title="Roles" />
 
             <div className="flex items-center justify-between mb-6">
@@ -137,6 +138,12 @@ export default function RolesIndex({ roles }: Props) {
                 variant="destructive"
                 onConfirm={handleDelete}
             />
-        </AdminLayout>
+        </>
     );
 }
+
+type RolesIndexComponent = typeof RolesIndex & {
+    layout?: (page: ReactElement) => React.ReactNode;
+};
+
+(RolesIndex as RolesIndexComponent).layout = appShellLayout;

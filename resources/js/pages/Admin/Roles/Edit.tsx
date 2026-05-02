@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Head, Link, useForm, router } from '@inertiajs/react';
-import { AdminLayout } from '@/components/admin/AdminLayout';
+import { appShellLayout } from '@/layouts/AppShell';
 import { FormGrid } from '@/components/admin/FormGrid';
 import { FormSection } from '@/components/admin/FormSection';
 import { PermissionMatrix, type PermissionGroup } from '@/components/admin/PermissionMatrix';
@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { buttonVariants, Button } from '@/components/ui/button';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { ArrowLeft01Icon, FloppyDiskIcon, Delete01Icon } from '@hugeicons/core-free-icons';
+import type { ReactElement } from 'react';
 
 declare global {
     function route(name: string, params?: any): string;
@@ -54,7 +55,7 @@ export default function RolesEdit({ role, permissions, selectedPermissions }: Pr
     };
 
     return (
-        <AdminLayout activeAdminNav="roles">
+        <>
             <Head title={isEdit ? `Edit Role: ${role.name}` : 'Create Role'} />
 
             <div className="mb-6">
@@ -181,6 +182,12 @@ export default function RolesEdit({ role, permissions, selectedPermissions }: Pr
                     onConfirm={handleDelete}
                 />
             )}
-        </AdminLayout>
+        </>
     );
 }
+
+type RolesEditComponent = typeof RolesEdit & {
+    layout?: (page: ReactElement) => React.ReactNode;
+};
+
+(RolesEdit as RolesEditComponent).layout = appShellLayout;

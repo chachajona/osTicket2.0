@@ -24,7 +24,7 @@ class TwoFactorController extends Controller
             return redirect()->route('scp.login');
         }
 
-        return Inertia::render('Auth/TwoFactor');
+        return Inertia::render('Auth/TwoFactorEmail');
     }
 
     public function verify(Request $request): RedirectResponse

@@ -1,6 +1,6 @@
 import { type ComponentProps, useMemo, useState } from 'react';
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { AdminLayout } from '@/components/admin/AdminLayout';
+import { appShellLayout } from '@/layouts/AppShell';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { FormGrid } from '@/components/admin/FormGrid';
 import { FormSection } from '@/components/admin/FormSection';
@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { ArrowLeft01Icon, Delete01Icon, FloppyDiskIcon } from '@hugeicons/core-free-icons';
+import type { ReactElement } from 'react';
 
 declare global {
     function route(name: string, params?: any): string;
@@ -99,7 +100,7 @@ export default function EmailConfigEdit({ mode, type, config, templateGroups }: 
     };
 
     return (
-        <AdminLayout activeAdminNav="email-config">
+        <>
             <Head title={title} />
 
             <div className="mb-6">
@@ -283,6 +284,12 @@ export default function EmailConfigEdit({ mode, type, config, templateGroups }: 
                     onConfirm={deleteConfig}
                 />
             )}
-        </AdminLayout>
+        </>
     );
 }
+
+type EmailConfigEditComponent = typeof EmailConfigEdit & {
+    layout?: (page: ReactElement) => React.ReactNode;
+};
+
+(EmailConfigEdit as EmailConfigEditComponent).layout = appShellLayout;

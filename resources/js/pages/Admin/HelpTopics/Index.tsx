@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
-import { AdminLayout } from '@/components/admin/AdminLayout';
+import { appShellLayout } from '@/layouts/AppShell';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { buttonVariants } from '@/components/ui/button';
 import {
@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/table';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Delete01Icon, PencilEdit01Icon, PlusSignIcon } from '@hugeicons/core-free-icons';
+import type { ReactElement } from 'react';
 
 declare global {
     function route(name: string, params?: any): string;
@@ -51,7 +52,7 @@ export default function HelpTopicsIndex({ helpTopics }: Props) {
     };
 
     return (
-        <AdminLayout activeAdminNav="help-topics">
+        <>
             <Head title="Help Topics" />
 
             <div className="mb-6 flex items-center justify-between">
@@ -149,6 +150,12 @@ export default function HelpTopicsIndex({ helpTopics }: Props) {
                 variant="destructive"
                 onConfirm={handleDelete}
             />
-        </AdminLayout>
+        </>
     );
 }
+
+type HelpTopicsIndexComponent = typeof HelpTopicsIndex & {
+    layout?: (page: ReactElement) => React.ReactNode;
+};
+
+(HelpTopicsIndex as HelpTopicsIndexComponent).layout = appShellLayout;

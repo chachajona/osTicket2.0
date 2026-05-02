@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
-import { AdminLayout } from '@/components/admin/AdminLayout';
+import { appShellLayout } from '@/layouts/AppShell';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { buttonVariants } from '@/components/ui/button';
 import {
@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/table';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Delete01Icon, PencilEdit01Icon, PlusSignIcon } from '@hugeicons/core-free-icons';
+import type { ReactElement } from 'react';
 
 declare global {
     function route(name: string, params?: any): string;
@@ -68,7 +69,7 @@ export default function EmailConfigIndex({ items, summary, createUrls }: Props) 
     };
 
     return (
-        <AdminLayout activeAdminNav="email-config">
+        <>
             <Head title="Email Config" />
 
             <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -195,6 +196,12 @@ export default function EmailConfigIndex({ items, summary, createUrls }: Props) 
                 variant="destructive"
                 onConfirm={handleDelete}
             />
-        </AdminLayout>
+        </>
     );
 }
+
+type EmailConfigIndexComponent = typeof EmailConfigIndex & {
+    layout?: (page: ReactElement) => React.ReactNode;
+};
+
+(EmailConfigIndex as EmailConfigIndexComponent).layout = appShellLayout;

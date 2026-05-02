@@ -16,23 +16,25 @@ class DepartmentPolicy
 
     public function create(Staff $staff): bool
     {
-        return $staff->hasPermissionTo('admin.department.create');
+        return $staff->hasAdminPermission('admin.department.create');
     }
 
     public function update(Staff $staff, Department $department): bool
     {
-        return $department instanceof Department && $staff->hasPermissionTo('admin.department.update');
+        return $department instanceof Department && $staff->hasAdminPermission('admin.department.update');
     }
 
     public function delete(Staff $staff, Department $department): bool
     {
-        return $department instanceof Department && $staff->hasPermissionTo('admin.department.delete');
+        return $department instanceof Department && $staff->hasAdminPermission('admin.department.delete');
     }
 
     private function canViewDepartments(Staff $staff): bool
     {
-        return $staff->hasPermissionTo('admin.department.create')
-            || $staff->hasPermissionTo('admin.department.update')
-            || $staff->hasPermissionTo('admin.department.delete');
+        return $staff->hasAdminPermission(
+            'admin.department.create',
+            'admin.department.update',
+            'admin.department.delete',
+        );
     }
 }

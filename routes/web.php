@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Http\Controllers\Account\MigrationBannerController;
 use App\Http\Controllers\Account\SecurityController;
 use App\Http\Controllers\Account\TwoFactorSecurityController;
@@ -18,6 +20,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\TwoFactorAppController;
 use App\Http\Controllers\Auth\TwoFactorController;
+use App\Http\Controllers\Panels\PanelSwitchController;
 use App\Http\Controllers\Scp\AttachmentController;
 use App\Http\Controllers\Scp\DashboardController;
 use App\Http\Controllers\Scp\QueueController;
@@ -36,6 +39,8 @@ Route::get('/', function () {
 
     return redirect()->route('scp.login');
 });
+
+Route::post('/panel/switch', PanelSwitchController::class)->middleware('auth.staff')->name('panel.switch');
 
 Route::prefix('scp')->name('scp.')->group(function () {
     Route::middleware('guest:staff')->group(function () {

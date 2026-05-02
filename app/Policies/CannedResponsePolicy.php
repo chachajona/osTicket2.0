@@ -21,23 +21,25 @@ class CannedResponsePolicy
 
     public function create(Staff $staff): bool
     {
-        return $staff->hasPermissionTo('admin.canned.create');
+        return $staff->hasAdminPermission('admin.canned.create');
     }
 
     public function update(Staff $staff, CannedResponse $cannedResponse): bool
     {
-        return $cannedResponse instanceof CannedResponse && $staff->hasPermissionTo('admin.canned.update');
+        return $cannedResponse instanceof CannedResponse && $staff->hasAdminPermission('admin.canned.update');
     }
 
     public function delete(Staff $staff, CannedResponse $cannedResponse): bool
     {
-        return $cannedResponse instanceof CannedResponse && $staff->hasPermissionTo('admin.canned.delete');
+        return $cannedResponse instanceof CannedResponse && $staff->hasAdminPermission('admin.canned.delete');
     }
 
     private function canViewCannedResponses(Staff $staff): bool
     {
-        return $staff->hasPermissionTo('admin.canned.create')
-            || $staff->hasPermissionTo('admin.canned.update')
-            || $staff->hasPermissionTo('admin.canned.delete');
+        return $staff->hasAdminPermission(
+            'admin.canned.create',
+            'admin.canned.update',
+            'admin.canned.delete',
+        );
     }
 }
