@@ -8,31 +8,15 @@ import {
     Tick02Icon,
 } from '@hugeicons/core-free-icons';
 
+import type { PaginationState, QueueFilters, QueueSortState, TicketRow } from './QueueTypes';
+
 import { Avatar } from '@/components/scp/Avatar';
 import { PriorityBadge } from '@/components/scp/PriorityBadge';
-import type { QueueFilters, QueueSortState } from '@/components/scp/TicketFilterChips';
 import { Button } from '@/components/ui/button';
 import { formatTicketDate } from '@/lib/datetime';
 import { cn } from '@/lib/utils';
 
-export interface TicketRow {
-    id: number;
-    number: string;
-    created: string | null;
-    subject: string | null;
-    from: string | null;
-    priority: string | null;
-    assignee: string | null;
-    status?: string | null;
-    status_state?: string | null;
-    source?: string | null;
-}
-
-export interface PaginationState {
-    page: number;
-    perPage: number;
-    total: number;
-}
+export type { PaginationState, TicketRow } from './QueueTypes';
 
 interface QueueTicketTableProps {
     queueId: number;
@@ -60,13 +44,13 @@ const COLUMNS: ColumnDef[] = [
     { id: 'created', label: 'Request Date', sortable: true, width: 'w-48' },
 ];
 
-const ROW_BORDER = 'border-y border-zinc-100';
-const ROW_BORDER_FIRST = 'border-l border-zinc-100';
-const ROW_BORDER_LAST = 'border-r border-zinc-100';
-const ACTIVE_BORDER = 'border-y border-[#5B619D]';
-const ACTIVE_BORDER_FIRST = 'border-l border-[#5B619D]';
-const ACTIVE_BORDER_LAST = 'border-r border-[#5B619D]';
-const ACTIVE_BG = 'bg-[#F3ECFF]';
+const ROW_BORDER = 'border-y border-[#F4F2EB]';
+const ROW_BORDER_FIRST = 'border-l border-[#F4F2EB]';
+const ROW_BORDER_LAST = 'border-r border-[#F4F2EB]';
+const ACTIVE_BORDER = 'border-y border-[#F97316]';
+const ACTIVE_BORDER_FIRST = 'border-l border-[#F97316]';
+const ACTIVE_BORDER_LAST = 'border-r border-[#F97316]';
+const ACTIVE_BG = 'bg-[#FFF4EC]';
 
 function CheckboxButton({
     checked,
@@ -89,10 +73,10 @@ function CheckboxButton({
             className={cn(
                 'grid h-4 w-4 place-items-center rounded border transition-colors',
                 checked
-                    ? 'border-[#5B619D] bg-[#5B619D] text-white'
+                    ? 'border-[#F97316] bg-[#F97316] text-white'
                     : accent
-                      ? 'border-zinc-400 text-transparent hover:border-zinc-500'
-                      : 'border-zinc-300 text-transparent hover:border-zinc-400',
+                      ? 'border-[#A1A1AA] text-transparent hover:border-[#71717A]'
+                      : 'border-[#E2E0D8] text-transparent hover:border-[#A1A1AA]',
             )}
         >
             <HugeiconsIcon icon={Tick02Icon} size={10} strokeWidth={3} />
@@ -178,8 +162,7 @@ export function QueueTicketTable({ queueId, tickets, pagination, sort, filters }
                                     key={column.id}
                                     scope="col"
                                     className={cn(
-                                        'px-3 py-2 text-xs font-normal whitespace-nowrap',
-                                        column.sortable ? 'text-zinc-500' : 'text-zinc-500',
+                                        'px-3 py-2 whitespace-nowrap text-[10px] font-medium uppercase tracking-[0.1em] text-[#A1A1AA]',
                                         column.width,
                                     )}
                                     aria-sort={
@@ -194,8 +177,8 @@ export function QueueTicketTable({ queueId, tickets, pagination, sort, filters }
                                         disabled={!column.sortable}
                                         className={cn(
                                             'inline-flex items-center gap-1 transition-colors',
-                                            column.sortable ? 'cursor-pointer hover:text-zinc-800' : 'cursor-default',
-                                            sortBy === column.id && 'text-zinc-900',
+                                            column.sortable ? 'cursor-pointer hover:text-[#18181B]' : 'cursor-default',
+                                            sortBy === column.id && 'text-[#18181B]',
                                         )}
                                     >
                                         {column.label}
@@ -217,9 +200,9 @@ export function QueueTicketTable({ queueId, tickets, pagination, sort, filters }
                             <tr>
                                 <td
                                     colSpan={COLUMNS.length + 2}
-                                    className="rounded-lg border border-dashed border-zinc-200 bg-white px-6 py-12 text-center text-sm text-zinc-500"
+                                    className="rounded-lg border border-dashed border-[#E2E0D8] bg-white px-6 py-12 text-center text-sm text-[#71717A]"
                                 >
-                                    <p className="font-medium text-zinc-700">No tickets match this queue.</p>
+                                    <p className="font-medium text-[#18181B]">No tickets match this queue.</p>
                                     <p className="mt-1 text-xs">
                                         The queue&apos;s criteria returned 0 results for tickets you have access to. Try a different queue from the dropdown above.
                                     </p>
@@ -234,7 +217,7 @@ export function QueueTicketTable({ queueId, tickets, pagination, sort, filters }
                                 const lastBorder = isSelected ? ACTIVE_BORDER_LAST : ROW_BORDER_LAST;
                                 const cellBg = isSelected
                                     ? ACTIVE_BG
-                                    : 'bg-white group-hover:bg-zinc-50';
+                                    : 'bg-white group-hover:bg-[#FAFAF8]';
 
                                 return (
                                     <tr key={ticket.id} className="group">
@@ -246,12 +229,12 @@ export function QueueTicketTable({ queueId, tickets, pagination, sort, filters }
                                                 accent={isSelected}
                                             />
                                         </td>
-                                        <td className={cn(cellBase, borderClass, cellBg, 'font-medium text-zinc-700')}>
+                                        <td className={cn(cellBase, borderClass, cellBg, 'font-medium text-[#18181B]')}>
                                             <Link href={`/scp/tickets/${ticket.id}`} className="hover:underline">
                                                 #{ticket.number}
                                             </Link>
                                         </td>
-                                        <td className={cn(cellBase, borderClass, cellBg, 'whitespace-normal text-zinc-800')}>
+                                        <td className={cn(cellBase, borderClass, cellBg, 'whitespace-normal text-[#18181B]')}>
                                             <Link
                                                 href={`/scp/tickets/${ticket.id}`}
                                                 className="line-clamp-1 hover:underline"
@@ -262,20 +245,20 @@ export function QueueTicketTable({ queueId, tickets, pagination, sort, filters }
                                         <td className={cn(cellBase, borderClass, cellBg)}>
                                             <PriorityBadge priority={ticket.priority} />
                                         </td>
-                                        <td className={cn(cellBase, borderClass, cellBg, 'text-zinc-700')}>
+                                        <td className={cn(cellBase, borderClass, cellBg, 'text-[#18181B]')}>
                                             {ticket.from ? (
                                                 <span className="flex items-center gap-2">
                                                     <Avatar name={ticket.from} size={24} />
                                                     <span className="truncate">{ticket.from}</span>
                                                 </span>
                                             ) : (
-                                                <span className="text-zinc-400">—</span>
+                                                <span className="text-[#A1A1AA]">—</span>
                                             )}
                                         </td>
-                                        <td className={cn(cellBase, borderClass, cellBg, 'text-zinc-600')}>
-                                            {ticket.assignee ?? <span className="text-zinc-400">Unassigned</span>}
+                                        <td className={cn(cellBase, borderClass, cellBg, 'text-[#71717A]')}>
+                                            {ticket.assignee ?? <span className="text-[#A1A1AA]">Unassigned</span>}
                                         </td>
-                                        <td className={cn(cellBase, borderClass, cellBg, 'text-zinc-500')}>
+                                        <td className={cn(cellBase, borderClass, cellBg, 'text-[#71717A]')}>
                                             {formatTicketDate(ticket.created) ?? '—'}
                                         </td>
                                         <td className={cn(cellBase, borderClass, lastBorder, cellBg, 'rounded-r-lg text-right')}>
@@ -284,7 +267,7 @@ export function QueueTicketTable({ queueId, tickets, pagination, sort, filters }
                                                 disabled
                                                 aria-disabled="true"
                                                 title="Row actions coming soon"
-                                                className="rounded p-1 text-zinc-400 transition-colors hover:text-zinc-600"
+                                                className="rounded p-1 text-[#A1A1AA] transition-colors hover:text-[#71717A]"
                                             >
                                                 <HugeiconsIcon icon={MoreHorizontalIcon} size={16} />
                                             </button>
@@ -297,7 +280,7 @@ export function QueueTicketTable({ queueId, tickets, pagination, sort, filters }
                 </table>
             </div>
 
-            <footer className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 px-3 pt-4 text-xs text-zinc-500">
+            <footer className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[#E2E0D8] px-3 pt-4 text-xs text-[#71717A]">
                 <span>
                     {pagination.total === 0
                         ? 'No tickets'

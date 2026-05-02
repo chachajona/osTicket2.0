@@ -12,27 +12,12 @@ import {
     Tick02Icon,
 } from '@hugeicons/core-free-icons';
 
+import type { QueueFilterOptions, QueueFilters, QueueSortState } from './QueueTypes';
+
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
-export interface QueueFilters {
-    state: string[];
-    source: string[];
-    priority: number[];
-    created_from: string | null;
-    created_to: string | null;
-}
-
-export interface QueueFilterOptions {
-    states: string[];
-    sources: string[];
-    priorities: { id: number; name: string }[];
-}
-
-export interface QueueSortState {
-    by: string;
-    dir: string;
-}
+export type { QueueFilterOptions, QueueFilters, QueueSortState } from './QueueTypes';
 
 interface TicketFilterChipsProps {
     queueId: number;
@@ -255,8 +240,8 @@ export function TicketFilterChips({ queueId, filters, filterOptions, sort }: Tic
                         );
                     })}
                 </PopoverList>
-                <div className="mt-2 border-t border-[#E2E8F0] px-2 py-3">
-                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#94A3B8]">Custom range</p>
+                <div className="mt-2 border-t border-[#E2E0D8] px-2 py-3">
+                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#A1A1AA]">Custom range</p>
                     <div className="space-y-2">
                         <DateInput
                             label="From"
@@ -272,7 +257,7 @@ export function TicketFilterChips({ queueId, filters, filterOptions, sort }: Tic
                 </div>
             </Chip>
 
-            <span className="hidden h-4 w-px bg-zinc-200 sm:inline-block" aria-hidden />
+            <span className="hidden h-4 w-px bg-[#E2E0D8] sm:inline-block" aria-hidden />
 
             <button
                 type="button"
@@ -281,8 +266,8 @@ export function TicketFilterChips({ queueId, filters, filterOptions, sort }: Tic
                 className={cn(
                     'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs transition-colors',
                     totalActive === 0
-                        ? 'cursor-not-allowed text-zinc-400'
-                        : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900',
+                        ? 'cursor-not-allowed text-[#A1A1AA]'
+                        : 'text-[#71717A] hover:bg-[#F4F2EB] hover:text-[#18181B]',
                 )}
             >
                 <HugeiconsIcon icon={Cancel01Icon} size={12} />
@@ -315,16 +300,16 @@ function Chip({ id, openId, onOpenChange, icon, label, count, value, children }:
                         className={cn(
                             'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
                             active
-                                ? 'border-[#5B619D] bg-[#F3ECFF] text-[#3F4577]'
-                                : 'border-[#E2E8F0] bg-white text-zinc-600 hover:border-[#CBD5E1] hover:text-zinc-900',
+                                ? 'border-[#F97316] bg-[#F3ECFF] text-[#3F4577]'
+                                : 'border-[#E2E0D8] bg-white text-[#71717A] hover:border-[#CBD5E1] hover:text-[#18181B]',
                         )}
                     >
                         <HugeiconsIcon icon={icon} size={13} />
                         <span>{label}</span>
-                        {value && <span className="text-[#94A3B8]">·</span>}
-                        {value && <span className="max-w-[12rem] truncate text-zinc-700">{value}</span>}
+                        {value && <span className="text-[#A1A1AA]">·</span>}
+                        {value && <span className="max-w-[12rem] truncate text-[#18181B]">{value}</span>}
                         {count > 0 && (
-                            <span className="ml-0.5 inline-flex items-center justify-center rounded-full bg-[#5B619D] px-1.5 text-[10px] font-semibold leading-4 text-white">
+                            <span className="ml-0.5 inline-flex items-center justify-center rounded-full bg-[#F97316] px-1.5 text-[10px] font-semibold leading-4 text-white">
                                 {count}
                             </span>
                         )}
@@ -344,16 +329,16 @@ function PopoverList({ children }: { children: ReactNode }) {
 }
 
 function PopoverEmpty({ text }: { text: string }) {
-    return <p className="px-2 py-3 text-xs text-zinc-500">{text}</p>;
+    return <p className="px-2 py-3 text-xs text-[#71717A]">{text}</p>;
 }
 
 function PopoverFooter({ onClear }: { onClear: () => void }) {
     return (
-        <div className="mt-1 border-t border-[#E2E8F0] pt-2">
+        <div className="mt-1 border-t border-[#E2E0D8] pt-2">
             <button
                 type="button"
                 onClick={onClear}
-                className="w-full rounded-md px-3 py-1.5 text-left text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-50 hover:text-zinc-900"
+                className="w-full rounded-md px-3 py-1.5 text-left text-xs font-medium text-[#71717A] transition-colors hover:bg-[#FAFAF8] hover:text-[#18181B]"
             >
                 Clear
             </button>
@@ -374,7 +359,7 @@ function CheckRow({ checked, onSelect, label, rounded }: CheckRowProps) {
             type="button"
             onClick={onSelect}
             className={cn(
-                'flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm text-[#0F172A] transition-colors hover:bg-[#F8FAFC]',
+                'flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm text-[#18181B] transition-colors hover:bg-[#FAFAF8]',
             )}
         >
             <span
@@ -382,8 +367,8 @@ function CheckRow({ checked, onSelect, label, rounded }: CheckRowProps) {
                     'grid h-4 w-4 place-items-center border transition-colors',
                     rounded ? 'rounded-full' : 'rounded',
                     checked
-                        ? 'border-[#5B619D] bg-[#5B619D] text-white'
-                        : 'border-zinc-300 bg-white text-transparent',
+                        ? 'border-[#F97316] bg-[#F97316] text-white'
+                        : 'border-[#E2E0D8] bg-white text-transparent',
                 )}
             >
                 <HugeiconsIcon icon={Tick02Icon} size={10} strokeWidth={3} />
@@ -395,13 +380,13 @@ function CheckRow({ checked, onSelect, label, rounded }: CheckRowProps) {
 
 function DateInput({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
     return (
-        <label className="flex items-center justify-between gap-2 text-xs text-zinc-600">
+        <label className="flex items-center justify-between gap-2 text-xs text-[#71717A]">
             <span className="w-12 shrink-0">{label}</span>
             <input
                 type="date"
                 value={value}
                 onChange={(event) => onChange(event.target.value)}
-                className="w-full rounded-md border border-[#E2E8F0] bg-white px-2 py-1 text-xs text-[#0F172A] focus:border-[#5B619D] focus:outline-none focus:ring-2 focus:ring-[#5B619D]/20"
+                className="w-full rounded-md border border-[#E2E0D8] bg-white px-2 py-1 text-xs text-[#18181B] focus:border-[#F97316] focus:outline-none focus:ring-2 focus:ring-[#F97316]/20"
             />
         </label>
     );

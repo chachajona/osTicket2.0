@@ -22,9 +22,9 @@ import {
 
 import { PriorityBadge } from '@/components/scp/PriorityBadge';
 import { StatusBadge } from '@/components/scp/StatusBadge';
-import DashboardLayout from '@/layouts/DashboardLayout';
+import { appShellLayout, SetPageHeader } from '@/layouts/AppShell';
 import { formatBytes, formatDateTime, formatRelative } from '@/lib/datetime';
-import { sanitizeHtml } from '@/lib/sanitize-html';
+import { sanitizeHtml } from '@/lib/sanitizeHtml';
 import { cn } from '@/lib/utils';
 
 interface Ticket {
@@ -106,7 +106,7 @@ const ENTRY_KIND_META: Record<string, { label: string; tone: string; icon: typeo
 
 const ENTRY_DEFAULT = {
     label: 'Entry',
-    tone: 'border-[#E2E8F0] bg-[#F8FAFC] text-[#475569]',
+    tone: 'border-[#E2E0D8] bg-[#FAFAF8] text-[#71717A]',
     icon: Mail01Icon,
 };
 
@@ -219,9 +219,9 @@ function computeSlaProgress(ticket: Ticket, now: Date): SlaProgress | null {
 function Metric({ label, value, helper }: { label: string; value: ReactNode; helper?: string | null }) {
     return (
         <div>
-            <dt className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#94A3B8]">{label}</dt>
-            <dd className="mt-1.5 text-sm font-medium text-[#0F172A]">{value || <span className="text-[#94A3B8]">—</span>}</dd>
-            {helper && <p className="mt-0.5 text-xs text-[#94A3B8]">{helper}</p>}
+            <dt className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#A1A1AA]">{label}</dt>
+            <dd className="mt-1.5 text-sm font-medium text-[#18181B]">{value || <span className="text-[#A1A1AA]">—</span>}</dd>
+            {helper && <p className="mt-0.5 text-xs text-[#A1A1AA]">{helper}</p>}
         </div>
     );
 }
@@ -230,7 +230,7 @@ const SLA_TRACK_COLOR: Record<SlaProgress['tone'], string> = {
     overdue: 'bg-red-500',
     danger: 'bg-amber-500',
     warn: 'bg-yellow-400',
-    closed: 'bg-zinc-400',
+    closed: 'bg-[#A1A1AA]',
     safe: 'bg-emerald-500',
 };
 
@@ -238,7 +238,7 @@ const SLA_LABEL_TONE: Record<SlaProgress['tone'], string> = {
     overdue: 'text-red-600',
     danger: 'text-amber-600',
     warn: 'text-yellow-700',
-    closed: 'text-zinc-500',
+    closed: 'text-[#71717A]',
     safe: 'text-emerald-600',
 };
 
@@ -247,12 +247,12 @@ function SlaBar({ progress }: { progress: SlaProgress }) {
     const labelTone = SLA_LABEL_TONE[progress.tone];
 
     return (
-        <div className="rounded-md bg-[#F8FAFC] px-3 py-2.5">
+        <div className="rounded-md bg-[#FAFAF8] px-3 py-2.5">
             <div className="flex items-center justify-between gap-3 text-xs">
                 <span className={cn('font-semibold uppercase tracking-[0.14em]', labelTone)}>{progress.label}</span>
-                {progress.helper && <span className="text-[#64748B]">{progress.helper}</span>}
+                {progress.helper && <span className="text-[#71717A]">{progress.helper}</span>}
             </div>
-            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#E2E8F0]">
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#E2E0D8]">
                 <div className={cn('h-full rounded-full transition-all', trackColor)} style={{ width: `${progress.percent}%` }} />
             </div>
         </div>
@@ -271,28 +271,28 @@ function TicketHeader({ ticket }: { ticket: Ticket }) {
     const sla = computeSlaProgress(ticket, now);
 
     return (
-        <header className="rounded-[18px] border border-[#E2E8F0] bg-white p-6 shadow-sm shadow-[#0F172A]/[0.03] xl:p-8">
+        <header className="rounded-[18px] border border-[#E2E0D8] bg-white p-6 shadow-sm shadow-[#18181B]/[0.03] xl:p-8">
             <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="min-w-0 flex-1">
-                    <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-1.5 text-xs text-[#94A3B8]">
-                        <Link href="/scp/queues" className="hover:text-[#0F172A]">Tickets</Link>
-                        <span className="text-[#CBD5E1]">/</span>
+                    <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-1.5 text-xs text-[#A1A1AA]">
+                        <Link href="/scp/queues" className="hover:text-[#18181B]">Tickets</Link>
+                        <span className="text-[#E2E0D8]">/</span>
                         <button
                             type="button"
                             onClick={() => copy(`#${ticket.number}`, 'number')}
-                            className="inline-flex items-center gap-1 font-mono text-[#0F172A] hover:text-[#5B619D]"
+                            className="inline-flex items-center gap-1 font-mono text-[#18181B] hover:text-[#EC4899]"
                             title="Copy ticket number"
                         >
                             <span>#{ticket.number}</span>
                             <HugeiconsIcon
                                 icon={copied === 'number' ? CheckmarkCircle02Icon : Copy01Icon}
                                 size={11}
-                                className={cn('transition-colors', copied === 'number' ? 'text-emerald-500' : 'text-[#94A3B8]')}
+                                className={cn('transition-colors', copied === 'number' ? 'text-emerald-500' : 'text-[#A1A1AA]')}
                             />
                         </button>
                         {ticket.created && (
                             <>
-                                <span className="text-[#CBD5E1]">·</span>
+                                <span className="text-[#E2E0D8]">·</span>
                                 <span title={formatDateTime(ticket.created) ?? undefined}>
                                     Created {formatRelative(ticket.created)}
                                 </span>
@@ -300,16 +300,16 @@ function TicketHeader({ ticket }: { ticket: Ticket }) {
                         )}
                         {ticket.requester && (
                             <>
-                                <span className="text-[#CBD5E1]">·</span>
+                                <span className="text-[#E2E0D8]">·</span>
                                 <span>by {ticket.requester}</span>
                             </>
                         )}
                     </nav>
-                    <h1 className="mt-2 font-display text-2xl font-medium tracking-tight text-[#0F172A]">
+                    <h1 className="mt-2 font-display text-2xl font-medium tracking-tight text-[#18181B]">
                         {ticket.subject ?? `Ticket ${ticket.number}`}
                     </h1>
                     {ticket.requester_email && (
-                        <a href={`mailto:${ticket.requester_email}`} className="mt-1 inline-flex items-center gap-1.5 text-xs text-[#5B619D] hover:underline">
+                        <a href={`mailto:${ticket.requester_email}`} className="mt-1 inline-flex items-center gap-1.5 text-xs text-[#6366F1] hover:underline">
                             <HugeiconsIcon icon={Mail01Icon} size={12} />
                             {ticket.requester_email}
                         </a>
@@ -321,7 +321,7 @@ function TicketHeader({ ticket }: { ticket: Ticket }) {
                 </div>
             </div>
 
-            <dl className="mt-6 grid grid-cols-2 gap-4 border-t border-[#F1F5F9] pt-6 sm:grid-cols-4">
+            <dl className="mt-6 grid grid-cols-2 gap-4 border-t border-[#F4F2EB] pt-6 sm:grid-cols-4">
                 <Metric label="Department" value={ticket.department} />
                 <Metric label="Assignee" value={ticket.assignee} />
                 <Metric
@@ -364,16 +364,16 @@ function TimelineEntry({ item }: { item: ThreadEntry }) {
     }
 
     return (
-        <article id={anchorId} className="group relative scroll-mt-24 rounded-[14px] border border-[#E2E8F0] bg-white p-5 shadow-sm shadow-[#0F172A]/[0.02]">
+        <article id={anchorId} className="group relative scroll-mt-24 rounded-[14px] border border-[#E2E0D8] bg-white p-5 shadow-sm shadow-[#18181B]/[0.02]">
             <header className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-wrap items-center gap-2">
                     <span className={cn('inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em]', meta.tone)}>
                         <HugeiconsIcon icon={meta.icon} size={10} />
                         {meta.label}
                     </span>
-                    {item.author && <span className="text-sm font-medium text-[#0F172A]">{item.author}</span>}
+                    {item.author && <span className="text-sm font-medium text-[#18181B]">{item.author}</span>}
                 </div>
-                <div className="flex items-center gap-2 text-xs text-[#94A3B8]">
+                <div className="flex items-center gap-2 text-xs text-[#A1A1AA]">
                     {item.created && (
                         <time
                             dateTime={item.created}
@@ -388,7 +388,7 @@ function TimelineEntry({ item }: { item: ThreadEntry }) {
                         type="button"
                         onClick={shareLink}
                         title="Copy link to this entry"
-                        className="grid h-6 w-6 place-items-center rounded text-[#94A3B8] opacity-0 transition-all hover:bg-[#F1F5F9] hover:text-[#5B619D] group-hover:opacity-100 focus-visible:opacity-100"
+                        className="grid h-6 w-6 place-items-center rounded text-[#A1A1AA] opacity-0 transition-all hover:bg-[#F4F2EB] hover:text-[#EC4899] group-hover:opacity-100 focus-visible:opacity-100"
                     >
                         <HugeiconsIcon
                             icon={copied === anchorId ? CheckmarkCircle02Icon : Link02Icon}
@@ -400,13 +400,13 @@ function TimelineEntry({ item }: { item: ThreadEntry }) {
             </header>
             {safeHtml ? (
                 <div
-                    className="prose-ticket mt-4 text-sm leading-relaxed text-[#0F172A]"
+                    className="prose-ticket mt-4 text-sm leading-relaxed text-[#18181B]"
                     dangerouslySetInnerHTML={{ __html: safeHtml }}
                 />
             ) : item.body ? (
-                <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-[#0F172A]">{item.body}</p>
+                <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-[#18181B]">{item.body}</p>
             ) : (
-                <p className="mt-4 text-sm italic text-[#94A3B8]">No content.</p>
+                <p className="mt-4 text-sm italic text-[#A1A1AA]">No content.</p>
             )}
         </article>
     );
@@ -416,12 +416,12 @@ function TimelineEvent({ item }: { item: ThreadEvent }) {
     const anchorId = eventAnchor(item.id);
 
     return (
-        <div id={anchorId} className="flex scroll-mt-24 items-start gap-3 rounded-md border border-dashed border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3">
-            <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white text-[#5B619D] ring-1 ring-[#E2E8F0]">
+        <div id={anchorId} className="flex scroll-mt-24 items-start gap-3 rounded-md border border-dashed border-[#E2E0D8] bg-[#FAFAF8] px-4 py-3">
+            <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white text-[#6366F1] ring-1 ring-[#E2E0D8]">
                 <HugeiconsIcon icon={Calendar01Icon} size={12} />
             </div>
-            <div className="flex-1 text-xs text-[#64748B]">
-                <p className="font-medium text-[#0F172A]">{item.label ?? 'Event'}</p>
+            <div className="flex-1 text-xs text-[#71717A]">
+                <p className="font-medium text-[#18181B]">{item.label ?? 'Event'}</p>
                 {item.created && (
                     <p className="mt-0.5">
                         <time dateTime={item.created} title={formatDateTime(item.created) ?? undefined}>
@@ -450,11 +450,11 @@ function Timeline({ items }: { items: TimelineItem[] }) {
     }
 
     return (
-        <section className="rounded-[18px] border border-[#E2E8F0] bg-white p-6 shadow-sm shadow-[#0F172A]/[0.03] xl:p-8">
+        <section className="rounded-[18px] border border-[#E2E0D8] bg-white p-6 shadow-sm shadow-[#18181B]/[0.03] xl:p-8">
             <header className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                    <h2 className="font-display text-lg font-medium text-[#0F172A]">Timeline</h2>
-                    <span className="rounded-full bg-[#F1F5F9] px-2 py-0.5 text-[10px] font-semibold text-[#64748B]">
+                    <h2 className="font-display text-lg font-medium text-[#18181B]">Timeline</h2>
+                    <span className="rounded-full bg-[#F4F2EB] px-2 py-0.5 text-[10px] font-semibold text-[#71717A]">
                         {items.length} {items.length === 1 ? 'item' : 'items'}
                     </span>
                 </div>
@@ -462,7 +462,7 @@ function Timeline({ items }: { items: TimelineItem[] }) {
                     <button
                         type="button"
                         onClick={jumpToLatest}
-                        className="inline-flex items-center gap-1.5 rounded-md border border-[#E2E8F0] bg-white px-2.5 py-1.5 text-xs font-medium text-[#64748B] transition-colors hover:border-[#CBD5E1] hover:text-[#0F172A]"
+                        className="inline-flex items-center gap-1.5 rounded-md border border-[#E2E0D8] bg-white px-2.5 py-1.5 text-xs font-medium text-[#71717A] transition-colors hover:border-[#E2E0D8] hover:text-[#18181B]"
                     >
                         <HugeiconsIcon icon={ArrowDown01Icon} size={12} />
                         Jump to latest
@@ -470,7 +470,7 @@ function Timeline({ items }: { items: TimelineItem[] }) {
                 )}
             </header>
             {items.length === 0 ? (
-                <p className="mt-5 text-sm text-[#64748B]">No thread entries or events were found.</p>
+                <p className="mt-5 text-sm text-[#71717A]">No thread entries or events were found.</p>
             ) : (
                 <ol className="mt-6 space-y-4">
                     {items.map((item) => (
@@ -495,9 +495,9 @@ function CustomFieldsPanel({ fields }: { fields: TicketShowProps['customFields']
                 <dl className="space-y-3 text-sm">
                     {entries.map(([key, value]) => (
                         <div key={key}>
-                            <dt className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#94A3B8]">{key}</dt>
-                            <dd className="mt-1 break-words text-[#0F172A]">
-                                {value === null || value === '' ? <span className="text-[#94A3B8]">—</span> : String(value)}
+                            <dt className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#A1A1AA]">{key}</dt>
+                            <dd className="mt-1 break-words text-[#18181B]">
+                                {value === null || value === '' ? <span className="text-[#A1A1AA]">—</span> : String(value)}
                             </dd>
                         </div>
                     ))}
@@ -521,19 +521,19 @@ function AttachmentsPanel({ attachments }: { attachments: Attachment[] }) {
                         const Icon = isImage(attachment.mime) ? Image01Icon : File01Icon;
                         return (
                             <li key={attachment.id}>
-                                <div className="group flex items-start gap-3 rounded-md border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-2.5 text-sm transition-colors hover:bg-white">
-                                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-white text-[#5B619D] ring-1 ring-[#E2E8F0]">
+                                <div className="group flex items-start gap-3 rounded-md border border-[#E2E0D8] bg-[#FAFAF8] px-3 py-2.5 text-sm transition-colors hover:bg-white">
+                                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-white text-[#6366F1] ring-1 ring-[#E2E0D8]">
                                         <HugeiconsIcon icon={Icon} size={14} />
                                     </span>
                                     <div className="min-w-0 flex-1">
-                                        <p className="truncate font-medium text-[#0F172A]">
+                                        <p className="truncate font-medium text-[#18181B]">
                                             {attachment.name ?? `File ${attachment.file_id}`}
                                         </p>
-                                        <p className="mt-0.5 flex items-center gap-2 text-xs text-[#94A3B8]">
+                                        <p className="mt-0.5 flex items-center gap-2 text-xs text-[#A1A1AA]">
                                             {attachment.mime && <span className="truncate">{attachment.mime}</span>}
                                             {formatBytes(attachment.size) && (
                                                 <>
-                                                    <span className="text-[#CBD5E1]">·</span>
+                                                    <span className="text-[#E2E0D8]">·</span>
                                                     <span>{formatBytes(attachment.size)}</span>
                                                 </>
                                             )}
@@ -544,7 +544,7 @@ function AttachmentsPanel({ attachments }: { attachments: Attachment[] }) {
                                             <button
                                                 type="button"
                                                 onClick={() => setPreview(attachment)}
-                                                className="grid h-7 w-7 place-items-center rounded text-[#94A3B8] transition-colors hover:bg-[#F1F5F9] hover:text-[#5B619D]"
+                                                className="grid h-7 w-7 place-items-center rounded text-[#A1A1AA] transition-colors hover:bg-[#F4F2EB] hover:text-[#EC4899]"
                                                 title="Preview"
                                                 aria-label="Preview attachment"
                                             >
@@ -553,7 +553,7 @@ function AttachmentsPanel({ attachments }: { attachments: Attachment[] }) {
                                         )}
                                         <a
                                             href={attachment.download_url}
-                                            className="grid h-7 w-7 place-items-center rounded text-[#94A3B8] transition-colors hover:bg-[#F1F5F9] hover:text-[#5B619D]"
+                                            className="grid h-7 w-7 place-items-center rounded text-[#A1A1AA] transition-colors hover:bg-[#F4F2EB] hover:text-[#EC4899]"
                                             title="Download"
                                             aria-label="Download attachment"
                                             download
@@ -578,16 +578,16 @@ function AttachmentPreview({ attachment, onClose }: { attachment: Attachment | n
     return (
         <DialogPrimitive.Root open={open} onOpenChange={(value) => { if (!value) onClose(); }}>
             <DialogPrimitive.Portal>
-                <DialogPrimitive.Backdrop className="fixed inset-0 z-40 bg-[#0F172A]/70 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0" />
+                <DialogPrimitive.Backdrop className="fixed inset-0 z-40 bg-[#18181B]/70 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0" />
                 <DialogPrimitive.Popup className="fixed inset-0 z-50 grid place-items-center p-4 outline-none">
                     {attachment && (
                         <div className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-white shadow-2xl">
-                            <div className="flex items-center justify-between gap-3 border-b border-[#E2E8F0] bg-white px-4 py-3">
+                            <div className="flex items-center justify-between gap-3 border-b border-[#E2E0D8] bg-white px-4 py-3">
                                 <div className="min-w-0 flex-1">
-                                    <DialogPrimitive.Title className="truncate text-sm font-medium text-[#0F172A]">
+                                    <DialogPrimitive.Title className="truncate text-sm font-medium text-[#18181B]">
                                         {attachment.name ?? `File ${attachment.file_id}`}
                                     </DialogPrimitive.Title>
-                                    <p className="text-xs text-[#94A3B8]">
+                                    <p className="text-xs text-[#A1A1AA]">
                                         {attachment.mime} {formatBytes(attachment.size) ? `· ${formatBytes(attachment.size)}` : ''}
                                     </p>
                                 </div>
@@ -595,20 +595,20 @@ function AttachmentPreview({ attachment, onClose }: { attachment: Attachment | n
                                     <a
                                         href={attachment.download_url}
                                         download
-                                        className="inline-flex items-center gap-1.5 rounded-md border border-[#E2E8F0] bg-white px-2.5 py-1.5 text-xs font-medium text-[#64748B] transition-colors hover:border-[#CBD5E1] hover:text-[#0F172A]"
+                                        className="inline-flex items-center gap-1.5 rounded-md border border-[#E2E0D8] bg-white px-2.5 py-1.5 text-xs font-medium text-[#71717A] transition-colors hover:border-[#E2E0D8] hover:text-[#18181B]"
                                     >
                                         <HugeiconsIcon icon={Download01Icon} size={12} />
                                         Download
                                     </a>
                                     <DialogPrimitive.Close
-                                        className="grid h-8 w-8 place-items-center rounded-md text-[#64748B] transition-colors hover:bg-[#F1F5F9] hover:text-[#0F172A]"
+                                        className="grid h-8 w-8 place-items-center rounded-md text-[#71717A] transition-colors hover:bg-[#F4F2EB] hover:text-[#18181B]"
                                         aria-label="Close preview"
                                     >
                                         <HugeiconsIcon icon={Cancel01Icon} size={16} />
                                     </DialogPrimitive.Close>
                                 </div>
                             </div>
-                            <div className="flex flex-1 items-center justify-center overflow-auto bg-[#F1F5F9]">
+                            <div className="flex flex-1 items-center justify-center overflow-auto bg-[#F4F2EB]">
                                 {isImage(attachment.mime) ? (
                                     <img
                                         src={attachment.download_url}
@@ -622,7 +622,7 @@ function AttachmentPreview({ attachment, onClose }: { attachment: Attachment | n
                                         className="h-[80vh] w-full bg-white"
                                     />
                                 ) : (
-                                    <p className="p-12 text-sm text-[#64748B]">No preview available for this file type.</p>
+                                    <p className="p-12 text-sm text-[#71717A]">No preview available for this file type.</p>
                                 )}
                             </div>
                         </div>
@@ -642,18 +642,18 @@ function CollaboratorsPanel({ collaborators }: { collaborators: Collaborator[] }
                 <ul className="space-y-3">
                     {collaborators.map((collaborator) => (
                         <li key={collaborator.id} className="flex items-start gap-3">
-                            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#F1F5F9] text-[#5B619D]">
+                            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#F4F2EB] text-[#6366F1]">
                                 <HugeiconsIcon icon={UserGroupIcon} size={14} />
                             </span>
                             <div className="min-w-0 flex-1 text-sm">
-                                <p className="truncate font-medium text-[#0F172A]">
+                                <p className="truncate font-medium text-[#18181B]">
                                     {collaborator.name ?? collaborator.email ?? 'Unknown'}
                                 </p>
                                 {collaborator.email && collaborator.name && (
-                                    <p className="truncate text-xs text-[#94A3B8]">{collaborator.email}</p>
+                                    <p className="truncate text-xs text-[#A1A1AA]">{collaborator.email}</p>
                                 )}
                                 {collaborator.role && (
-                                    <span className="mt-1 inline-flex items-center rounded-full bg-[#F3ECFF] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#5B619D]">
+                                    <span className="mt-1 inline-flex items-center rounded-full bg-[#FFF4EC] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#6366F1]">
                                         {collaborator.role}
                                     </span>
                                 )}
@@ -674,13 +674,13 @@ function ReferralsPanel({ referrals }: { referrals: Referral[] }) {
             ) : (
                 <ul className="space-y-2 text-sm">
                     {referrals.map((referral) => (
-                        <li key={referral.id} className="flex items-center justify-between rounded-md border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-2">
-                            <span className="flex items-center gap-2 font-medium text-[#0F172A]">
-                                <HugeiconsIcon icon={Link01Icon} size={12} className="text-[#5B619D]" />
+                        <li key={referral.id} className="flex items-center justify-between rounded-md border border-[#E2E0D8] bg-[#FAFAF8] px-3 py-2">
+                            <span className="flex items-center gap-2 font-medium text-[#18181B]">
+                                <HugeiconsIcon icon={Link01Icon} size={12} className="text-[#6366F1]" />
                                 {referral.object_type ?? 'object'} #{referral.object_id ?? '?'}
                             </span>
                             {referral.created && (
-                                <time dateTime={referral.created} className="text-xs text-[#94A3B8]" title={formatDateTime(referral.created) ?? undefined}>
+                                <time dateTime={referral.created} className="text-xs text-[#A1A1AA]" title={formatDateTime(referral.created) ?? undefined}>
                                     {formatRelative(referral.created)}
                                 </time>
                             )}
@@ -694,11 +694,11 @@ function ReferralsPanel({ referrals }: { referrals: Referral[] }) {
 
 function SidebarPanel({ title, count, children }: { title: string; count?: number; children: ReactNode }) {
     return (
-        <section className="rounded-[18px] border border-[#E2E8F0] bg-white p-5 shadow-sm shadow-[#0F172A]/[0.03]">
+        <section className="rounded-[18px] border border-[#E2E0D8] bg-white p-5 shadow-sm shadow-[#18181B]/[0.03]">
             <header className="mb-4 flex items-center justify-between">
-                <h3 className="font-display text-base font-medium text-[#0F172A]">{title}</h3>
+                <h3 className="font-display text-base font-medium text-[#18181B]">{title}</h3>
                 {count !== undefined && (
-                    <span className="rounded-full bg-[#F1F5F9] px-2 py-0.5 text-[10px] font-semibold text-[#64748B]">{count}</span>
+                    <span className="rounded-full bg-[#F4F2EB] px-2 py-0.5 text-[10px] font-semibold text-[#71717A]">{count}</span>
                 )}
             </header>
             {children}
@@ -707,7 +707,7 @@ function SidebarPanel({ title, count, children }: { title: string; count?: numbe
 }
 
 function PanelEmpty({ text }: { text: string }) {
-    return <p className="text-sm text-[#64748B]">{text}</p>;
+    return <p className="text-sm text-[#71717A]">{text}</p>;
 }
 
 function StatusSummary({ ticket }: { ticket: Ticket }) {
@@ -726,12 +726,12 @@ function StatusSummary({ ticket }: { ticket: Ticket }) {
 function SummaryRow({ icon, label, value }: { icon: typeof Mail01Icon; label: string; value: string }) {
     return (
         <div className="flex items-start gap-2.5">
-            <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-md bg-[#F1F5F9] text-[#5B619D]">
+            <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-md bg-[#F4F2EB] text-[#6366F1]">
                 <HugeiconsIcon icon={icon} size={11} />
             </span>
             <div className="min-w-0 flex-1">
-                <dt className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#94A3B8]">{label}</dt>
-                <dd className="mt-0.5 break-words text-[#0F172A]">{value}</dd>
+                <dt className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#A1A1AA]">{label}</dt>
+                <dd className="mt-0.5 break-words text-[#18181B]">{value}</dd>
             </div>
         </div>
     );
@@ -739,8 +739,25 @@ function SummaryRow({ icon, label, value }: { icon: typeof Mail01Icon; label: st
 
 export default function TicketShow({ ticket, customFields, timeline, attachments, collaborators, referrals }: TicketShowProps) {
     return (
-        <div className="space-y-6">
-            <TicketHeader ticket={ticket} />
+        <>
+            <SetPageHeader>
+                <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                        <TicketHeaderTitle />
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+                        <Link
+                            href="/scp/queues"
+                            className="inline-flex items-center gap-2 rounded-md border border-[#E2E0D8] bg-white px-3 py-2 text-xs font-medium text-[#71717A] transition-colors hover:text-[#18181B]"
+                        >
+                            Back to tickets
+                        </Link>
+                    </div>
+                </div>
+            </SetPageHeader>
+
+            <div className="space-y-6">
+                <TicketHeader ticket={ticket} />
 
             <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
                 <Timeline items={timeline} />
@@ -754,6 +771,7 @@ export default function TicketShow({ ticket, customFields, timeline, attachments
                 </aside>
             </div>
         </div>
+    </>
     );
 }
 
@@ -763,11 +781,11 @@ function TicketHeaderTitle() {
 
     return (
         <div className="flex items-baseline gap-2.5">
-            <h1 className="font-display text-xl font-medium tracking-[-0.02em] text-[#0F172A]">
+            <h1 className="font-display text-xl font-medium tracking-[-0.02em] text-[#18181B]">
                 #{number}
             </h1>
-            <span className="text-[#94A3B8]">·</span>
-            <span className="font-body text-[11px] font-medium uppercase tracking-[0.12em] text-[#94A3B8]">
+            <span className="text-[#A1A1AA]">·</span>
+            <span className="font-body text-[11px] font-medium uppercase tracking-[0.12em] text-[#A1A1AA]">
                 Tickets
             </span>
         </div>
@@ -778,20 +796,4 @@ type TicketShowComponent = typeof TicketShow & {
     layout?: (page: ReactElement) => ReactNode;
 };
 
-(TicketShow as TicketShowComponent).layout = (page) => (
-    <DashboardLayout
-        headerLeft={<TicketHeaderTitle />}
-        activeNav="queues"
-        contentClassName="w-full max-w-7xl mx-auto"
-        headerActions={
-            <Link
-                href="/scp/queues"
-                className="inline-flex items-center gap-2 rounded-md border border-[#E2E8F0] bg-white px-3 py-2 text-xs font-medium text-[#64748B] transition-colors hover:text-[#0F172A]"
-            >
-                Back to tickets
-            </Link>
-        }
-    >
-        {page}
-    </DashboardLayout>
-);
+(TicketShow as TicketShowComponent).layout = appShellLayout;
