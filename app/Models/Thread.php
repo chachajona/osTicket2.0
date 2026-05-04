@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use Database\Factories\ThreadFactory;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -20,6 +22,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class Thread extends LegacyModel
 {
+    use HasFactory;
+
     /**
      * The table associated with the model.
      *
@@ -33,6 +37,11 @@ class Thread extends LegacyModel
      * @var string
      */
     protected $primaryKey = 'id';
+
+    protected static function newFactory(): ThreadFactory
+    {
+        return ThreadFactory::new();
+    }
 
     /**
      * Get the entries for the thread, ordered chronologically.
