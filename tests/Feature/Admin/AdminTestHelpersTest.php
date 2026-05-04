@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+namespace Tests\Feature\Admin;
+
 use App\Http\Middleware\EnsureAdminAccess;
 use App\Http\Middleware\AuthenticateStaff;
 use App\Models\Admin\AdminAuditLog;
@@ -9,7 +11,6 @@ use App\Models\HelpTopic;
 use App\Models\Staff;
 use App\Policies\HelpTopicPolicy;
 use App\Services\Admin\AuditLogger;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,21 +18,26 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
 
-class FakeAdminHelperSubject extends Model
-{
-    protected $connection = 'osticket2';
-
-    protected $table = 'fake_admin_helper_subjects';
-
-    public $timestamps = false;
-
-    protected $guarded = [];
-}
-
 beforeEach(function (): void {
     seedPermissions();
 
+    Schema::connection('osticket2')->dropIfExists('admin_audit_log');
     Schema::connection('osticket2')->dropIfExists('fake_admin_helper_subjects');
+
+    Schema::connection('osticket2')->create('admin_audit_log', function (Blueprint $table): void {
+        $table->bigIncrements('id');
+        $table->unsignedBigInteger('actor_id');
+        $table->string('action', 64);
+        $table->string('subject_type', 64);
+        $table->unsignedBigInteger('subject_id');
+        $table->json('before')->nullable();
+        $table->json('after')->nullable();
+        $table->json('metadata')->nullable();
+        $table->string('ip_address', 45)->nullable();
+        $table->string('user_agent', 255)->nullable();
+        $table->timestamp('created_at')->useCurrent();
+    });
+
     Schema::connection('osticket2')->create('fake_admin_helper_subjects', function (Blueprint $table): void {
         $table->bigIncrements('id');
         $table->string('name');
@@ -41,6 +47,7 @@ beforeEach(function (): void {
 afterEach(function (): void {
     Auth::guard('staff')->logout();
     Schema::connection('osticket2')->dropIfExists('fake_admin_helper_subjects');
+    Schema::connection('osticket2')->dropIfExists('admin_audit_log');
 });
 
 it('authenticates admin staff with admin access permission', function (): void {

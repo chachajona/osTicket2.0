@@ -1,24 +1,12 @@
 <?php
 
+namespace Tests\Unit\Admin;
+
 use App\Models\Staff;
 use App\Services\Admin\AuditLogger;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
-
-class FakeAuditedSubject extends Model
-{
-    protected $connection = 'osticket2';
-
-    protected $table = 'fake_audit_subjects';
-
-    public $timestamps = false;
-
-    protected $guarded = [];
-
-    protected static array $auditExcluded = ['password'];
-}
 
 beforeEach(function (): void {
     Schema::connection('osticket2')->dropIfExists('admin_audit_log');
