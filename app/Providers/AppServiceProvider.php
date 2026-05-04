@@ -26,6 +26,7 @@ use App\Policies\RolePolicy;
 use App\Policies\SlaPolicy;
 use App\Policies\StaffPolicy;
 use App\Policies\TeamPolicy;
+use App\Policies\TicketActionPolicy;
 use App\Services\Admin\DepartmentRoleResolver;
 use App\Services\LegacyHasher;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -86,6 +87,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(EmailTemplate::class, EmailConfigPolicy::class);
         Gate::policy(EmailTemplateGroup::class, EmailConfigPolicy::class);
         Gate::policy(Staff::class, StaffPolicy::class);
+        Gate::policy(Ticket::class, TicketActionPolicy::class);
 
         Event::listen(MessageSending::class, OutboundMailGuard::class);
     }

@@ -20,8 +20,11 @@ import {
     UserGroupIcon,
 } from '@hugeicons/core-free-icons';
 
+import { StatusPicker, type StatusOption } from '@/components/tickets/StatusPicker';
 import { PriorityBadge } from '@/components/scp/PriorityBadge';
 import { StatusBadge } from '@/components/scp/StatusBadge';
+import { AssignmentDialog } from '@/components/tickets/AssignmentDialog';
+import { NoteComposer } from '@/components/tickets/NoteComposer';
 import { appShellLayout, SetPageHeader } from '@/layouts/AppShell';
 import { formatBytes, formatDateTime, formatRelative } from '@/lib/datetime';
 import { sanitizeHtml } from '@/lib/sanitizeHtml';
@@ -96,6 +99,14 @@ interface TicketShowProps {
     attachments: Attachment[];
     collaborators: Collaborator[];
     referrals: Referral[];
+    permissions?: {
+        canSetStatus?: boolean;
+        canAssign?: boolean;
+        canPostNote?: boolean;
+    };
+    availableStatuses?: StatusOption[];
+    staffOptions?: { id: number; name: string }[];
+    teamOptions?: { id: number; name: string }[];
 }
 
 const ENTRY_KIND_META: Record<string, { label: string; tone: string; icon: typeof Mail01Icon }> = {
@@ -259,7 +270,7 @@ function SlaBar({ progress }: { progress: SlaProgress }) {
     );
 }
 
-function TicketHeader({ ticket }: { ticket: Ticket }) {
+function TicketHeader({ ticket, permissions, staffOptions, teamOptions, availableStatuses }: { ticket: Ticket; permissions?: TicketShowProps['permissions']; staffOptions?: TicketShowProps['staffOptions']; teamOptions?: TicketShowProps['teamOptions']; availableStatuses?: TicketShowProps['availableStatuses'] }) {
     const { copied, copy } = useCopy();
     const [now, setNow] = useState<Date>(() => new Date());
 
@@ -316,14 +327,36 @@ function TicketHeader({ ticket }: { ticket: Ticket }) {
                     )}
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                    <StatusBadge status={ticket.status} state={ticket.status_state} />
+                    {permissions?.canSetStatus && availableStatuses ? (
+                        <StatusPicker
+                            ticketId={ticket.id}
+                            currentStatus={ticket.status}
+                            currentStatusState={ticket.status_state}
+                            availableStatuses={availableStatuses}
+                            expectedUpdated={ticket.updated}
+                        />
+                    ) : (
+                        <StatusBadge status={ticket.status} state={ticket.status_state} />
+                    )}
                     <PriorityBadge priority={ticket.priority} />
+                    {permissions?.canAssign ? (
+                        <AssignmentDialog
+                            ticketId={ticket.id}
+                            expectedUpdated={ticket.updated ?? undefined}
+                            currentAssignee={ticket.assignee}
+                            staffOptions={staffOptions ?? []}
+                            teamOptions={teamOptions ?? []}
+                        />
+                    ) : ticket.assignee ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-[#E2E0D8] bg-[#FAFAF8] px-2.5 py-1 text-xs font-medium text-[#71717A]">
+                            {ticket.assignee}
+                        </span>
+                    ) : null}
                 </div>
             </div>
 
-            <dl className="mt-6 grid grid-cols-2 gap-4 border-t border-[#F4F2EB] pt-6 sm:grid-cols-4">
+            <dl className="mt-6 grid grid-cols-2 gap-4 border-t border-[#F4F2EB] pt-6 sm:grid-cols-3">
                 <Metric label="Department" value={ticket.department} />
-                <Metric label="Assignee" value={ticket.assignee} />
                 <Metric
                     label="Due date"
                     value={ticket.duedate ? formatDateTime(ticket.duedate) : null}
@@ -737,7 +770,7 @@ function SummaryRow({ icon, label, value }: { icon: typeof Mail01Icon; label: st
     );
 }
 
-export default function TicketShow({ ticket, customFields, timeline, attachments, collaborators, referrals }: TicketShowProps) {
+export default function TicketShow({ ticket, customFields, timeline, attachments, collaborators, referrals, permissions, staffOptions, teamOptions, availableStatuses }: TicketShowProps) {
     return (
         <>
             <SetPageHeader>
@@ -758,10 +791,21 @@ export default function TicketShow({ ticket, customFields, timeline, attachments
             </SetPageHeader>
 
             <div className="space-y-6">
-                <TicketHeader ticket={ticket} />
+                <TicketHeader
+                    ticket={ticket}
+                    permissions={permissions}
+                    staffOptions={staffOptions}
+                    teamOptions={teamOptions}
+                    availableStatuses={availableStatuses}
+                />
 
             <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-                <Timeline items={timeline} />
+                <div className="space-y-6">
+                    {permissions?.canPostNote && (
+                        <NoteComposer ticketId={ticket.id} expectedUpdated={ticket.updated ?? ''} />
+                    )}
+                    <Timeline items={timeline} />
+                </div>
 
                 <aside className="space-y-6 xl:sticky xl:top-6 xl:self-start">
                     <StatusSummary ticket={ticket} />
