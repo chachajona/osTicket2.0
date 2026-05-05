@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\Admin;
 
 use App\Models\Staff;
@@ -9,7 +11,7 @@ class AdminFormRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->staff()?->hasPermissionTo('admin.access') ?? false;
+        return $this->staff()?->canAccessAdminPanel() ?? false;
     }
 
     /**

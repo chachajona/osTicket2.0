@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { AdminLayout } from '@/components/admin/AdminLayout';
+import { appShellLayout } from '@/layouts/AppShell';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { FormGrid } from '@/components/admin/FormGrid';
 import { FormSection } from '@/components/admin/FormSection';
@@ -11,7 +12,8 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { ArrowLeft01Icon, Delete01Icon, FloppyDiskIcon } from '@hugeicons/core-free-icons';
+import { Delete01Icon, FloppyDiskIcon } from '@hugeicons/core-free-icons';
+import type { ReactElement } from 'react';
 
 declare global {
     function route(name: string, params?: any): string;
@@ -126,46 +128,42 @@ export default function DepartmentsEdit({
     };
 
     return (
-        <AdminLayout activeAdminNav="departments">
+        <>
             <Head title={isEdit && department ? `Edit Department: ${department.name}` : 'Create Department'} />
 
-            <div className="mb-6">
-                <Link
-                    href={route('admin.departments.index')}
-                    className="mb-4 inline-flex items-center text-sm font-medium text-slate-500 transition-colors hover:text-slate-900"
-                >
-                    <HugeiconsIcon icon={ArrowLeft01Icon} size={16} className="mr-1" />
-                    Back to Departments
-                </Link>
-
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-                            {isEdit ? 'Edit Department' : 'Create Department'}
-                        </h1>
-                        <p className="mt-1 text-sm text-slate-500">
-                            {isEdit
-                                ? 'Update assignment defaults, routing ownership, and customer-facing signature settings.'
-                                : 'Create a new department for ticket routing and operational ownership.'}
-                        </p>
-                    </div>
-
-                    {isEdit && department && (
-                        <Button
-                            type="button"
-                            variant="outline"
-                            className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                            onClick={() => {
-                                setDeleteError(null);
-                                setShowDeleteConfirm(true);
-                            }}
+            <PageHeader
+                title={isEdit ? 'Edit Department' : 'Create Department'}
+                subtitle={
+                    isEdit
+                        ? 'Update assignment defaults, routing ownership, and customer-facing signature settings.'
+                        : 'Create a new department for ticket routing and operational ownership.'
+                }
+                headerActions={
+                    <>
+                        <Link
+                            href={route('admin.departments.index')}
+                            className="inline-flex h-7 items-center gap-1.5 rounded-[3px] border border-[#E2E0D8] bg-white px-3 text-[12px] font-medium uppercase leading-4 tracking-[1.2px] text-[#27272A] transition-colors hover:border-[#18181B] hover:bg-[#FAFAF8] hover:text-[#18181B]"
                         >
-                            <HugeiconsIcon icon={Delete01Icon} size={18} className="mr-2" />
-                            Delete Department
-                        </Button>
-                    )}
-                </div>
-            </div>
+                            <span aria-hidden>&larr;</span>
+                            Back to Departments
+                        </Link>
+                        {isEdit && department && (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                                onClick={() => {
+                                    setDeleteError(null);
+                                    setShowDeleteConfirm(true);
+                                }}
+                            >
+                                <HugeiconsIcon icon={Delete01Icon} size={18} className="mr-2" />
+                                Delete Department
+                            </Button>
+                        )}
+                    </>
+                }
+            />
 
             <form
                 onSubmit={(event) => {
@@ -345,6 +343,12 @@ export default function DepartmentsEdit({
                     onConfirm={handleDelete}
                 />
             )}
-        </AdminLayout>
+        </>
     );
 }
+
+type DepartmentsEditComponent = typeof DepartmentsEdit & {
+    layout?: (page: ReactElement) => React.ReactNode;
+};
+
+(DepartmentsEdit as DepartmentsEditComponent).layout = appShellLayout;

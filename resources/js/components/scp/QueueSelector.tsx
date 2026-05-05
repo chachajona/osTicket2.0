@@ -14,7 +14,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 
-import type { QueueNavigation, QueueNode, SavedSearch } from './queue-types';
+import type { QueueNavigation, QueueNode, SavedSearch } from './QueueTypes';
 
 interface QueueSelectorProps {
     navigation: QueueNavigation;
@@ -76,8 +76,8 @@ export function QueueSelector({ navigation, activeQueueId, placeholder = 'Select
                     <span className="flex flex-1 text-left">{label ?? placeholder}</span>
                 </SelectTrigger>
             ) : (
-                <SelectTrigger className="h-9 min-w-[260px] rounded-md border-zinc-200 bg-white px-3 text-sm">
-                    <HugeiconsIcon icon={Folder01Icon} size={14} className="text-zinc-400" />
+                <SelectTrigger className="h-9 min-w-[260px] rounded-md border-[#E2E0D8] bg-white px-3 text-sm">
+                    <HugeiconsIcon icon={Folder01Icon} size={14} className="text-[#A1A1AA]" />
                     <SelectValue placeholder={placeholder} />
                 </SelectTrigger>
             )}

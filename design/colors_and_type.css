@@ -1,0 +1,163 @@
+/* ============================================================
+   osTicket 2.0 — Design Tokens
+   Source: DESIGN.md + chachajona/osTicket2.0 → resources/css/app.css
+   ============================================================ */
+
+/* ── Google Fonts ─────────────────────────────────────────── */
+/* @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300..800&family=Geist+Mono:wght@300..800&display=swap'); */
+
+/* ── Color system ─────────────────────────────────────────── */
+:root {
+  /* Primary — Orange */
+  --primary-50: #FFF4EC;
+  --primary-100: #FEE9DA;
+  --primary-200: #FDD2B4;
+  --primary-300: #FCBC8F;
+  --primary-400: #FB9A57;
+  --primary-500: #F97316;   /* base */
+  --primary-600: #D66313;
+  --primary-700: #AE510F;
+  --primary-800: #813C0B;
+  --primary-900: #552707;
+  --primary-950: #321704;
+
+  /* Secondary — Pink */
+  --secondary-50: #FDF0F7;
+  --secondary-100: #FCE2EF;
+  --secondary-200: #F9C4DE;
+  --secondary-300: #F6A7CE;
+  --secondary-400: #F17BB6;
+  --secondary-500: #EC4899;   /* base */
+  --secondary-600: #CB3E84;
+  --secondary-700: #A5326B;
+  --secondary-800: #7B2550;
+  --secondary-900: #501834;
+  --secondary-950: #2F0E1F;
+
+  /* Tertiary — Indigo */
+  --tertiary-50: #F3F3FE;
+  --tertiary-100: #E6E7FD;
+  --tertiary-200: #CDCEFB;
+  --tertiary-300: #B4B6F8;
+  --tertiary-400: #8F91F5;
+  --tertiary-500: #6366F1;   /* base */
+  --tertiary-600: #5558CF;
+  --tertiary-700: #4547A9;
+  --tertiary-800: #33357D;
+  --tertiary-900: #222352;
+  --tertiary-950: #141430;
+
+  /* Neutral */
+  --neutral-50: #EDEDED;
+  --neutral-100: #DADADB;
+  --neutral-200: #B5B5B6;
+  --neutral-300: #909092;
+  --neutral-400: #59595B;
+  --neutral-500: #18181B;   /* base */
+  --neutral-600: #151517;
+  --neutral-700: #111113;
+  --neutral-800: #0C0C0E;
+  --neutral-900: #080809;
+  --neutral-950: #050505;
+
+  /* Semantic usage */
+  --background: #FFFFFF;
+  --surface: #F4F2EB;
+  --foreground: #18181B;
+  --text-primary: #18181B;
+  --text-secondary: #A1A1AA;
+  --border: #E2E0D8;
+  --accent: #F97316;
+
+  /* Destructive / Success / Warning */
+  --destructive: #DC2626;
+  --success: #16A34A;
+  --warning: #CA8A04;
+
+  /* Sidebar (app shell uses same surfaces) */
+  --sidebar-bg: #FFFFFF;
+  --sidebar-border: #E2E0D8;
+  --sidebar-active-bg: #F4F2EB;
+
+  /* Gradients */
+  --gradient-brand: linear-gradient(to right bottom, #FB923C 0%, #EC4899 55%, #6366F1 100%);
+  --gradient-horizontal: linear-gradient(to right, #FB923C 0%, #EC4899 55%, #6366F1 100%);
+
+  /* ── Radius system ──────────────────────────────────────── */
+  --radius-xs: 3px;
+  --radius-sm: 4px;
+  --radius-md: 7px;
+  --radius-lg: 8px;
+  --radius-xl: 9px;
+  --radius-2xl: 32px;
+  --radius-full: 9999px;
+
+  /* ── Shadow system ──────────────────────────────────────── */
+  --shadow-sm: rgba(0,0,0,0.05) 0px 1px 2px 0px;
+  --shadow-card: rgba(236,72,153,0.1) 0px 10px 15px -3px, rgba(236,72,153,0.1) 0px 4px 6px -4px;
+  --shadow-heavy: rgba(0,0,0,0.25) 0px 25px 50px -12px;
+
+  /* ── Blur ────────────────────────────────────────────────── */
+  --blur-sm: 4px;
+  --blur-md: 12px;
+
+  /* ── Typography ─────────────────────────────────────────── */
+  --font-sans: 'Inter', sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, monospace;
+
+  /* Display / Heading scale */
+  --display-xl-size: 128px;
+  --display-xl-weight: 500;
+  --display-xl-leading: 128px;
+  --display-xl-tracking: -0.05em;
+
+  --display-lg-size: 88px;
+  --display-lg-weight: 500;
+  --display-lg-leading: 88px;
+  --display-lg-tracking: -0.05em;
+
+  --display-md-size: 48px;
+  --display-md-weight: 500;
+  --display-md-leading: 48px;
+  --display-md-tracking: -0.025em;
+
+  --display-sm-size: 36px;
+  --display-sm-weight: 500;
+  --display-sm-leading: 40px;
+  --display-sm-tracking: -0.05em;
+
+  /* Body scale */
+  --body-md-size: 14px;
+  --body-md-weight: 400;
+  --body-md-leading: 22.75px;
+
+  --body-sm-size: 12px;
+  --body-sm-weight: 400;
+  --body-sm-leading: 19.5px;
+
+  /* Caption — uppercase tracked */
+  --caption-size: 10px;
+  --caption-weight: 500;       /* used as 400 in DESIGN.md but visually 500 in codebase */
+  --caption-leading: 15px;
+  --caption-tracking: 0.1em;
+  --caption-transform: uppercase;
+
+  /* Button text */
+  --btn-size: 12px;
+  --btn-weight: 500;
+  --btn-leading: 16px;
+  --btn-tracking: 1.2px;
+  --btn-transform: uppercase;
+
+  /* ── Spacing ────────────────────────────────────────────── */
+  --space-unit: 4px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-24: 96px;
+}

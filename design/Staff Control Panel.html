@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Control Panel — osTicket 2.0</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..800&family=Geist+Mono:wght@300..800&display=swap" rel="stylesheet">
+    <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #F97316;
+            --primary-50: #FFF4EC;
+            --primary-100: #FEE9DA;
+            --primary-200: #FDD2B4;
+            --primary-400: #FB9A57;
+            --primary-600: #D66313;
+            --secondary: #EC4899;
+            --tertiary: #6366F1;
+            --neutral-500: #18181B;
+            --neutral-400: #59595B;
+            --neutral-300: #909092;
+            --neutral-200: #B5B5B6;
+            --neutral-100: #DADADB;
+            --neutral-50: #EDEDED;
+            --text-primary: #18181B;
+            --text-secondary: #A1A1AA;
+            --text-muted: #71717A;
+            --surface: #F4F2EB;
+            --background: #FFFFFF;
+            --border: #E2E0D8;
+            --destructive: #DC2626;
+            --success: #16A34A;
+            --warning: #CA8A04;
+            --font-sans: 'Inter', sans-serif;
+            --font-mono: 'Geist Mono', ui-monospace, monospace;
+            --gradient-brand: linear-gradient(to right bottom, #FB923C 0%, #EC4899 55%, #6366F1 100%);
+            --radius-sm: 4px;
+            --radius-md: 7px;
+            --radius-lg: 8px;
+            --shadow-card: rgba(236,72,153,0.08) 0px 8px 12px -3px, rgba(236,72,153,0.06) 0px 3px 5px -4px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: var(--font-sans);
+            -webkit-font-smoothing: antialiased;
+            background: var(--surface);
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            width: 100%;
+            overflow: hidden;
+            padding: 24px;
+        }
+
+        .caption {
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            line-height: 15px;
+            color: var(--text-secondary);
+        }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+        /* Pie chart */
+        .pie-chart {
+            background: conic-gradient(
+                var(--success) 0% 81%,
+                transparent 81% 81.5%,
+                var(--warning) 81.5% 90.5%,
+                transparent 90.5% 91%,
+                var(--tertiary) 91% 95%,
+                transparent 95% 95.5%,
+                var(--secondary) 95.5% 98.5%,
+                transparent 98.5% 99%,
+                var(--destructive) 99% 100%
+            );
+            border-radius: 50%;
+        }
+
+        .app-shell {
+            width: 100%;
+            max-width: 1440px;
+            height: 92vh;
+            max-height: 900px;
+            background: var(--background);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-card);
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 256px;
+            flex-shrink: 0;
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            background: var(--background);
+        }
+        .sidebar-profile {
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: background 150ms;
+        }
+        .sidebar-profile:hover { background: var(--surface); }
+        .sidebar-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--gradient-brand);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+        }
+        .sidebar-profile-info h3 { font-size: 14px; font-weight: 500; line-height: 1.2; }
+        .sidebar-profile-info p { font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-secondary); margin-top: 1px; }
+
+        /* Search */
+        .search-box {
+            padding: 16px 20px;
+        }
+        .search-box .inner {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .search-box input {
+            width: 100%;
+            padding: 8px 48px 8px 36px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-family: var(--font-sans);
+            outline: none;
+            color: var(--text-primary);
+            transition: border-color 150ms;
+        }
+        .search-box input::placeholder { color: var(--text-secondary); }
+        .search-box input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(249,115,22,0.12); }
+        .search-box .icon { position: absolute; left: 10px; color: var(--text-secondary); font-size: 16px; }
+        .search-box .shortcut {
+            position: absolute;
+            right: 8px;
+            font-size: 10px;
+            font-weight: 500;
+            font-family: var(--font-mono);
+            color: var(--text-secondary);
+            background: var(--background);
+            border: 1px solid var(--border);
+            padding: 1px 6px;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        /* Nav */
+        .nav-section { padding: 0 12px; }
+        .nav-section-label { padding: 6px 12px 8px; }
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-radius: var(--radius-lg);
+            font-size: 14px;
+            font-weight: 400;
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: all 150ms;
+            cursor: pointer;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            font-family: var(--font-sans);
+        }
+        .nav-item:hover { background: rgba(244,242,235,0.6); color: var(--text-primary); }
+        .nav-item.active { background: var(--surface); color: var(--text-primary); font-weight: 500; }
+        .nav-item iconify-icon { font-size: 20px; color: #D4D4D8; flex-shrink: 0; }
+        .nav-item.active iconify-icon { color: var(--text-primary); }
+        .nav-item .badge {
+            margin-left: auto;
+            min-width: 20px;
+            height: 20px;
+            border-radius: 10px;
+            background: var(--primary);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 0 6px;
+        }
+
+        /* Conversation / Pinned */
+        .sidebar-section { padding: 0 20px; margin-top: 20px; }
+        .sidebar-section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+        .sidebar-section-header button {
+            font-size: 10px;
+            font-family: var(--font-sans);
+            font-weight: 500;
+            color: var(--primary);
+            background: none;
+            border: none;
+            cursor: pointer;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+        .convo-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: background 150ms;
+        }
+        .convo-item:hover { background: var(--surface); }
+        .convo-item.elevated {
+            background: var(--background);
+            border: 1px solid var(--border);
+            box-shadow: rgba(0,0,0,0.04) 0 1px 3px;
+            padding: 10px 12px;
+            margin: 0 -4px;
+        }
+        .convo-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius-sm);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+        .convo-count {
+            min-width: 20px;
+            height: 20px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 600;
+        }
+        .convo-count.hot { background: var(--primary); color: #fff; }
+        .convo-count.muted { background: var(--neutral-50); color: var(--text-secondary); }
+
+        .pinned-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 4px 0;
+            cursor: pointer;
+        }
+        .pinned-item:hover .pin-icon { color: var(--primary); }
+        .pinned-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--success);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 9px;
+            flex-shrink: 0;
+        }
+        .pin-icon { color: var(--neutral-100); font-size: 12px; transition: color 150ms; }
+
+        /* Sidebar footer */
+        .sidebar-footer {
+            margin-top: auto;
+            border-top: 1px solid var(--border);
+            padding: 16px 20px;
+        }
+        .sidebar-footer a {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: var(--text-muted);
+            text-decoration: none;
+            margin-bottom: 16px;
+            transition: color 150ms;
+        }
+        .sidebar-footer a:hover { color: var(--text-primary); }
+        .brand-footer { display: flex; align-items: center; justify-content: space-between; }
+        .brand-name {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+        .brand-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--gradient-brand);
+        }
+        .sidebar-toggle {
+            width: 28px;
+            height: 28px;
+            border-radius: var(--radius-sm);
+            background: var(--surface);
+            border: none;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 150ms;
+        }
+        .sidebar-toggle:hover { background: var(--border); color: var(--text-primary); }
+
+        /* Main content */
+        .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+        /* Header */
+        .main-header {
+            height: 72px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 32px;
+            flex-shrink: 0;
+        }
+        .main-header h1 { font-size: 20px; font-weight: 500; letter-spacing: -0.02em; }
+        .header-actions { display: flex; align-items: center; gap: 12px; }
+        .icon-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            background: var(--background);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 150ms;
+        }
+        .icon-btn:hover { background: var(--surface); color: var(--text-primary); }
+
+        .btn-primary-split {
+            display: flex;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            box-shadow: rgba(249,115,22,0.2) 0 2px 6px;
+        }
+        .btn-primary-split button {
+            background: var(--primary);
+            border: none;
+            color: #fff;
+            font-family: var(--font-sans);
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: background 150ms;
+        }
+        .btn-primary-split button:hover { background: var(--primary-600); }
+        .btn-primary-split .main-action { padding: 8px 16px; }
+        .btn-primary-split .split-divider { width: 1px; background: rgba(255,255,255,0.3); }
+        .btn-primary-split .dropdown { padding: 8px 10px; display: flex; align-items: center; }
+
+        /* Scrollable body */
+        .scroll-body { flex: 1; overflow-y: auto; }
+
+        /* Metrics row */
+        .metrics-row { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid var(--border); }
+        .metric-card {
+            padding: 24px 28px;
+            border-right: 1px solid var(--border);
+        }
+        .metric-card:last-child { border-right: none; }
+        .metric-card h3 { margin-bottom: 8px; }
+        .metric-value {
+            font-size: 30px;
+            font-weight: 500;
+            letter-spacing: -0.025em;
+            line-height: 1;
+            color: var(--text-primary);
+        }
+        .metric-value .unit { font-size: 16px; font-weight: 500; margin-left: 4px; }
+        .metric-change {
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+            padding: 2px 8px;
+            border-radius: var(--radius-sm);
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            margin-left: 8px;
+        }
+        .metric-change.negative { background: #FEF2F2; color: var(--destructive); }
+        .metric-change.positive { background: #F0FDF4; color: var(--success); }
+        .metric-sub { font-size: 12px; color: var(--text-secondary); margin-top: 6px; }
+
+        /* Charts row */
+        .charts-row { display: grid; grid-template-columns: 2fr 1fr; border-bottom: 1px solid var(--border); }
+
+        .bar-chart-section {
+            border-right: 1px solid var(--border);
+            padding: 28px;
+            display: flex;
+            flex-direction: column;
+            min-height: 380px;
+        }
+        .chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+        .chart-header h2 { font-size: 14px; font-weight: 500; }
+        .date-picker {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-primary);
+            background: var(--background);
+            cursor: pointer;
+            font-family: var(--font-sans);
+            transition: all 150ms;
+        }
+        .date-picker:hover { border-color: var(--primary); }
+
+        .bar-chart-body { flex: 1; display: flex; }
+        .bar-legend {
+            width: 130px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 32px;
+            padding-right: 16px;
+        }
+        .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+        .legend-label { font-size: 12px; color: var(--text-secondary); }
+        .legend-value { font-size: 22px; font-weight: 500; letter-spacing: -0.025em; margin-left: 16px; margin-top: 4px; }
+
+        .bar-area {
+            flex: 1;
+            position: relative;
+            margin-top: 8px;
+        }
+        .bar-grid {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding-bottom: 32px;
+        }
+        .grid-line {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            position: relative;
+        }
+        .grid-line span {
+            position: absolute;
+            left: -8px;
+            transform: translateX(-100%);
+            font-size: 10px;
+            font-family: var(--font-mono);
+            color: var(--text-secondary);
+            background: var(--background);
+            padding-right: 4px;
+        }
+        .grid-line::after {
+            content: '';
+            width: 100%;
+            border-top: 1px dashed var(--border);
+        }
+        .grid-line:last-child::after { border-top-style: solid; }
+
+        .bars-container {
+            position: absolute;
+            inset: 0;
+            left: 24px;
+            right: 8px;
+            bottom: 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding: 0 8px;
+            z-index: 2;
+        }
+        .bar-group {
+            position: relative;
+            width: 48px;
+            height: 100%;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .bar {
+            position: absolute;
+            bottom: 0;
+            width: 40px;
+            border-radius: 3px;
+            transition: all 200ms;
+        }
+        .bar.created { background: var(--secondary); opacity: 0.5; }
+        .bar.solved { background: var(--secondary); }
+        .bar-group:hover .bar.created { opacity: 0.65; }
+        .bar-group:hover .bar.solved { filter: brightness(1.1); }
+        .bar-label {
+            position: absolute;
+            bottom: -24px;
+            font-size: 11px;
+            font-family: var(--font-mono);
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+        .bar-group:hover .bar-label { color: var(--text-primary); font-weight: 500; }
+
+        /* Highlighted bar tooltip */
+        .bar-group.highlighted .bar.created { opacity: 0.7; box-shadow: 0 0 12px rgba(236,72,153,0.3); }
+        .bar-tooltip {
+            position: absolute;
+            top: -8px;
+            right: -64px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 10px 14px;
+            box-shadow: var(--shadow-card);
+            z-index: 10;
+            width: 120px;
+            pointer-events: none;
+        }
+        .tooltip-row { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
+        .tooltip-dot { width: 6px; height: 6px; border-radius: 50%; }
+        .tooltip-label { font-size: 9px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-secondary); }
+        .tooltip-value { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; margin-left: 12px; }
+        .tooltip-value:last-child { margin-bottom: 0; }
+
+        /* Pie chart section */
+        .pie-section {
+            padding: 28px;
+            display: flex;
+            flex-direction: column;
+            min-height: 380px;
+        }
+        .pie-section h2 { font-size: 14px; font-weight: 500; margin-bottom: 32px; }
+        .pie-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 28px;
+        }
+        .pie-chart-wrap { width: 180px; height: 180px; transform: rotate(-90deg); }
+        .pie-legend { display: flex; flex-direction: column; gap: 12px; width: 100%; }
+        .pie-legend-item { display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
+        .pie-legend-item .left { display: flex; align-items: center; gap: 8px; color: var(--text-muted); }
+        .pie-legend-item .swatch { width: 10px; height: 10px; border-radius: 2px; }
+        .pie-legend-item .val { font-weight: 600; color: var(--text-primary); font-family: var(--font-mono); font-size: 12px; }
+
+        /* Bottom row */
+        .bottom-row { display: grid; grid-template-columns: 1fr 1fr; }
+
+        /* Gauge section */
+        .gauge-section {
+            border-right: 1px solid var(--border);
+            padding: 28px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .gauge-section h2 { font-size: 14px; font-weight: 500; width: 100%; text-align: left; margin-bottom: 28px; }
+        .gauge-wrap { position: relative; width: 240px; height: 120px; margin-bottom: 20px; }
+        .gauge-center {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+        }
+        .gauge-center .label { font-size: 11px; color: var(--text-secondary); margin-bottom: 2px; }
+        .gauge-center .value { font-size: 24px; font-weight: 500; letter-spacing: -0.025em; }
+        .gauge-legend { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; margin-top: 16px; }
+        .gauge-legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
+        .gauge-legend-dot { width: 8px; height: 8px; border-radius: 2px; }
+
+        /* Satisfaction */
+        .satisfaction-section { padding: 28px; display: flex; flex-direction: column; }
+        .satisfaction-section h2 { font-size: 14px; font-weight: 500; margin-bottom: 24px; }
+        .satisfaction-body { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .satisfaction-left {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            border-right: 1px solid var(--border);
+            padding-right: 24px;
+        }
+        .satisfaction-left .label { font-size: 13px; color: var(--text-muted); margin-bottom: 8px; }
+        .satisfaction-left .value { font-size: 22px; font-weight: 500; letter-spacing: -0.02em; }
+        .satisfaction-right { display: flex; flex-direction: column; justify-content: center; gap: 20px; }
+        .sat-row { }
+        .sat-header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+        .sat-header iconify-icon { font-size: 22px; }
+        .sat-header .info .label { font-size: 12px; color: var(--text-secondary); }
+        .sat-header .info .pct { font-size: 18px; font-weight: 600; line-height: 1.1; margin-top: 1px; }
+        .sat-bar-track { height: 6px; background: var(--surface); border-radius: 3px; overflow: hidden; display: flex; align-items: center; gap: 8px; }
+        .sat-bar-track .bar-inner { height: 100%; border-radius: 3px; }
+        .sat-bar-row { display: flex; align-items: center; gap: 8px; }
+        .sat-bar-row .prev { font-size: 10px; color: var(--text-secondary); font-family: var(--font-mono); flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+    <main class="app-shell">
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <!-- Profile -->
+            <div class="sidebar-profile">
+                <div style="display:flex;align-items:center;gap:12px">
+                    <div class="sidebar-avatar">FIK</div>
+                    <div class="sidebar-profile-info">
+                        <h3>Fikri Studio</h3>
+                        <p>Agent Admin</p>
+                    </div>
+                </div>
+                <iconify-icon icon="solar:alt-arrow-down-linear" style="color:var(--text-secondary)"></iconify-icon>
+            </div>
+
+            <!-- Search -->
+            <div class="search-box">
+                <div class="inner">
+                    <iconify-icon icon="solar:magnifer-linear" class="icon"></iconify-icon>
+                    <input type="text" placeholder="Search">
+                    <div class="shortcut">⌘ K</div>
+                </div>
+            </div>
+
+            <!-- Nav -->
+            <div style="flex:1;overflow-y:auto;padding-bottom:16px" class="custom-scrollbar">
+                <nav class="nav-section" style="margin-bottom:4px">
+                    <a class="nav-item active">
+                        <iconify-icon icon="solar:widget-2-bold"></iconify-icon>
+                        Dashboard
+                    </a>
+                    <a class="nav-item">
+                        <iconify-icon icon="solar:inbox-linear"></iconify-icon>
+                        Inbox
+                    </a>
+                    <a class="nav-item">
+                        <iconify-icon icon="solar:bell-linear"></iconify-icon>
+                        Notification
+                    </a>
+                    <a class="nav-item">
+                        <iconify-icon icon="solar:ticket-linear"></iconify-icon>
+                        Ticket
+                        <span class="badge">3</span>
+                    </a>
+                    <a class="nav-item">
+                        <iconify-icon icon="solar:book-bookmark-linear"></iconify-icon>
+                        Knowledge Base
+                    </a>
+                    <a class="nav-item">
+                        <iconify-icon icon="solar:users-group-rounded-linear"></iconify-icon>
+                        Customer
+                    </a>
+                    <a class="nav-item">
+                        <iconify-icon icon="solar:chat-round-dots-linear"></iconify-icon>
+                        Forum
+                    </a>
+                    <a class="nav-item">
+                        <iconify-icon icon="solar:chart-square-linear"></iconify-icon>
+                        Report
+                    </a>
+                </nav>
+
+                <!-- Conversation -->
+                <div class="sidebar-section">
+                    <div class="sidebar-section-header">
+                        <span class="caption">Conversation</span>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:4px">
+                        <div class="convo-item">
+                            <div style="display:flex;align-items:center;gap:10px">
+                                <div class="convo-icon"><iconify-icon icon="solar:phone-linear"></iconify-icon></div>
+                                <div>
+                                    <p style="font-size:13px;font-weight:500">Call</p>
+                                    <p style="font-size:11px;color:var(--text-secondary)">(123)45678...</p>
+                                </div>
+                            </div>
+                            <span class="convo-count hot">1</span>
+                        </div>
+                        <div class="convo-item elevated">
+                            <div style="display:flex;align-items:center;gap:10px">
+                                <div class="convo-icon"><iconify-icon icon="solar:chat-square-linear"></iconify-icon></div>
+                                <div>
+                                    <p style="font-size:13px;font-weight:500">Side Conversa...</p>
+                                    <p style="font-size:11px;color:var(--text-secondary)">-</p>
+                                </div>
+                            </div>
+                            <span class="convo-count muted">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Favorites -->
+                <div class="sidebar-section">
+                    <div class="sidebar-section-header">
+                        <span class="caption">Favorites</span>
+                    </div>
+                    <p style="font-size:12px;color:var(--text-secondary);line-height:1.6">Hover over any table and click the star to add it here.</p>
+                </div>
+
+                <!-- Pinned -->
+                <div class="sidebar-section">
+                    <div class="sidebar-section-header">
+                        <span class="caption">Pinned Tickets</span>
+                        <button>Unpin All</button>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
+                        <div class="pinned-item">
+                            <div style="display:flex;align-items:center;gap:8px">
+                                <div class="pinned-dot"><iconify-icon icon="solar:chat-round-dots-linear" style="font-size:8px"></iconify-icon></div>
+                                <span style="font-size:13px;font-weight:500;color:var(--text-muted);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">#TC-192 produc...</span>
+                            </div>
+                            <iconify-icon icon="solar:pin-linear" class="pin-icon"></iconify-icon>
+                        </div>
+                        <div class="pinned-item">
+                            <div style="display:flex;align-items:center;gap:8px">
+                                <div class="pinned-dot"><iconify-icon icon="solar:chat-round-dots-linear" style="font-size:8px"></iconify-icon></div>
+                                <span style="font-size:13px;font-weight:500;color:var(--text-muted);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">#TC-191 paymen...</span>
+                            </div>
+                            <iconify-icon icon="solar:pin-linear" class="pin-icon"></iconify-icon>
+                        </div>
+                        <div class="pinned-item">
+                            <div style="display:flex;align-items:center;gap:8px">
+                                <iconify-icon icon="solar:phone-linear" style="font-size:14px;color:var(--text-muted);width:16px;text-align:center"></iconify-icon>
+                                <span style="font-size:13px;font-weight:500;color:var(--text-muted)">+1 678-908-78...</span>
+                            </div>
+                            <iconify-icon icon="solar:pin-linear" class="pin-icon"></iconify-icon>
+                        </div>
+                        <button class="nav-item" style="padding:4px 0;gap:6px;font-size:13px;font-weight:500;color:var(--text-muted)">
+                            <iconify-icon icon="solar:add-circle-linear" style="font-size:18px;color:var(--text-secondary)"></iconify-icon>
+                            Add new
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="sidebar-footer">
+                <a href="#">
+                    <iconify-icon icon="solar:help-linear" style="font-size:18px"></iconify-icon>
+                    Help &amp; Support
+                </a>
+                <div class="brand-footer">
+                    <div>
+                        <span class="caption" style="font-size:9px;letter-spacing:0.15em">Powered By</span>
+                        <div class="brand-name">
+                            <div class="brand-dot"></div>
+                            osTicket
+                        </div>
+                    </div>
+                    <button class="sidebar-toggle">
+                        <iconify-icon icon="solar:sidebar-minimalistic-linear"></iconify-icon>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Header -->
+            <header class="main-header">
+                <div style="display:flex;align-items:center;gap:10px">
+                    <h1>Dashboard</h1>
+                    <span class="caption" style="margin-top:2px">· Overview</span>
+                </div>
+                <div class="header-actions">
+                    <button class="icon-btn">
+                        <iconify-icon icon="solar:menu-dots-bold"></iconify-icon>
+                    </button>
+                    <div class="btn-primary-split">
+                        <button class="main-action">Export CSV</button>
+                        <div class="split-divider"></div>
+                        <button class="dropdown"><iconify-icon icon="solar:alt-arrow-down-linear"></iconify-icon></button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Scrollable -->
+            <div class="scroll-body custom-scrollbar">
+
+                <!-- Metrics -->
+                <div class="metrics-row">
+                    <div class="metric-card">
+                        <h3 class="caption">Created Tickets</h3>
+                        <div style="display:flex;align-items:center;margin-bottom:4px">
+                            <span class="metric-value">24,208</span>
+                            <span class="metric-change negative">-5% <iconify-icon icon="solar:arrow-right-down-linear" style="font-size:10px"></iconify-icon></span>
+                        </div>
+                        <p class="metric-sub">Compare to last month</p>
+                    </div>
+                    <div class="metric-card">
+                        <h3 class="caption">Unsolved Tickets</h3>
+                        <div style="display:flex;align-items:center;margin-bottom:4px">
+                            <span class="metric-value">4,564</span>
+                            <span class="metric-change positive">+2% <iconify-icon icon="solar:arrow-right-up-linear" style="font-size:10px"></iconify-icon></span>
+                        </div>
+                        <p class="metric-sub">Compare to last month</p>
+                    </div>
+                    <div class="metric-card">
+                        <h3 class="caption">Solved Tickets</h3>
+                        <div style="display:flex;align-items:center;margin-bottom:4px">
+                            <span class="metric-value">18,208</span>
+                            <span class="metric-change positive">+8% <iconify-icon icon="solar:arrow-right-up-linear" style="font-size:10px"></iconify-icon></span>
+                        </div>
+                        <p class="metric-sub">Compare to last month</p>
+                    </div>
+                    <div class="metric-card" style="border-right:none">
+                        <h3 class="caption">Avg First Reply Time</h3>
+                        <div style="display:flex;align-items:baseline;margin-bottom:4px">
+                            <span class="metric-value">12:01</span>
+                            <span class="metric-value unit">min</span>
+                            <span class="metric-change positive" style="margin-left:8px;align-self:center">+8 <iconify-icon icon="solar:arrow-right-up-linear" style="font-size:10px"></iconify-icon></span>
+                        </div>
+                        <p class="metric-sub">Compare to last month</p>
+                    </div>
+                </div>
+
+                <!-- Charts Row -->
+                <div class="charts-row">
+                    <!-- Bar Chart -->
+                    <div class="bar-chart-section">
+                        <div class="chart-header">
+                            <h2>Average Tickets Created</h2>
+                            <button class="date-picker">
+                                Dec 1 - 7
+                                <iconify-icon icon="solar:alt-arrow-down-linear" style="color:var(--text-secondary)"></iconify-icon>
+                            </button>
+                        </div>
+                        <div class="bar-chart-body">
+                            <div class="bar-legend">
+                                <div>
+                                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+                                        <div class="legend-dot" style="background:var(--secondary);opacity:0.5"></div>
+                                        <span class="legend-label">Avg. Ticket Create</span>
+                                    </div>
+                                    <div class="legend-value">4,564</div>
+                                </div>
+                                <div>
+                                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+                                        <div class="legend-dot" style="background:var(--secondary)"></div>
+                                        <span class="legend-label">Avg. Ticket Solved</span>
+                                    </div>
+                                    <div class="legend-value">3,320</div>
+                                </div>
+                            </div>
+                            <div class="bar-area">
+                                <div class="bar-grid">
+                                    <div class="grid-line"><span>5000</span></div>
+                                    <div class="grid-line"><span>4000</span></div>
+                                    <div class="grid-line"><span>3000</span></div>
+                                    <div class="grid-line"><span>2000</span></div>
+                                    <div class="grid-line"><span>1000</span></div>
+                                    <div class="grid-line"><span>0</span></div>
+                                </div>
+                                <div class="bars-container">
+                                    <div class="bar-group">
+                                        <div class="bar created" style="height:80%"></div>
+                                        <div class="bar solved" style="height:55%"></div>
+                                        <span class="bar-label">Dec 1</span>
+                                    </div>
+                                    <div class="bar-group">
+                                        <div class="bar created" style="height:60%"></div>
+                                        <div class="bar solved" style="height:35%"></div>
+                                        <span class="bar-label">Dec 2</span>
+                                    </div>
+                                    <div class="bar-group">
+                                        <div class="bar created" style="height:55%"></div>
+                                        <div class="bar solved" style="height:25%"></div>
+                                        <span class="bar-label">Dec 3</span>
+                                    </div>
+                                    <div class="bar-group highlighted">
+                                        <div class="bar created" style="height:95%"></div>
+                                        <div class="bar solved" style="height:60%"></div>
+                                        <span class="bar-label" style="color:var(--text-primary);font-weight:500">Dec 4</span>
+                                        <div class="bar-tooltip">
+                                            <div class="tooltip-row"><div class="tooltip-dot" style="background:var(--secondary);opacity:0.5"></div><span class="tooltip-label">Create</span></div>
+                                            <div class="tooltip-value">4.3K</div>
+                                            <div class="tooltip-row"><div class="tooltip-dot" style="background:var(--secondary)"></div><span class="tooltip-label">Solved</span></div>
+                                            <div class="tooltip-value" style="margin-bottom:0">3.8K</div>
+                                        </div>
+                                    </div>
+                                    <div class="bar-group">
+                                        <div class="bar created" style="height:65%"></div>
+                                        <div class="bar solved" style="height:30%"></div>
+                                        <span class="bar-label">Dec 5</span>
+                                    </div>
+                                    <div class="bar-group">
+                                        <div class="bar created" style="height:60%"></div>
+                                        <div class="bar solved" style="height:35%"></div>
+                                        <span class="bar-label">Dec 6</span>
+                                    </div>
+                                    <div class="bar-group">
+                                        <div class="bar created" style="height:68%"></div>
+                                        <div class="bar solved" style="height:32%"></div>
+                                        <span class="bar-label">Dec 7</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pie Chart -->
+                    <div class="pie-section">
+                        <h2>Ticket By First Reply Time</h2>
+                        <div class="pie-body">
+                            <div class="pie-chart-wrap">
+                                <div class="pie-chart" style="width:100%;height:100%"></div>
+                            </div>
+                            <div class="pie-legend">
+                                <div class="pie-legend-item"><span class="left"><span class="swatch" style="background:var(--success)"></span> 0-1 Hours</span><span class="val">81%</span></div>
+                                <div class="pie-legend-item"><span class="left"><span class="swatch" style="background:var(--warning)"></span> 1-8 Hours</span><span class="val">9%</span></div>
+                                <div class="pie-legend-item"><span class="left"><span class="swatch" style="background:var(--tertiary)"></span> 8-24 Hours</span><span class="val">4%</span></div>
+                                <div class="pie-legend-item"><span class="left"><span class="swatch" style="background:var(--secondary)"></span> &gt; 24 Hours</span><span class="val">4%</span></div>
+                                <div class="pie-legend-item"><span class="left"><span class="swatch" style="background:var(--destructive)"></span> No Replies</span><span class="val">2%</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bottom Row -->
+                <div class="bottom-row">
+                    <!-- Gauge -->
+                    <div class="gauge-section">
+                        <h2>Ticket by Channels</h2>
+                        <div class="gauge-wrap">
+                            <svg viewBox="0 0 200 100" width="100%" height="100%" style="overflow:visible">
+                                <path d="M 10 90 A 80 80 0 0 1 190 90" fill="none" stroke="var(--surface)" stroke-width="14" stroke-linecap="round"></path>
+                                <path d="M 10 90 A 80 80 0 0 1 190 90" fill="none" stroke="var(--neutral-200)" stroke-width="14" stroke-linecap="round" stroke-dasharray="251" stroke-dashoffset="230"></path>
+                                <path d="M 10 90 A 80 80 0 0 1 190 90" fill="none" stroke="var(--warning)" stroke-width="14" stroke-linecap="round" stroke-dasharray="251" stroke-dashoffset="190"></path>
+                                <path d="M 10 90 A 80 80 0 0 1 190 90" fill="none" stroke="var(--success)" stroke-width="14" stroke-linecap="round" stroke-dasharray="251" stroke-dashoffset="150"></path>
+                                <path d="M 10 90 A 80 80 0 0 1 190 90" fill="none" stroke="var(--tertiary)" stroke-width="14" stroke-linecap="round" stroke-dasharray="251" stroke-dashoffset="80"></path>
+                                <path d="M 10 90 A 80 80 0 0 1 190 90" fill="none" stroke="var(--primary)" stroke-width="14" stroke-linecap="round" stroke-dasharray="251" stroke-dashoffset="15"></path>
+                            </svg>
+                            <div class="gauge-center">
+                                <p class="label">Total Active ticket</p>
+                                <p class="value">3,002</p>
+                            </div>
+                        </div>
+                        <div class="gauge-legend">
+                            <div class="gauge-legend-item"><div class="gauge-legend-dot" style="background:var(--primary)"></div> Email</div>
+                            <div class="gauge-legend-item"><div class="gauge-legend-dot" style="background:var(--tertiary)"></div> Live Chat</div>
+                            <div class="gauge-legend-item"><div class="gauge-legend-dot" style="background:var(--success)"></div> Contact form</div>
+                            <div class="gauge-legend-item"><div class="gauge-legend-dot" style="background:var(--warning)"></div> Messenger</div>
+                            <div class="gauge-legend-item"><div class="gauge-legend-dot" style="background:var(--neutral-200)"></div> Whatsapp</div>
+                        </div>
+                    </div>
+
+                    <!-- Customer Satisfaction -->
+                    <div class="satisfaction-section">
+                        <h2>Customer Satisfaction</h2>
+                        <div class="satisfaction-body">
+                            <div class="satisfaction-left">
+                                <p class="label">Responses Received</p>
+                                <p class="value">156 Customer</p>
+                            </div>
+                            <div class="satisfaction-right">
+                                <div class="sat-row">
+                                    <div class="sat-header">
+                                        <iconify-icon icon="solar:like-bold" style="color:var(--success)"></iconify-icon>
+                                        <div class="info">
+                                            <p class="label">Positive</p>
+                                            <p class="pct">80%</p>
+                                        </div>
+                                    </div>
+                                    <div class="sat-bar-row">
+                                        <div class="sat-bar-track" style="flex:1"><div class="bar-inner" style="width:80%;background:var(--success)"></div></div>
+                                        <span class="prev">72%</span>
+                                    </div>
+                                </div>
+                                <div class="sat-row">
+                                    <div class="sat-header">
+                                        <iconify-icon icon="solar:hand-shake-bold" style="color:var(--primary)"></iconify-icon>
+                                        <div class="info">
+                                            <p class="label">Neutral</p>
+                                            <p class="pct">15%</p>
+                                        </div>
+                                    </div>
+                                    <div class="sat-bar-row">
+                                        <div class="sat-bar-track" style="flex:1"><div class="bar-inner" style="width:15%;background:var(--primary)"></div></div>
+                                        <span class="prev">24%</span>
+                                    </div>
+                                </div>
+                                <div class="sat-row">
+                                    <div class="sat-header">
+                                        <iconify-icon icon="solar:dislike-bold" style="color:var(--destructive)"></iconify-icon>
+                                        <div class="info">
+                                            <p class="label">Negative</p>
+                                            <p class="pct">5%</p>
+                                        </div>
+                                    </div>
+                                    <div class="sat-bar-row">
+                                        <div class="sat-bar-track" style="flex:1"><div class="bar-inner" style="width:5%;background:var(--destructive)"></div></div>
+                                        <span class="prev">4%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+</body>
+</html>

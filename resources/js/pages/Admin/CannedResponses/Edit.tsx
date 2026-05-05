@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { AdminLayout } from '@/components/admin/AdminLayout';
+import { appShellLayout } from '@/layouts/AppShell';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { FormGrid } from '@/components/admin/FormGrid';
 import { FormSection } from '@/components/admin/FormSection';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
@@ -17,7 +18,8 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { ArrowLeft01Icon, Delete01Icon, FloppyDiskIcon } from '@hugeicons/core-free-icons';
+import { Delete01Icon, FloppyDiskIcon } from '@hugeicons/core-free-icons';
+import type { ReactElement } from 'react';
 
 declare global {
     function route(name: string, params?: any): string;
@@ -78,41 +80,39 @@ export default function CannedResponsesEdit({ cannedResponse, departments }: Pro
     };
 
     return (
-        <AdminLayout activeAdminNav="canned-responses">
+        <>
             <Head title={isEdit && cannedResponse ? `Edit Canned Response: ${cannedResponse.title}` : 'Create Canned Response'} />
 
-            <div className="mb-6">
-                <Link
-                    href={route('admin.canned-responses.index')}
-                    className="mb-4 inline-flex items-center text-sm font-medium text-slate-500 transition-colors hover:text-slate-900"
-                >
-                    <HugeiconsIcon icon={ArrowLeft01Icon} size={16} className="mr-1" />
-                    Back to Canned Responses
-                </Link>
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-                            {isEdit ? 'Edit Canned Response' : 'Create Canned Response'}
-                        </h1>
-                        <p className="mt-1 text-sm text-slate-500">
-                            {isEdit
-                                ? 'Update the canned response content and targeting.'
-                                : 'Create a reusable canned response for agents.'}
-                        </p>
-                    </div>
-                    {isEdit && (
-                        <Button
-                            type="button"
-                            variant="outline"
-                            className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                            onClick={() => setShowDeleteConfirm(true)}
+            <PageHeader
+                title={isEdit ? 'Edit Canned Response' : 'Create Canned Response'}
+                subtitle={
+                    isEdit
+                        ? 'Update the canned response content and targeting.'
+                        : 'Create a reusable canned response for agents.'
+                }
+                headerActions={
+                    <>
+                        <Link
+                            href={route('admin.canned-responses.index')}
+                            className="inline-flex h-7 items-center gap-1.5 rounded-[3px] border border-[#E2E0D8] bg-white px-3 text-[12px] font-medium uppercase leading-4 tracking-[1.2px] text-[#27272A] transition-colors hover:border-[#18181B] hover:bg-[#FAFAF8] hover:text-[#18181B]"
                         >
-                            <HugeiconsIcon icon={Delete01Icon} size={18} className="mr-2" />
-                            Delete Canned Response
-                        </Button>
-                    )}
-                </div>
-            </div>
+                            <span aria-hidden>&larr;</span>
+                            Back to Canned Responses
+                        </Link>
+                        {isEdit && (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                                onClick={() => setShowDeleteConfirm(true)}
+                            >
+                                <HugeiconsIcon icon={Delete01Icon} size={18} className="mr-2" />
+                                Delete Canned Response
+                            </Button>
+                        )}
+                    </>
+                }
+            />
 
             <form onSubmit={handleSubmit} className="space-y-6">
                 <FormSection
@@ -227,6 +227,12 @@ export default function CannedResponsesEdit({ cannedResponse, departments }: Pro
                     onConfirm={handleDelete}
                 />
             )}
-        </AdminLayout>
+        </>
     );
 }
+
+type CannedResponsesEditComponent = typeof CannedResponsesEdit & {
+    layout?: (page: ReactElement) => React.ReactNode;
+};
+
+(CannedResponsesEdit as CannedResponsesEditComponent).layout = appShellLayout;

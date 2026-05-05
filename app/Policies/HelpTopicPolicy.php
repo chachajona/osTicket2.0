@@ -16,23 +16,25 @@ class HelpTopicPolicy
 
     public function create(Staff $staff): bool
     {
-        return $staff->hasPermissionTo('admin.helptopic.create');
+        return $staff->hasAdminPermission('admin.helptopic.create');
     }
 
     public function update(Staff $staff, HelpTopic $helpTopic): bool
     {
-        return $helpTopic instanceof HelpTopic && $staff->hasPermissionTo('admin.helptopic.update');
+        return $helpTopic instanceof HelpTopic && $staff->hasAdminPermission('admin.helptopic.update');
     }
 
     public function delete(Staff $staff, HelpTopic $helpTopic): bool
     {
-        return $helpTopic instanceof HelpTopic && $staff->hasPermissionTo('admin.helptopic.delete');
+        return $helpTopic instanceof HelpTopic && $staff->hasAdminPermission('admin.helptopic.delete');
     }
 
     private function canViewHelpTopics(Staff $staff): bool
     {
-        return $staff->hasPermissionTo('admin.helptopic.create')
-            || $staff->hasPermissionTo('admin.helptopic.update')
-            || $staff->hasPermissionTo('admin.helptopic.delete');
+        return $staff->hasAdminPermission(
+            'admin.helptopic.create',
+            'admin.helptopic.update',
+            'admin.helptopic.delete',
+        );
     }
 }

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
-import { AdminLayout } from '@/components/admin/AdminLayout';
+import { appShellLayout } from '@/layouts/AppShell';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { buttonVariants } from '@/components/ui/button';
 import {
@@ -13,6 +14,7 @@ import {
 } from '@/components/ui/table';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { PlusSignIcon, PencilEdit01Icon, Delete01Icon } from '@hugeicons/core-free-icons';
+import type { ReactElement } from 'react';
 
 declare global {
     function route(name: string, params?: any): string;
@@ -50,22 +52,19 @@ export default function RolesIndex({ roles }: Props) {
     };
 
     return (
-        <AdminLayout activeAdminNav="roles">
+        <>
             <Head title="Roles" />
 
-            <div className="flex items-center justify-between mb-6">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Roles</h1>
-                    <p className="text-sm text-slate-500 mt-1">Manage system roles and their permissions.</p>
-                </div>
-                <Link
-                    href={route('admin.roles.create')}
-                    className={buttonVariants({ variant: 'default' })}
-                >
-                    <HugeiconsIcon icon={PlusSignIcon} size={18} className="mr-2" />
-                    Create Role
-                </Link>
-            </div>
+            <PageHeader
+                title="Roles"
+                subtitle="Manage system roles and their permissions."
+                headerActions={
+                    <Link href={route('admin.roles.create')} className={buttonVariants({ variant: 'default' })}>
+                        <HugeiconsIcon icon={PlusSignIcon} size={18} className="mr-2" />
+                        Create Role
+                    </Link>
+                }
+            />
 
             <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                 <Table>
@@ -137,6 +136,12 @@ export default function RolesIndex({ roles }: Props) {
                 variant="destructive"
                 onConfirm={handleDelete}
             />
-        </AdminLayout>
+        </>
     );
 }
+
+type RolesIndexComponent = typeof RolesIndex & {
+    layout?: (page: ReactElement) => React.ReactNode;
+};
+
+(RolesIndex as RolesIndexComponent).layout = appShellLayout;

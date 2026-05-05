@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Middleware;
 
+use App\Models\Scp\StaffPreference;
 use App\Models\Staff;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -40,19 +43,16 @@ class HandleInertiaRequests extends Middleware
     {
         /** @var Staff|null $staff */
         $staff = $request->user('staff');
+        $routeName = $request->route()?->getName() ?? '';
 
         return [
             ...parent::share($request),
             'status' => fn () => $request->session()->get('status'),
+            'currentPanel' => fn () => $this->getCurrentPanel($routeName, $staff),
+            'currentPanelNav' => fn () => $this->getCurrentPanelNav($routeName),
             'auth' => fn () => [
                 'staff' => $staff
-                    ? [
-                        'id' => $staff->staff_id,
-                        'name' => trim(($staff->firstname ?? '').' '.($staff->lastname ?? '')) ?: $staff->username,
-                        'username' => $staff->username,
-                        'isAdmin' => (bool) $staff->isadmin,
-                        'migrationBanner' => $this->migrationBannerVisible($request, $staff),
-                    ]
+                    ? $this->buildStaffAuthData($staff, $request)
                     : null,
                 'throttle' => [
                     'attemptsRemaining' => $request->session()->get('throttle.attemptsRemaining'),
@@ -60,6 +60,23 @@ class HandleInertiaRequests extends Middleware
                     'username' => $request->session()->get('throttle.username'),
                 ],
             ],
+        ];
+    }
+
+    private function buildStaffAuthData(Staff $staff, Request $request): array
+    {
+        $preferences = StaffPreference::forStaff($staff->staff_id);
+
+        return [
+            'id' => $staff->staff_id,
+            'name' => trim(($staff->firstname ?? '').' '.($staff->lastname ?? '')) ?: $staff->username,
+            'username' => $staff->username,
+            'isAdmin' => (bool) $staff->isadmin,
+            'canAccessAdminPanel' => $staff->canAccessAdminPanel(),
+            'migrationBanner' => $this->migrationBannerVisible($request, $staff),
+            'lastActivePanel' => $preferences->last_active_panel,
+            'defaultScpTab' => $preferences->default_scp_tab,
+            'defaultAdminTab' => $preferences->default_admin_tab,
         ];
     }
 
@@ -108,5 +125,33 @@ class HandleInertiaRequests extends Middleware
         }
 
         return now()->timestamp - (int) $cached['cached_at'] < self::MIGRATION_BANNER_CACHE_TTL_SECONDS;
+    }
+
+    private function getCurrentPanel(string $routeName, ?Staff $staff): ?string
+    {
+        if (! $staff) {
+            return null;
+        }
+
+        if (str_starts_with($routeName, 'admin.')) {
+            return 'admin';
+        }
+
+        return 'scp';
+    }
+
+    private function getCurrentPanelNav(string $routeName): array
+    {
+        $subId = null;
+
+        if (str_starts_with($routeName, 'admin.')) {
+            // Extract subId from route name like 'admin.help-topics.index' -> 'help-topics'
+            $parts = explode('.', $routeName);
+            if (count($parts) >= 2) {
+                $subId = $parts[1];
+            }
+        }
+
+        return ['subId' => $subId];
     }
 }

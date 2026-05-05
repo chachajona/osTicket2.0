@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use App\Auth\StaffTwoFactorAuthenticatable;
@@ -16,6 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\Access\Authorizable;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Exceptions\PermissionDoesNotExist;
 use Spatie\Permission\Traits\HasRoles;
 
 /**
@@ -226,6 +229,36 @@ class Staff extends LegacyModel implements Authenticatable, AuthorizableContract
     public function hasTotpEnabled(): bool
     {
         return $this->hasEnabledTwoFactorAuthentication();
+    }
+
+    public function canAccessAdminPanel(): bool
+    {
+        return (bool) $this->isactive
+            && ((bool) $this->isadmin || $this->hasPermissionNamed('admin.access'));
+    }
+
+    public function hasAdminPermission(string ...$permissions): bool
+    {
+        if ((bool) $this->isadmin) {
+            return true;
+        }
+
+        foreach ($permissions as $permission) {
+            if ($this->hasPermissionNamed($permission)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function hasPermissionNamed(string $permission): bool
+    {
+        try {
+            return $this->hasPermissionTo($permission);
+        } catch (PermissionDoesNotExist) {
+            return false;
+        }
     }
 
     public function isMigrated(): bool

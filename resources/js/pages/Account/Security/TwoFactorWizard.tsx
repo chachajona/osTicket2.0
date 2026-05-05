@@ -4,7 +4,8 @@ import { type ReactElement, type ReactNode } from 'react';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import DashboardLayout from '@/layouts/DashboardLayout';
+import { PageHeader } from "@/components/layout/PageHeader";
+import { appShellLayout } from '@/layouts/AppShell';
 import {
     InputOTP,
     InputOTPGroup,
@@ -68,13 +69,15 @@ export default function TwoFactorWizard({ step, twoFactor }: PageProps) {
     const currentStep = getAllowedStep(step, twoFactor);
 
     return (
-        <section className="auth-shell mt-2">
-            <div className="auth-shell-inner p-6 sm:p-8">
-                {props.status && (
-                    <div className="mb-6 rounded-md border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3 text-sm text-[#0F172A]">
-                        {props.status}
-                    </div>
-                )}
+        <>
+            <PageHeader title="Secure Your Account" subtitle="Add an authenticator app to complete your migration." eyebrow="Two-Factor Authentication" headerActions={null} />
+            <section className="auth-shell mt-2">
+                <div className="auth-shell-inner p-6 sm:p-8">
+                    {props.status && (
+                        <div className="mb-6 rounded-md border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3 text-sm text-[#0F172A]">
+                            {props.status}
+                        </div>
+                    )}
 
                 <Stepper steps={STEPS} current={currentStep - 1} className="flex-wrap mb-8" />
 
@@ -87,6 +90,7 @@ export default function TwoFactorWizard({ step, twoFactor }: PageProps) {
                 </StepPanel>
             </div>
         </section>
+        </>
     );
 }
 
@@ -94,18 +98,7 @@ type TwoFactorWizardPageComponent = typeof TwoFactorWizard & {
     layout?: (page: ReactElement) => ReactNode;
 };
 
-(TwoFactorWizard as TwoFactorWizardPageComponent).layout = (page: ReactElement) => (
-    <DashboardLayout
-        title="Secure Your Account"
-        subtitle="Add an authenticator app to complete your migration."
-        eyebrow="Two-Factor Authentication"
-        activeNav="security"
-        contentClassName="max-w-4xl mx-auto"
-        headerActions={null}
-    >
-        {page}
-    </DashboardLayout>
-);
+(TwoFactorWizard as TwoFactorWizardPageComponent).layout = appShellLayout;
 
 function ChooseMethod({ twoFactor }: { twoFactor: PageProps["twoFactor"] }) {
     const form = useForm({ force: !twoFactor.pending, return_to_wizard: true });
