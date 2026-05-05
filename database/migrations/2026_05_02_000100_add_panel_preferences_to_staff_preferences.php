@@ -43,7 +43,7 @@ return new class extends Migration
 
         if ($schema->hasColumn(self::TABLE, self::CREATED_MARKER)) {
             $schema->table(self::TABLE, function (Blueprint $table): void {
-                $table->dropColumn(['last_active_panel', 'default_scp_tab', 'default_admin_tab']);
+                $table->dropColumn(['last_active_panel', 'default_scp_tab', 'default_admin_tab', self::CREATED_MARKER]);
             });
         }
     }
