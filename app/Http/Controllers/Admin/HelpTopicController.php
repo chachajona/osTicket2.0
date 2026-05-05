@@ -26,6 +26,9 @@ class HelpTopicController extends Controller
         private readonly HelpTopicService $helpTopics,
     ) {}
 
+    /**
+     * Display a listing of the help topics.
+     */
     public function index(): Response
     {
         $this->authorize('viewAny', HelpTopic::class);
@@ -47,6 +50,9 @@ class HelpTopicController extends Controller
         ]);
     }
 
+    /**
+     * Show the form for creating a new help topic.
+     */
     public function create(): Response
     {
         $this->authorize('create', HelpTopic::class);
@@ -63,6 +69,9 @@ class HelpTopicController extends Controller
         ]);
     }
 
+    /**
+     * Store a newly created help topic in storage.
+     */
     public function store(StoreHelpTopicRequest $request): RedirectResponse
     {
         $this->authorize('create', HelpTopic::class);
@@ -76,6 +85,9 @@ class HelpTopicController extends Controller
             ->with('status', 'Help topic created.');
     }
 
+    /**
+     * Show the form for editing the specified help topic.
+     */
     public function edit(HelpTopic $helpTopic): Response
     {
         $this->authorize('update', $helpTopic);
@@ -94,6 +106,9 @@ class HelpTopicController extends Controller
         ]);
     }
 
+    /**
+     * Update the specified help topic in storage.
+     */
     public function update(UpdateHelpTopicRequest $request, HelpTopic $helpTopic): RedirectResponse
     {
         $this->authorize('update', $helpTopic);
@@ -107,6 +122,9 @@ class HelpTopicController extends Controller
             ->with('status', 'Help topic updated.');
     }
 
+    /**
+     * Remove the specified help topic from storage.
+     */
     public function destroy(Request $request, HelpTopic $helpTopic): RedirectResponse
     {
         $this->authorize('delete', $helpTopic);
@@ -121,6 +139,8 @@ class HelpTopicController extends Controller
     }
 
     /**
+     * Get the parent topic options.
+     *
      * @return list<array{id:int,name:string}>
      */
     private function parentTopicOptions(?HelpTopic $current = null): array
@@ -128,7 +148,10 @@ class HelpTopicController extends Controller
         $query = HelpTopic::query()->orderBy('topic');
 
         if ($current !== null) {
-            $query->whereKeyNot($current->getKey());
+            $query->whereNotIn($current->getKeyName(), [
+                (int) $current->getKey(),
+                ...$current->descendantIds(),
+            ]);
         }
 
         return $query
@@ -142,6 +165,8 @@ class HelpTopicController extends Controller
     }
 
     /**
+     * Get the priority options.
+     *
      * @return list<array{id:int,name:string}>
      */
     private function priorityOptions(): array
@@ -159,6 +184,8 @@ class HelpTopicController extends Controller
     }
 
     /**
+     * Serialize the help topic.
+     *
      * @return array<string, mixed>
      */
     private function serializeHelpTopic(HelpTopic $helpTopic): array
@@ -185,6 +212,8 @@ class HelpTopicController extends Controller
     }
 
     /**
+     * Serialize the form mappings.
+     *
      * @return list<array{id:int,title:string,name:string|null,source:string,field_count:int,fields:list<array{id:int,label:string,name:string,type:string}>}>
      */
     private function formMappings(HelpTopic $helpTopic): array

@@ -17,9 +17,17 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
+/**
+ * Handles CRUD operations for email configuration entities.
+ *
+ * Manages email accounts, templates, and template groups with redaction
+ * of sensitive credentials during reads and audit logging for all changes.
+ */
 class EmailConfigService
 {
     use NormalizesInput;
+
+    private const string REDACTED_CREDENTIAL = '[redacted]';
 
     public function __construct(
         private readonly AuditLogger $auditLogger,
@@ -428,11 +436,15 @@ class EmailConfigService
         }
 
         if ($this->hasColumn('email', 'userid')) {
-            $payload['userid'] = $this->normalizeNullableString($data['username'] ?? null);
+            if (! $isUpdate || $data['username'] !== self::REDACTED_CREDENTIAL) {
+                $payload['userid'] = $this->normalizeNullableString($data['username'] ?? null);
+            }
         }
 
         if ($this->hasColumn('email', 'passwd')) {
-            $payload['passwd'] = $this->normalizeNullableString($data['password'] ?? null);
+            if (! $isUpdate || ($data['password'] !== self::REDACTED_CREDENTIAL && $this->normalizeNullableString($data['password'] ?? null) !== null)) {
+                $payload['passwd'] = $this->normalizeNullableString($data['password'] ?? null);
+            }
         }
 
         if ($this->hasColumn('email', 'host')) {
@@ -457,10 +469,16 @@ class EmailConfigService
             'port' => (int) $data['port'],
             'protocol' => trim((string) $data['protocol']),
             'encryption' => $this->normalizeNullableString($data['encryption'] ?? null),
-            'auth_id' => $this->normalizeNullableString($data['username'] ?? null),
-            'auth_bk' => $this->normalizeNullableString($data['password'] ?? null),
             'active' => ! empty($data['active']) ? 1 : 0,
         ];
+
+        if (! $isUpdate || $data['username'] !== self::REDACTED_CREDENTIAL) {
+            $payload['auth_id'] = $this->normalizeNullableString($data['username'] ?? null);
+        }
+
+        if (! $isUpdate || ($data['password'] !== self::REDACTED_CREDENTIAL && $this->normalizeNullableString($data['password'] ?? null) !== null)) {
+            $payload['auth_bk'] = $this->normalizeNullableString($data['password'] ?? null);
+        }
 
         if ($this->hasColumn('email_account', 'updated')) {
             $payload['updated'] = now();
@@ -558,8 +576,7 @@ class EmailConfigService
             'port' => (int) ($account->port ?? 0),
             'protocol' => (string) ($account->protocol ?? ''),
             'encryption' => $this->normalizeNullableString($account->encryption),
-            'username' => $this->normalizeNullableString($account->auth_id),
-            'password' => $this->normalizeNullableString($account->auth_bk),
+            'username' => $this->normalizeNullableString($account->getRawOriginal('auth_id')) !== null ? self::REDACTED_CREDENTIAL : null,
             'active' => (bool) ($account->active ?? 0),
         ];
     }

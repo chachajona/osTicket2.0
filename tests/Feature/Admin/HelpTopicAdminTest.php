@@ -395,6 +395,56 @@ it('creates a help topic and writes an audit log', function (): void {
     ]));
 });
 
+it('excludes child help topics from parent options when editing', function (): void {
+    $root = HelpTopic::query()->create([
+        'topic' => 'Billing',
+        'ispublic' => 1,
+        'isactive' => 1,
+        'noautoresp' => 0,
+        'created' => now(),
+        'updated' => now(),
+    ]);
+    $child = HelpTopic::query()->create([
+        'topic' => 'Billing Child',
+        'topic_pid' => $root->topic_id,
+        'ispublic' => 1,
+        'isactive' => 1,
+        'noautoresp' => 0,
+        'created' => now(),
+        'updated' => now(),
+    ]);
+    $grandchild = HelpTopic::query()->create([
+        'topic' => 'Billing Grandchild',
+        'topic_pid' => $child->topic_id,
+        'ispublic' => 1,
+        'isactive' => 1,
+        'noautoresp' => 0,
+        'created' => now(),
+        'updated' => now(),
+    ]);
+    $unrelated = HelpTopic::query()->create([
+        'topic' => 'Support',
+        'ispublic' => 1,
+        'isactive' => 1,
+        'noautoresp' => 0,
+        'created' => now(),
+        'updated' => now(),
+    ]);
+
+    $staff = grantHelpTopicPermissions(actingAsAdmin(), ['admin.helptopic.update']);
+
+    actingAs($staff, 'staff');
+
+    get(route('admin.help-topics.edit', $root))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Admin/HelpTopics/Edit')
+            ->where('parentTopicOptions', fn (mixed $options): bool => collect($options)->pluck('id')->all() === [$unrelated->topic_id])
+        );
+
+    expect($root->descendantIds())->toBe([$child->topic_id, $grandchild->topic_id]);
+});
+
 it('rejects invalid help topic creation payloads', function (): void {
     $helpTopic = HelpTopic::query()->create([
         'topic' => 'Support',
@@ -534,6 +584,42 @@ it('updates a help topic and writes an audit log diff', function (): void {
         'staff_name' => $newStaff->displayName(),
         'team_name' => 'VIP',
     ]));
+});
+
+it('rejects making a child help topic the parent during update', function (): void {
+    $root = HelpTopic::query()->create([
+        'topic' => 'Billing',
+        'ispublic' => 1,
+        'isactive' => 1,
+        'noautoresp' => 0,
+        'created' => now(),
+        'updated' => now(),
+    ]);
+    $child = HelpTopic::query()->create([
+        'topic' => 'Billing Child',
+        'topic_pid' => $root->topic_id,
+        'ispublic' => 1,
+        'isactive' => 1,
+        'noautoresp' => 0,
+        'created' => now(),
+        'updated' => now(),
+    ]);
+
+    $staff = grantHelpTopicPermissions(actingAsAdmin(), ['admin.helptopic.update']);
+
+    actingAs($staff, 'staff');
+
+    from(route('admin.help-topics.edit', $root))
+        ->put(route('admin.help-topics.update', $root), [
+            'topic' => 'Billing',
+            'topic_pid' => $child->topic_id,
+            'ispublic' => true,
+            'isactive' => true,
+            'noautoresp' => false,
+        ])
+        ->assertSessionHasErrors(['topic_pid']);
+
+    expect((int) $root->refresh()->topic_pid)->toBe(0);
 });
 
 it('deletes a help topic and writes an audit log entry', function (): void {

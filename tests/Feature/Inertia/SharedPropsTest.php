@@ -11,7 +11,7 @@ final class SharedPropsTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_authenticated_admin_staff_has_true_isAdmin(): void
+    public function test_authenticated_admin_staff_has_true_is_admin(): void
     {
         $staff = Staff::factory()->create(['isadmin' => 1]);
 
@@ -23,7 +23,7 @@ final class SharedPropsTest extends TestCase
         );
     }
 
-    public function test_non_admin_staff_has_false_isAdmin(): void
+    public function test_non_admin_staff_has_false_is_admin(): void
     {
         $staff = Staff::factory()->create(['isadmin' => 0]);
 

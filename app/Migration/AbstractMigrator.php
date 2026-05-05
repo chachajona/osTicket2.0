@@ -9,11 +9,20 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use LogicException;
 
+/**
+ * Base class for orchestrating batched table migrations between legacy and target connections.
+ *
+ * Provides watermark-based progress tracking, row-level transformation hooks, and
+ * optional distributed locking to prevent concurrent migration of the same table.
+ */
 abstract class AbstractMigrator
 {
     protected const int BATCH_SIZE = 1000;
+
+    protected const int LOCK_LEASE_MINUTES = 15;
 
     /**
      * @var array<string, list<string>>
@@ -24,6 +33,11 @@ abstract class AbstractMigrator
      * @var array<string, mixed>|null
      */
     private ?array $activeDefinition = null;
+
+    /**
+     * UUID of the current process that owns the progress table lock, or null if no lock is held.
+     */
+    private ?string $progressLockOwner = null;
 
     abstract protected function definitions(): array;
 
@@ -144,7 +158,7 @@ abstract class AbstractMigrator
         $startedAt = microtime(true);
         $sourceCount = $this->sourceConnection()->table($sourceTable)->count();
 
-        $progress = $this->readWatermark($tableName);
+        $progress = $this->claimProgress($tableName);
 
         if (($progress['status'] ?? null) === 'completed') {
             return [
@@ -162,8 +176,6 @@ abstract class AbstractMigrator
         $uniqueBy = $this->uniqueBy($definition);
         $processed = 0;
         $lastId = Arr::get($progress, 'last_id');
-
-        $this->markRunning($tableName, $this->normalizeWatermarkValue($lastId));
 
         try {
             if (is_string($primaryKey) && $primaryKey !== '') {
@@ -187,12 +199,17 @@ abstract class AbstractMigrator
                 );
             }
         } catch (\Throwable $throwable) {
-            $this->markFailed($tableName, $this->normalizeWatermarkValue($lastId));
+            try {
+                $this->markFailed($tableName, $this->normalizeWatermarkValue($lastId));
+            } finally {
+                $this->progressLockOwner = null;
+            }
 
             throw $throwable;
         }
 
         $this->markCompleted($tableName, $this->latestCompletedWatermark($sourceTable, $primaryKey));
+        $this->progressLockOwner = null;
 
         return [
             'table' => $tableName,
@@ -259,16 +276,27 @@ abstract class AbstractMigrator
 
     protected function writeProgress(string $tableName, string|int|null $lastId, string $status, ?string $completedAt = null): void
     {
-        $this->targetConnection()->table($this->progressTable())->updateOrInsert(
-            ['table_name' => $tableName],
-            [
-                'last_id' => $lastId,
-                'status' => $status,
-                'completed_at' => $completedAt,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-        );
+        $now = now();
+        $isRunning = $status === 'running';
+        $values = [
+            'last_id' => $lastId,
+            'status' => $status,
+            'completed_at' => $completedAt,
+            'updated_at' => $now,
+            'version' => DB::raw('version + 1'),
+            'lock_owner' => $isRunning ? $this->progressLockOwner : null,
+            'lock_expires_at' => $isRunning ? $this->lockExpiresAt() : null,
+        ];
+
+        $query = $this->targetConnection()->table($this->progressTable())->where('table_name', $tableName);
+
+        if ($this->progressLockOwner !== null) {
+            $query->where('lock_owner', $this->progressLockOwner);
+        }
+
+        if ($query->update($values) !== 1) {
+            throw new LogicException(sprintf('Lost migration progress lock for [%s].', $tableName));
+        }
     }
 
     /**
@@ -281,6 +309,67 @@ abstract class AbstractMigrator
             ->first();
 
         return $progress !== null ? (array) $progress : [];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function claimProgress(string $tableName): array
+    {
+        $now = now();
+        $owner = (string) Str::uuid();
+
+        $this->targetConnection()->table($this->progressTable())->insertOrIgnore([
+            'table_name' => $tableName,
+            'last_id' => null,
+            'status' => 'pending',
+            'lock_owner' => null,
+            'lock_expires_at' => null,
+            'version' => 0,
+            'completed_at' => null,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        $progress = $this->readWatermark($tableName);
+
+        if (($progress['status'] ?? null) === 'completed') {
+            return $progress;
+        }
+
+        $claimed = $this->targetConnection()->table($this->progressTable())
+            ->where('table_name', $tableName)
+            ->where(function ($query) use ($now): void {
+                $query
+                    ->whereNull('lock_owner')
+                    ->orWhereNull('lock_expires_at')
+                    ->orWhere('lock_expires_at', '<=', $now);
+            })
+            ->where(function ($query): void {
+                $query->whereNull('status')->orWhere('status', '!=', 'completed');
+            })
+            ->update([
+                'status' => 'running',
+                'lock_owner' => $owner,
+                'lock_expires_at' => $this->lockExpiresAt(),
+                'completed_at' => null,
+                'version' => DB::raw('version + 1'),
+                'updated_at' => $now,
+            ]);
+
+        if ($claimed !== 1) {
+            $progress = $this->readWatermark($tableName);
+
+            if (($progress['status'] ?? null) === 'completed') {
+                return $progress;
+            }
+
+            throw new LogicException(sprintf('Migration table [%s] is already locked by another process.', $tableName));
+        }
+
+        $this->progressLockOwner = $owner;
+
+        return $this->readWatermark($tableName);
     }
 
     /**
@@ -527,5 +616,13 @@ abstract class AbstractMigrator
         }
 
         return is_numeric((string) $value) ? (int) $value : $value;
+    }
+
+    /**
+     * Calculate the lock expiration timestamp based on the configured lease duration.
+     */
+    private function lockExpiresAt(): string
+    {
+        return now()->addMinutes(self::LOCK_LEASE_MINUTES)->toDateTimeString();
     }
 }

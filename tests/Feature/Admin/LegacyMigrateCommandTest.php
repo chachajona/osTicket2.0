@@ -36,6 +36,10 @@ it('migrates the small fixture into the target database', function (): void {
     expect($migratedStaff)->not->toBeNull()
         ->and($migratedStaff->created_at)->toBe('2026-01-04 08:00:00')
         ->and($migratedStaff->updated_at)->toBe('2026-01-04 08:00:00');
+
+    $modelRoleTable = config('permission.table_names.model_has_roles', 'model_has_roles');
+
+    expect(DB::connection('osticket2')->table($modelRoleTable)->count())->toBe(2);
 });
 
 it('verifies migrated data successfully', function (): void {
@@ -47,12 +51,14 @@ it('verifies migrated data successfully', function (): void {
 });
 
 it('resumes from a table using its watermark', function (): void {
+    $createdAt = '2026-01-01 00:00:00';
+
     DB::connection('osticket2')->table('_migration_progress')->insert([
         'table_name' => 'role',
         'last_id' => '1',
         'status' => 'running',
         'completed_at' => null,
-        'created_at' => now(),
+        'created_at' => $createdAt,
         'updated_at' => now(),
     ]);
 
@@ -60,10 +66,36 @@ it('resumes from a table using its watermark', function (): void {
 
     expect(DB::connection('osticket2')->table('role')->count())->toBe(1)
         ->and(DB::connection('osticket2')->table('role')->value('id'))->toBe(2)
-        ->and(DB::connection('osticket2')->table('_migration_progress')->where('table_name', 'role')->value('last_id'))->toBe('2');
+        ->and(DB::connection('osticket2')->table('_migration_progress')->where('table_name', 'role')->value('last_id'))->toBe('2')
+        ->and(DB::connection('osticket2')->table('_migration_progress')->where('table_name', 'role')->value('created_at'))->toBe($createdAt);
+});
+
+it('rejects migration work when the table progress lease is still owned', function (): void {
+    DB::connection('osticket2')->table('_migration_progress')->insert([
+        'table_name' => 'role',
+        'last_id' => null,
+        'status' => 'running',
+        'lock_owner' => 'another-process',
+        'lock_expires_at' => now()->addHour(),
+        'version' => 1,
+        'completed_at' => null,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    test()->artisan('legacy:migrate', ['--from' => 'role'])
+        ->expectsOutputToContain('already locked')
+        ->assertFailed();
+
+    expect(DB::connection('osticket2')->table('role')->count())->toBe(0)
+        ->and(DB::connection('osticket2')->table('_migration_progress')->where('table_name', 'role')->value('lock_owner'))->toBe('another-process');
 });
 
 it('translates legacy role permissions into spatie grants', function (): void {
+    DB::connection('legacy')->table('role')
+        ->where('id', 2)
+        ->update(['permissions' => '{"admin.access":1,"admin.staff.update":"1"}']);
+
     test()->artisan('legacy:migrate')->assertSuccessful();
 
     $rolesTable = config('permission.table_names.roles', 'roles');
@@ -397,6 +429,9 @@ function prepareLegacyMigrationTargetSchema(): void
         $table->string('table_name', 120)->primary();
         $table->string('last_id', 255)->nullable();
         $table->string('status', 32)->default('pending');
+        $table->string('lock_owner', 128)->nullable()->index();
+        $table->timestamp('lock_expires_at')->nullable()->index();
+        $table->unsignedBigInteger('version')->default(0);
         $table->timestamp('completed_at')->nullable();
         $table->timestamps();
     });

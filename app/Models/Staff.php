@@ -212,7 +212,7 @@ class Staff extends LegacyModel implements Authenticatable, AuthorizableContract
     public function getAttribute($key)
     {
         if ($key === 'permissions') {
-            return $this->getRelationValue('permissions') ?? new Collection;
+            return $this->getRelationValue('permissions');
         }
 
         return parent::getAttribute($key);

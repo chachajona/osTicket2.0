@@ -39,7 +39,7 @@ class PermissionsTranslator
 
                 if (is_array($permissions)) {
                     foreach ($permissions as $permission => $value) {
-                        if ($value === true && in_array($permission, $validPermissions, true)) {
+                        if ((bool) $value && in_array($permission, $validPermissions, true)) {
                             $granted[] = $permission;
                         }
                     }

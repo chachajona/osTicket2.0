@@ -129,6 +129,15 @@ beforeEach(function (): void {
         }
     }
 
+    if (! $schema->hasTable('department')) {
+        $schema->create('department', function (Blueprint $table): void {
+            $table->increments('id');
+            $table->unsignedInteger('dept_id')->nullable();
+            $table->unsignedInteger('tpl_id')->nullable();
+            $table->string('name', 128)->default('');
+        });
+    }
+
     if (! $schema->hasTable('email_template')) {
         $schema->create('email_template', function (Blueprint $table): void {
             $table->increments('id');
@@ -163,6 +172,7 @@ beforeEach(function (): void {
     EmailModel::query()->delete();
     EmailTemplate::query()->delete();
     EmailTemplateGroup::query()->delete();
+    DB::connection('legacy')->table('department')->delete();
     AdminAuditLog::query()->delete();
     app(PermissionRegistrar::class)->forgetCachedPermissions();
 });
@@ -192,7 +202,6 @@ function emailAccountAuditPayload(EmailAccount $account): array
         'protocol' => $account->protocol,
         'encryption' => $account->encryption !== '' ? $account->encryption : null,
         'username' => '[redacted]',
-        'password' => '[redacted]',
         'active' => (bool) ($account->active ?? 0),
     ];
 }
@@ -331,6 +340,96 @@ it('renders create and edit pages for authorized admins', function (): void {
         );
 });
 
+it('redacts account credentials on the edit page', function (): void {
+    $email = EmailModel::query()->create([
+        'name' => 'Support Inbox',
+        'email' => 'support@example.com',
+        'userid' => 'support-user',
+        'passwd' => 'super-secret',
+        'created' => now(),
+        'updated' => now(),
+    ]);
+
+    $account = EmailAccount::query()->create([
+        'email_id' => $email->email_id,
+        'host' => 'imap.example.com',
+        'port' => 993,
+        'protocol' => 'imap',
+        'encryption' => 'ssl',
+        'auth_id' => 'support-user',
+        'auth_bk' => 'super-secret',
+        'active' => 1,
+        'created' => now(),
+        'updated' => now(),
+    ]);
+
+    $staff = grantEmailPermissions(actingAsAdmin(), ['admin.email.update']);
+
+    actingAs($staff, 'staff');
+
+    get(route('admin.email-config.edit', 'account-'.$account->id))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Admin/EmailConfig/Edit')
+            ->where('type', 'account')
+            ->where('config.username', '[redacted]')
+            ->missing('config.password')
+        );
+});
+
+it('preserves existing account credentials when no new password is submitted', function (): void {
+    $email = EmailModel::query()->create([
+        'name' => 'Support Inbox',
+        'email' => 'support@example.com',
+        'userid' => 'support-user',
+        'passwd' => 'super-secret',
+        'created' => now(),
+        'updated' => now(),
+    ]);
+
+    $account = EmailAccount::query()->create([
+        'email_id' => $email->email_id,
+        'host' => 'imap.example.com',
+        'port' => 993,
+        'protocol' => 'imap',
+        'encryption' => 'ssl',
+        'auth_id' => 'support-user',
+        'auth_bk' => 'super-secret',
+        'active' => 1,
+        'created' => now(),
+        'updated' => now(),
+    ]);
+
+    $rawAuthId = $account->getRawOriginal('auth_id');
+    $rawAuthBk = $account->getRawOriginal('auth_bk');
+
+    $staff = grantEmailPermissions(actingAsAdmin(), ['admin.email.update']);
+
+    actingAs($staff, 'staff');
+
+    put(route('admin.email-config.update', 'account-'.$account->id), [
+        'type' => 'account',
+        'name' => 'Support Inbox',
+        'email' => 'support@example.com',
+        'host' => 'imap2.example.com',
+        'port' => 993,
+        'protocol' => 'imap',
+        'encryption' => 'ssl',
+        'username' => '[redacted]',
+        'password' => '',
+        'active' => true,
+    ])->assertRedirect(route('admin.email-config.edit', 'account-'.$account->id));
+
+    $account->refresh();
+    $email->refresh();
+
+    expect($account->host)->toBe('imap2.example.com')
+        ->and($account->getRawOriginal('auth_id'))->toBe($rawAuthId)
+        ->and($account->getRawOriginal('auth_bk'))->toBe($rawAuthBk)
+        ->and($email->userid)->toBe('support-user')
+        ->and($email->passwd)->toBe('super-secret');
+});
+
 it('creates a mail account with encrypted credentials and redacted audit logs', function (): void {
     $staff = grantEmailPermissions(actingAsAdmin(), ['admin.email.create']);
 
@@ -366,7 +465,7 @@ it('creates a mail account with encrypted credentials and redacted audit logs', 
     $log = assertAuditLogged('email.create', $account, null, emailAccountAuditPayload($account));
 
     expect($log->after['username'])->toBe('[redacted]')
-        ->and($log->after['password'])->toBe('[redacted]');
+        ->and($log->after)->not->toHaveKey('password');
 });
 
 it('rejects invalid email config creation payloads', function (): void {

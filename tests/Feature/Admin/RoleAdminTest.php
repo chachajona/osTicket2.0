@@ -121,7 +121,9 @@ it('renders create and edit pages with grouped permissions for authorized admins
             ->component('Admin/Roles/Edit')
             ->where('role', null)
             ->has('permissions', 7)
-            ->where('permissions.6.key', 'admin')
+            ->where('permissions.6.id', 'admin')
+            ->where('permissions.6.name', 'Admin')
+            ->where('permissions.6.permissions.0.id', 'admin.access')
             ->where('selectedPermissions', [])
         );
 
@@ -133,7 +135,7 @@ it('renders create and edit pages with grouped permissions for authorized admins
             ->component('Admin/Roles/Edit')
             ->where('role.name', 'Managers')
             ->where('selectedPermissions', ['admin.role.create', 'admin.role.update'])
-            ->where('permissions.6.key', 'admin')
+            ->where('permissions.6.id', 'admin')
         );
 });
 
@@ -152,6 +154,7 @@ it('creates a role, syncs spatie permissions, and writes an audit log', function
     $spatieRole = LegacyRole::query()->where('name', 'Operations')->firstOrFail();
 
     expect(json_decode((string) $role->permissions, true))->toBe(['admin.role.create', 'admin.role.update'])
+        ->and($spatieRole->id)->toBe($role->id)
         ->and($spatieRole->permissions->pluck('name')->sort()->values()->all())->toBe(['admin.role.create', 'admin.role.update']);
 
     assertDatabaseHas('role', ['name' => 'Operations', 'notes' => 'Ops team'], 'legacy');

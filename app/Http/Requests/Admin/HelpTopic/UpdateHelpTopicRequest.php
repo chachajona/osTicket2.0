@@ -43,7 +43,10 @@ class UpdateHelpTopicRequest extends AdminFormRequest
                 'nullable',
                 'integer',
                 Rule::exists($helpTopicsTable, 'topic_id'),
-                Rule::notIn([(int) $helpTopic->getKey()]),
+                Rule::notIn([
+                    (int) $helpTopic->getKey(),
+                    ...$helpTopic->descendantIds(),
+                ]),
             ],
             'dept_id' => ['nullable', 'integer', Rule::exists($departmentsTable, 'id')],
             'sla_id' => ['nullable', 'integer', Rule::exists($slasTable, 'id')],

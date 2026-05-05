@@ -54,6 +54,37 @@ class HelpTopic extends LegacyModel
         return $this->hasMany(HelpTopic::class, 'topic_pid', 'topic_id');
     }
 
+    /**
+     * @return list<int>
+     */
+    public function descendantIds(): array
+    {
+        $rootId = (int) $this->getKey();
+        $frontier = [$rootId];
+        $descendantIds = [];
+
+        while ($frontier !== []) {
+            $childIds = HelpTopic::query()
+                ->whereIn('topic_pid', $frontier)
+                ->pluck('topic_id')
+                ->map(static fn (mixed $id): int => (int) $id)
+                ->all();
+
+            $frontier = [];
+
+            foreach ($childIds as $childId) {
+                if ($childId === $rootId || in_array($childId, $descendantIds, true)) {
+                    continue;
+                }
+
+                $descendantIds[] = $childId;
+                $frontier[] = $childId;
+            }
+        }
+
+        return $descendantIds;
+    }
+
     public function department()
     {
         return $this->belongsTo(Department::class, 'dept_id', 'id');

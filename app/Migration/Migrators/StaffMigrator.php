@@ -6,12 +6,16 @@ namespace App\Migration\Migrators;
 
 use App\Migration\AbstractMigrator;
 use App\Models\Staff;
-use Illuminate\Support\Facades\DB;
 
+/**
+ * Migrates staff data from the source osTicket database schema to the target schema.
+ */
 class StaffMigrator extends AbstractMigrator
 {
     /**
-     * @return list<array<string, mixed>>
+     * Get the table definitions for staff migration.
+     *
+     * @return list<array{name:string,source:string,target:string,primary_key:string,unique_by:list<string>}>
      */
     public function migrate(?string $fromTable = null): array
     {
@@ -21,26 +25,36 @@ class StaffMigrator extends AbstractMigrator
         return $results;
     }
 
+    /**
+     * Define the table migration mapping.
+     *
+     * @return list<array{name:string,source:string,target:string,primary_key:string,unique_by:list<string>}>
+     */
     protected function definitions(): array
     {
-        return [[
-            'name' => 'staff',
-            'source' => 'staff',
-            'target' => 'staff',
-            'primary_key' => 'staff_id',
-            'unique_by' => ['staff_id'],
-        ]];
+        return [
+            [
+                'name' => 'staff',
+                'source' => 'staff',
+                'target' => 'staff',
+                'primary_key' => 'staff_id',
+                'unique_by' => ['staff_id'],
+            ],
+        ];
     }
 
+    /**
+     * Synchronizes primary roles from source staff records to the target model_has_roles table.
+     */
     private function syncPrimaryRoles(): void
     {
         $table = (string) config('permission.table_names.model_has_roles', 'model_has_roles');
 
-        DB::connection('osticket2')->table($table)
+        $this->targetConnection()->table($table)
             ->where('model_type', Staff::class)
             ->delete();
 
-        $payload = DB::connection('osticket2')->table('staff')
+        $payload = $this->targetConnection()->table('staff')
             ->whereNotNull('role_id')
             ->where('role_id', '>', 0)
             ->orderBy('staff_id')
@@ -53,7 +67,7 @@ class StaffMigrator extends AbstractMigrator
             ->all();
 
         if ($payload !== []) {
-            DB::connection('osticket2')->table($table)->insert($payload);
+            $this->targetConnection()->table($table)->insert($payload);
         }
     }
 }

@@ -34,7 +34,6 @@ interface EmailConfigRecord {
     protocol?: string | null;
     encryption?: string | null;
     username?: string | null;
-    password?: string | null;
     active?: boolean;
     code?: string | null;
     subject?: string | null;
@@ -67,7 +66,7 @@ export default function EmailConfigEdit({ mode, type, config, templateGroups }: 
         protocol: config?.protocol ?? 'imap',
         encryption: config?.encryption ?? 'ssl',
         username: config?.username ?? '',
-        password: config?.password ?? '',
+        password: '',
         active: config?.active ?? true,
         code: config?.code ?? '',
         subject: config?.subject ?? '',

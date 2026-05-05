@@ -22,6 +22,9 @@ class RoleController extends Controller
         private readonly RoleService $roles,
     ) {}
 
+    /**
+     * Display a listing of the resource.
+     */
     public function index(): Response
     {
         $this->authorize('viewAny', Role::class);
@@ -46,6 +49,9 @@ class RoleController extends Controller
         ]);
     }
 
+    /**
+     * Show the form for creating a new resource.
+     */
     public function create(): Response
     {
         $this->authorize('create', Role::class);
@@ -57,6 +63,9 @@ class RoleController extends Controller
         ]);
     }
 
+    /**
+     * Store a newly created role in storage.
+     */
     public function store(StoreRoleRequest $request): RedirectResponse
     {
         $this->authorize('create', Role::class);
@@ -70,6 +79,9 @@ class RoleController extends Controller
             ->with('status', 'Role created.');
     }
 
+    /**
+     * Show the form for editing the specified resource.
+     */
     public function edit(Role $role): Response
     {
         $this->authorize('update', $role);
@@ -86,6 +98,9 @@ class RoleController extends Controller
         ]);
     }
 
+    /**
+     * Update role in storage.
+     */
     public function update(UpdateRoleRequest $request, Role $role): RedirectResponse
     {
         $this->authorize('update', $role);
@@ -99,6 +114,9 @@ class RoleController extends Controller
             ->with('status', 'Role updated.');
     }
 
+    /**
+     * Remove the specified role from storage.
+     */
     public function destroy(Request $request, Role $role): RedirectResponse
     {
         $this->authorize('delete', $role);
@@ -113,7 +131,9 @@ class RoleController extends Controller
     }
 
     /**
-     * @return list<array{key:string,label:string,permissions:list<array{name:string,label:string}>}>
+     * Get permission groups for roles.
+     *
+     * @return list<array{id:string,name:string,permissions:list<array{id:string,name:string}>}>
      */
     private function permissionGroups(): array
     {
@@ -121,11 +141,11 @@ class RoleController extends Controller
 
         foreach (PermissionCatalogSeeder::permissionGroups() as $group => $permissions) {
             $groups[] = [
-                'key' => $group,
-                'label' => str($group)->headline()->toString(),
+                'id' => $group,
+                'name' => str($group)->headline()->toString(),
                 'permissions' => array_map(fn (string $permission): array => [
-                    'name' => $permission,
-                    'label' => str(str_replace(['.', '_'], ' ', $permission))->headline()->toString(),
+                    'id' => $permission,
+                    'name' => str(str_replace(['.', '_'], ' ', $permission))->headline()->toString(),
                 ], $permissions),
             ];
         }

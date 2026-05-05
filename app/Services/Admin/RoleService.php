@@ -10,6 +10,12 @@ use App\Models\Staff;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\PermissionRegistrar;
 
+/**
+ * Coordinates role management between legacy records and spatie permissions.
+ *
+ * Syncs role definitions and granted permissions across both storage systems
+ * while maintaining audit trails and permission cache invalidation.
+ */
 class RoleService
 {
     use NormalizesInput;
@@ -34,10 +40,7 @@ class RoleService
                 'updated' => now(),
             ]);
 
-            $spatieRole = LegacyRole::query()->create([
-                'name' => (string) $role->name,
-                'guard_name' => 'staff',
-            ]);
+            $spatieRole = $this->createSpatieRole($role, (string) $role->name);
 
             $spatieRole->syncPermissions($permissions);
 
@@ -59,7 +62,7 @@ class RoleService
         $originalName = (string) $role->name;
 
         DB::connection('legacy')->transaction(function () use ($role, $data, $permissions, $originalName): void {
-            $spatieRole = $this->findOrCreateSpatieRole($originalName);
+            $spatieRole = $this->findOrCreateSpatieRole($role, $originalName);
 
             $role->forceFill([
                 'name' => trim((string) $data['name']),
@@ -160,18 +163,22 @@ class RoleService
         return json_encode($permissions) ?: '[]';
     }
 
-    private function findOrCreateSpatieRole(string $name): LegacyRole
+    private function findOrCreateSpatieRole(Role $legacyRole, string $name): LegacyRole
     {
-        /** @var LegacyRole|null $role */
-        $role = LegacyRole::query()->where('name', $name)->first();
+        return LegacyRole::query()->find((int) $legacyRole->getKey())
+            ?? LegacyRole::query()->where('name', $name)->first()
+            ?? $this->createSpatieRole($legacyRole, $name);
+    }
 
-        if ($role instanceof LegacyRole) {
-            return $role;
-        }
-
-        return LegacyRole::query()->create([
+    private function createSpatieRole(Role $legacyRole, string $name): LegacyRole
+    {
+        $role = new LegacyRole;
+        $role->forceFill([
+            'id' => (int) $legacyRole->getKey(),
             'name' => $name,
             'guard_name' => 'staff',
-        ]);
+        ])->save();
+
+        return $role;
     }
 }

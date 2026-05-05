@@ -8,7 +8,14 @@ use App\Models\HelpTopic;
 use App\Models\Staff;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\ValidationException;
 
+/**
+ * Manages help topic lifecycle including creation, updates, and deletion.
+ *
+ * Enforces tree integrity by preventing circular parent references and
+ * records audit snapshots for each change.
+ */
 class HelpTopicService
 {
     use NormalizesInput;
@@ -38,6 +45,8 @@ class HelpTopicService
      */
     public function update(HelpTopic $helpTopic, array $data, Staff $actor): HelpTopic
     {
+        $this->ensureValidParent($helpTopic, $data['topic_pid'] ?? null);
+
         $helpTopic->loadMissing(['parent', 'department', 'sla', 'staff', 'team']);
         $before = $this->snapshot($helpTopic);
 
@@ -129,6 +138,18 @@ class HelpTopicService
     private function serializeNullableInt(mixed $value): ?int
     {
         return $value === null || (int) $value === 0 ? null : (int) $value;
+    }
+
+    private function ensureValidParent(HelpTopic $helpTopic, mixed $parentId): void
+    {
+        $normalizedParentId = $this->normalizeParentId($parentId);
+
+        if ($normalizedParentId !== 0
+            && ($normalizedParentId === (int) $helpTopic->getKey() || in_array($normalizedParentId, $helpTopic->descendantIds(), true))) {
+            throw ValidationException::withMessages([
+                'topic_pid' => 'The selected parent topic cannot be this topic or one of its child topics.',
+            ]);
+        }
     }
 
     private function hasHelpTopicColumn(string $column): bool
