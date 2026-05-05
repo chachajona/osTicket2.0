@@ -44,6 +44,8 @@
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
             "@php artisan key:generate",
             "@php artisan migrate --force",
+            "@php artisan legacy:ensure-permission-tables --seed --ansi",
+            "@php artisan osticket2:ensure-support-tables --ansi",
             "npm install --ignore-scripts",
             "npm run build"
         ],
