@@ -25,7 +25,7 @@ final class ThreadEventWriter
 
         return ThreadEvent::on('legacy')->create([
             'thread_id' => $thread->id,
-            'thread_type' => 'A',
+            'thread_type' => $thread->object_type,
             'event_id' => $eventId,
             'staff_id' => $staff->staff_id,
             'team_id' => 0,

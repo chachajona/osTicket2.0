@@ -27,11 +27,18 @@ final class DraftService
                 'staff_id' => $staff->staff_id,
                 'namespace' => $namespace,
             ],
-            [
-                'body' => $body,
-                'created' => $now,
-                'updated' => $now,
-            ]
+            function (bool $exists) use ($body, $now): array {
+                $values = [
+                    'body' => $body,
+                    'updated' => $now,
+                ];
+
+                if (! $exists) {
+                    $values['created'] = $now;
+                }
+
+                return $values;
+            },
         );
 
         return $this->find($staff, $namespace);

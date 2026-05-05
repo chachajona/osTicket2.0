@@ -7,12 +7,20 @@ namespace Tests\Feature\Scp\Tickets;
 use App\Models\Draft;
 use App\Models\Staff;
 use App\Models\Ticket;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 final class DraftControllerTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+
+        parent::tearDown();
+    }
 
     public function test_show_returns_existing_draft(): void
     {
@@ -83,6 +91,38 @@ final class DraftControllerTest extends TestCase
             'staff_id' => $staff->staff_id,
             'namespace' => $namespace,
             'body' => 'Updated body',
+        ], 'legacy');
+    }
+
+    public function test_update_preserves_original_created_timestamp(): void
+    {
+        $staff = Staff::factory()->admin()->create();
+        $ticket = Ticket::factory()->create();
+        $namespace = "ticket.note.{$ticket->ticket_id}";
+
+        Draft::on('legacy')->create([
+            'staff_id' => $staff->staff_id,
+            'namespace' => $namespace,
+            'body' => 'Original body',
+            'created' => '2026-05-03 09:00:00',
+            'updated' => '2026-05-03 09:00:00',
+        ]);
+
+        Carbon::setTestNow('2026-05-03 10:15:00');
+
+        $response = $this->actingAs($staff, 'staff')
+            ->patchJson("/scp/tickets/{$ticket->ticket_id}/draft", [
+                'body' => 'Updated body',
+            ]);
+
+        $response->assertOk();
+
+        $this->assertDatabaseHas('draft', [
+            'staff_id' => $staff->staff_id,
+            'namespace' => $namespace,
+            'body' => 'Updated body',
+            'created' => '2026-05-03 09:00:00',
+            'updated' => '2026-05-03 10:15:00',
         ], 'legacy');
     }
 

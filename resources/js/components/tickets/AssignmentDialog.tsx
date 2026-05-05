@@ -77,8 +77,9 @@ export function AssignmentDialog({
         router.post(
             `/scp/tickets/${ticketId}/assignment`,
             {
-                staff_id: parseInt(selectedStaffId, 10),
-                note: comment,
+                assignee_type: 'staff',
+                assignee_id: parseInt(selectedStaffId, 10),
+                comments: comment,
                 expected_updated: expectedUpdated,
             },
             {
@@ -94,8 +95,9 @@ export function AssignmentDialog({
         router.post(
             `/scp/tickets/${ticketId}/assignment`,
             {
-                team_id: parseInt(selectedTeamId, 10),
-                note: comment,
+                assignee_type: 'team',
+                assignee_id: parseInt(selectedTeamId, 10),
+                comments: comment,
                 expected_updated: expectedUpdated,
             },
             {

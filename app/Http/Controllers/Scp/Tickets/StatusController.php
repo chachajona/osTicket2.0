@@ -8,9 +8,10 @@ use App\Exceptions\ForbiddenStatusTransition;
 use App\Exceptions\TicketModifiedConcurrentlyException;
 use App\Http\Controllers\Controller;
 use App\Models\Ticket;
-use App\Models\Thread;
 use App\Services\Scp\Tickets\ActionLogger;
 use App\Services\Scp\Tickets\StatusTransitionService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 final class StatusController extends Controller
@@ -20,7 +21,7 @@ final class StatusController extends Controller
         private readonly ActionLogger $logger,
     ) {}
 
-    public function store(Request $request, Ticket $ticket): \Illuminate\Http\RedirectResponse|\Illuminate\Http\JsonResponse
+    public function store(Request $request, Ticket $ticket): RedirectResponse|JsonResponse
     {
         $this->authorize('setStatus', $ticket);
 
@@ -31,10 +32,7 @@ final class StatusController extends Controller
         ]);
 
         $staff = $request->user('staff');
-        $thread = Thread::on('legacy')
-            ->where('object_id', $ticket->ticket_id)
-            ->where('object_type', 'A')
-            ->firstOrFail();
+        $thread = $ticket->thread()->firstOrFail();
 
         try {
             $this->transitions->transition(

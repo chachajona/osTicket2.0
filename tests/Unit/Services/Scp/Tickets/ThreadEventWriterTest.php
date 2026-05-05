@@ -73,7 +73,7 @@ final class ThreadEventWriterTest extends TestCase
         ]);
     }
 
-    public function test_records_assigned_event_with_correct_event_id_and_data_shape(): void
+    public function test_records_assigned_event_with_correct_event_id_thread_type_and_data_shape(): void
     {
         // Create test data
         $thread = Thread::factory()->create();
@@ -94,7 +94,7 @@ final class ThreadEventWriterTest extends TestCase
         // Assert the ThreadEvent was created with correct values
         $this->assertDatabaseHas('thread_event', [
             'thread_id' => $thread->id,
-            'thread_type' => 'A',
+            'thread_type' => 'T',
             'event_id' => 1,
             'staff_id' => $staff->staff_id,
             'team_id' => 0,
@@ -113,6 +113,25 @@ final class ThreadEventWriterTest extends TestCase
 
         // Assert username is set
         $this->assertNotNull($result->username);
+    }
+
+    public function test_records_task_thread_events_with_task_thread_type(): void
+    {
+        $thread = Thread::factory()->create(['object_type' => 'A']);
+        $staff = Staff::factory()->create();
+
+        $result = $this->writer->record(
+            thread: $thread,
+            eventName: 'assigned',
+            entryId: null,
+            staff: $staff,
+        );
+
+        $this->assertDatabaseHas('thread_event', [
+            'id' => $result->id,
+            'thread_id' => $thread->id,
+            'thread_type' => 'A',
+        ], 'legacy');
     }
 
     public function test_throws_for_unknown_event_name(): void

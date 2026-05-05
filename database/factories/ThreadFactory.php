@@ -13,7 +13,7 @@ final class ThreadFactory extends Factory
     {
         return [
             'object_id' => $this->faker->numberBetween(1, 1000),
-            'object_type' => 'A',
+            'object_type' => 'T',
             'created' => now(),
         ];
     }

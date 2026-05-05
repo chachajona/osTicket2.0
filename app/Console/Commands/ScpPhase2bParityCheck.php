@@ -46,19 +46,21 @@ final class ScpPhase2bParityCheck extends Command
 
         foreach ($ticketIds as $ticketId) {
             // Find ticket on legacy connection
-            $ticket = Ticket::on('legacy')->find($ticketId);
+            $ticket = Ticket::on('legacy')->withoutGlobalScopes()->find($ticketId);
 
-            if (!$ticket) {
+            if (! $ticket) {
                 $this->error("Ticket {$ticketId} not found on legacy connection");
                 $errorCount++;
+
                 continue;
             }
 
             // Get thread for this ticket
             $thread = $ticket->thread()->first();
 
-            if (!$thread) {
+            if (! $thread) {
                 $this->warn("Ticket {$ticketId} has no thread");
+
                 continue;
             }
 
