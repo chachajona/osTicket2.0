@@ -1,31 +1,41 @@
-import { Link, usePage } from '@inertiajs/react';
+import { Link } from '@inertiajs/react';
 import { useEffect, useMemo, useState, type ReactElement, type ReactNode } from 'react';
 import { Dialog as DialogPrimitive } from '@base-ui/react/dialog';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
-    AlertCircleIcon,
-    ArrowDown01Icon,
-    Calendar01Icon,
+    ArrowLeft01Icon,
+    ArrowLeft02Icon,
+    ArrowRight02Icon,
+    MoreHorizontalIcon,
+    Ticket01Icon,
     Cancel01Icon,
-    CheckmarkCircle02Icon,
-    Clock01Icon,
-    Copy01Icon,
     Download01Icon,
-    File01Icon,
     Image01Icon,
-    Link01Icon,
-    Link02Icon,
-    Mail01Icon,
-    Note01Icon,
+    ComputerIcon,
+    RefreshIcon,
+    FilterIcon,
+    Copy01Icon,
+    Bookmark01Icon,
+    Delete01Icon,
+    UserIcon,
     UserGroupIcon,
+    Chat01Icon,
+    SmartPhone01Icon,
+    Mail01Icon,
 } from '@hugeicons/core-free-icons';
 
-import { PriorityBadge } from '@/components/scp/PriorityBadge';
-import { StatusBadge } from '@/components/scp/StatusBadge';
+import { type StatusOption } from '@/components/tickets/StatusPicker';
+import { NoteComposer } from '@/components/tickets/NoteComposer';
 import { appShellLayout, SetPageHeader } from '@/layouts/AppShell';
 import { formatBytes, formatDateTime, formatRelative } from '@/lib/datetime';
 import { sanitizeHtml } from '@/lib/sanitizeHtml';
 import { cn } from '@/lib/utils';
+import {
+    PrioritySegmented,
+    TagChip,
+    SplitButton,
+    IconBtn
+} from '@/components/tickets/TicketDetailComponents';
 
 interface Ticket {
     id: number;
@@ -96,31 +106,14 @@ interface TicketShowProps {
     attachments: Attachment[];
     collaborators: Collaborator[];
     referrals: Referral[];
-}
-
-const ENTRY_KIND_META: Record<string, { label: string; tone: string; icon: typeof Mail01Icon }> = {
-    M: { label: 'Message', tone: 'border-sky-200 bg-sky-50 text-sky-700', icon: Mail01Icon },
-    R: { label: 'Response', tone: 'border-emerald-200 bg-emerald-50 text-emerald-700', icon: Mail01Icon },
-    N: { label: 'Internal note', tone: 'border-amber-200 bg-amber-50 text-amber-800', icon: Note01Icon },
-};
-
-const ENTRY_DEFAULT = {
-    label: 'Entry',
-    tone: 'border-[#E2E0D8] bg-[#FAFAF8] text-[#71717A]',
-    icon: Mail01Icon,
-};
-
-function entryMeta(type: string | null) {
-    if (!type) return ENTRY_DEFAULT;
-    return ENTRY_KIND_META[type.toUpperCase()] ?? ENTRY_DEFAULT;
-}
-
-function entryAnchor(id: number): string {
-    return `entry-${id}`;
-}
-
-function eventAnchor(id: number): string {
-    return `event-${id}`;
+    permissions?: {
+        canSetStatus?: boolean;
+        canAssign?: boolean;
+        canPostNote?: boolean;
+    };
+    availableStatuses?: StatusOption[];
+    staffOptions?: { id: number; name: string }[];
+    teamOptions?: { id: number; name: string }[];
 }
 
 function isImage(mime: string | null | undefined): boolean {
@@ -129,27 +122,6 @@ function isImage(mime: string | null | undefined): boolean {
 
 function isPdf(mime: string | null | undefined): boolean {
     return typeof mime === 'string' && mime.toLowerCase() === 'application/pdf';
-}
-
-function useCopy(timeoutMs = 1500) {
-    const [copied, setCopied] = useState<string | null>(null);
-
-    useEffect(() => {
-        if (copied === null) return;
-        const handle = window.setTimeout(() => setCopied(null), timeoutMs);
-        return () => window.clearTimeout(handle);
-    }, [copied, timeoutMs]);
-
-    async function copy(value: string, key: string): Promise<void> {
-        try {
-            await navigator.clipboard.writeText(value);
-            setCopied(key);
-        } catch {
-            /* clipboard unavailable */
-        }
-    }
-
-    return { copied, copy };
 }
 
 interface SlaProgress {
@@ -216,362 +188,6 @@ function computeSlaProgress(ticket: Ticket, now: Date): SlaProgress | null {
     };
 }
 
-function Metric({ label, value, helper }: { label: string; value: ReactNode; helper?: string | null }) {
-    return (
-        <div>
-            <dt className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#A1A1AA]">{label}</dt>
-            <dd className="mt-1.5 text-sm font-medium text-[#18181B]">{value || <span className="text-[#A1A1AA]">—</span>}</dd>
-            {helper && <p className="mt-0.5 text-xs text-[#A1A1AA]">{helper}</p>}
-        </div>
-    );
-}
-
-const SLA_TRACK_COLOR: Record<SlaProgress['tone'], string> = {
-    overdue: 'bg-red-500',
-    danger: 'bg-amber-500',
-    warn: 'bg-yellow-400',
-    closed: 'bg-[#A1A1AA]',
-    safe: 'bg-emerald-500',
-};
-
-const SLA_LABEL_TONE: Record<SlaProgress['tone'], string> = {
-    overdue: 'text-red-600',
-    danger: 'text-amber-600',
-    warn: 'text-yellow-700',
-    closed: 'text-[#71717A]',
-    safe: 'text-emerald-600',
-};
-
-function SlaBar({ progress }: { progress: SlaProgress }) {
-    const trackColor = SLA_TRACK_COLOR[progress.tone];
-    const labelTone = SLA_LABEL_TONE[progress.tone];
-
-    return (
-        <div className="rounded-md bg-[#FAFAF8] px-3 py-2.5">
-            <div className="flex items-center justify-between gap-3 text-xs">
-                <span className={cn('font-semibold uppercase tracking-[0.14em]', labelTone)}>{progress.label}</span>
-                {progress.helper && <span className="text-[#71717A]">{progress.helper}</span>}
-            </div>
-            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#E2E0D8]">
-                <div className={cn('h-full rounded-full transition-all', trackColor)} style={{ width: `${progress.percent}%` }} />
-            </div>
-        </div>
-    );
-}
-
-function TicketHeader({ ticket }: { ticket: Ticket }) {
-    const { copied, copy } = useCopy();
-    const [now, setNow] = useState<Date>(() => new Date());
-
-    useEffect(() => {
-        const id = window.setInterval(() => setNow(new Date()), 60_000);
-        return () => window.clearInterval(id);
-    }, []);
-
-    const sla = computeSlaProgress(ticket, now);
-
-    return (
-        <header className="rounded-[18px] border border-[#E2E0D8] bg-white p-6 shadow-sm shadow-[#18181B]/[0.03] xl:p-8">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-                <div className="min-w-0 flex-1">
-                    <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-1.5 text-xs text-[#A1A1AA]">
-                        <Link href="/scp/queues" className="hover:text-[#18181B]">Tickets</Link>
-                        <span className="text-[#E2E0D8]">/</span>
-                        <button
-                            type="button"
-                            onClick={() => copy(`#${ticket.number}`, 'number')}
-                            className="inline-flex items-center gap-1 font-mono text-[#18181B] hover:text-[#EC4899]"
-                            title="Copy ticket number"
-                        >
-                            <span>#{ticket.number}</span>
-                            <HugeiconsIcon
-                                icon={copied === 'number' ? CheckmarkCircle02Icon : Copy01Icon}
-                                size={11}
-                                className={cn('transition-colors', copied === 'number' ? 'text-emerald-500' : 'text-[#A1A1AA]')}
-                            />
-                        </button>
-                        {ticket.created && (
-                            <>
-                                <span className="text-[#E2E0D8]">·</span>
-                                <span title={formatDateTime(ticket.created) ?? undefined}>
-                                    Created {formatRelative(ticket.created)}
-                                </span>
-                            </>
-                        )}
-                        {ticket.requester && (
-                            <>
-                                <span className="text-[#E2E0D8]">·</span>
-                                <span>by {ticket.requester}</span>
-                            </>
-                        )}
-                    </nav>
-                    <h1 className="mt-2 font-display text-2xl font-medium tracking-tight text-[#18181B]">
-                        {ticket.subject ?? `Ticket ${ticket.number}`}
-                    </h1>
-                    {ticket.requester_email && (
-                        <a href={`mailto:${ticket.requester_email}`} className="mt-1 inline-flex items-center gap-1.5 text-xs text-[#6366F1] hover:underline">
-                            <HugeiconsIcon icon={Mail01Icon} size={12} />
-                            {ticket.requester_email}
-                        </a>
-                    )}
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                    <StatusBadge status={ticket.status} state={ticket.status_state} />
-                    <PriorityBadge priority={ticket.priority} />
-                </div>
-            </div>
-
-            <dl className="mt-6 grid grid-cols-2 gap-4 border-t border-[#F4F2EB] pt-6 sm:grid-cols-4">
-                <Metric label="Department" value={ticket.department} />
-                <Metric label="Assignee" value={ticket.assignee} />
-                <Metric
-                    label="Due date"
-                    value={ticket.duedate ? formatDateTime(ticket.duedate) : null}
-                    helper={ticket.duedate ? formatRelative(ticket.duedate) : null}
-                />
-                <Metric
-                    label="Updated"
-                    value={ticket.updated ? formatRelative(ticket.updated) : null}
-                    helper={ticket.updated ? formatDateTime(ticket.updated) : null}
-                />
-            </dl>
-
-            {sla && (
-                <div className="mt-5">
-                    <SlaBar progress={sla} />
-                </div>
-            )}
-        </header>
-    );
-}
-
-function TimelineEntry({ item }: { item: ThreadEntry }) {
-    const meta = entryMeta(item.type);
-    const { copied, copy } = useCopy();
-    const anchorId = entryAnchor(item.id);
-
-    const safeHtml = useMemo(() => {
-        if (!item.body) return '';
-        if ((item.format ?? '').toLowerCase() === 'html') {
-            return sanitizeHtml(item.body);
-        }
-        return null;
-    }, [item.body, item.format]);
-
-    function shareLink() {
-        const url = `${window.location.pathname}#${anchorId}`;
-        copy(url, anchorId);
-    }
-
-    return (
-        <article id={anchorId} className="group relative scroll-mt-24 rounded-[14px] border border-[#E2E0D8] bg-white p-5 shadow-sm shadow-[#18181B]/[0.02]">
-            <header className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex flex-wrap items-center gap-2">
-                    <span className={cn('inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em]', meta.tone)}>
-                        <HugeiconsIcon icon={meta.icon} size={10} />
-                        {meta.label}
-                    </span>
-                    {item.author && <span className="text-sm font-medium text-[#18181B]">{item.author}</span>}
-                </div>
-                <div className="flex items-center gap-2 text-xs text-[#A1A1AA]">
-                    {item.created && (
-                        <time
-                            dateTime={item.created}
-                            title={formatDateTime(item.created) ?? undefined}
-                            className="inline-flex items-center gap-1"
-                        >
-                            <HugeiconsIcon icon={Clock01Icon} size={11} />
-                            {formatRelative(item.created)}
-                        </time>
-                    )}
-                    <button
-                        type="button"
-                        onClick={shareLink}
-                        title="Copy link to this entry"
-                        className="grid h-6 w-6 place-items-center rounded text-[#A1A1AA] opacity-0 transition-all hover:bg-[#F4F2EB] hover:text-[#EC4899] group-hover:opacity-100 focus-visible:opacity-100"
-                    >
-                        <HugeiconsIcon
-                            icon={copied === anchorId ? CheckmarkCircle02Icon : Link02Icon}
-                            size={12}
-                            className={copied === anchorId ? 'text-emerald-500' : undefined}
-                        />
-                    </button>
-                </div>
-            </header>
-            {safeHtml ? (
-                <div
-                    className="prose-ticket mt-4 text-sm leading-relaxed text-[#18181B]"
-                    dangerouslySetInnerHTML={{ __html: safeHtml }}
-                />
-            ) : item.body ? (
-                <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-[#18181B]">{item.body}</p>
-            ) : (
-                <p className="mt-4 text-sm italic text-[#A1A1AA]">No content.</p>
-            )}
-        </article>
-    );
-}
-
-function TimelineEvent({ item }: { item: ThreadEvent }) {
-    const anchorId = eventAnchor(item.id);
-
-    return (
-        <div id={anchorId} className="flex scroll-mt-24 items-start gap-3 rounded-md border border-dashed border-[#E2E0D8] bg-[#FAFAF8] px-4 py-3">
-            <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white text-[#6366F1] ring-1 ring-[#E2E0D8]">
-                <HugeiconsIcon icon={Calendar01Icon} size={12} />
-            </div>
-            <div className="flex-1 text-xs text-[#71717A]">
-                <p className="font-medium text-[#18181B]">{item.label ?? 'Event'}</p>
-                {item.created && (
-                    <p className="mt-0.5">
-                        <time dateTime={item.created} title={formatDateTime(item.created) ?? undefined}>
-                            {formatRelative(item.created)}
-                        </time>
-                    </p>
-                )}
-            </div>
-        </div>
-    );
-}
-
-function Timeline({ items }: { items: TimelineItem[] }) {
-    const latestEntry = useMemo(() => {
-        for (let index = items.length - 1; index >= 0; index--) {
-            const item = items[index];
-            if (item.kind === 'entry') return item;
-        }
-        return null;
-    }, [items]);
-
-    function jumpToLatest() {
-        if (!latestEntry) return;
-        const target = document.getElementById(entryAnchor(latestEntry.id));
-        target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-
-    return (
-        <section className="rounded-[18px] border border-[#E2E0D8] bg-white p-6 shadow-sm shadow-[#18181B]/[0.03] xl:p-8">
-            <header className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                    <h2 className="font-display text-lg font-medium text-[#18181B]">Timeline</h2>
-                    <span className="rounded-full bg-[#F4F2EB] px-2 py-0.5 text-[10px] font-semibold text-[#71717A]">
-                        {items.length} {items.length === 1 ? 'item' : 'items'}
-                    </span>
-                </div>
-                {latestEntry && items.length > 2 && (
-                    <button
-                        type="button"
-                        onClick={jumpToLatest}
-                        className="inline-flex items-center gap-1.5 rounded-md border border-[#E2E0D8] bg-white px-2.5 py-1.5 text-xs font-medium text-[#71717A] transition-colors hover:border-[#E2E0D8] hover:text-[#18181B]"
-                    >
-                        <HugeiconsIcon icon={ArrowDown01Icon} size={12} />
-                        Jump to latest
-                    </button>
-                )}
-            </header>
-            {items.length === 0 ? (
-                <p className="mt-5 text-sm text-[#71717A]">No thread entries or events were found.</p>
-            ) : (
-                <ol className="mt-6 space-y-4">
-                    {items.map((item) => (
-                        <li key={`${item.kind}-${item.id}`}>
-                            {item.kind === 'entry' ? <TimelineEntry item={item} /> : <TimelineEvent item={item} />}
-                        </li>
-                    ))}
-                </ol>
-            )}
-        </section>
-    );
-}
-
-function CustomFieldsPanel({ fields }: { fields: TicketShowProps['customFields'] }) {
-    const entries = Object.entries(fields);
-
-    return (
-        <SidebarPanel title="Custom Fields">
-            {entries.length === 0 ? (
-                <PanelEmpty text="No custom fields were captured." />
-            ) : (
-                <dl className="space-y-3 text-sm">
-                    {entries.map(([key, value]) => (
-                        <div key={key}>
-                            <dt className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#A1A1AA]">{key}</dt>
-                            <dd className="mt-1 break-words text-[#18181B]">
-                                {value === null || value === '' ? <span className="text-[#A1A1AA]">—</span> : String(value)}
-                            </dd>
-                        </div>
-                    ))}
-                </dl>
-            )}
-        </SidebarPanel>
-    );
-}
-
-function AttachmentsPanel({ attachments }: { attachments: Attachment[] }) {
-    const [preview, setPreview] = useState<Attachment | null>(null);
-
-    return (
-        <SidebarPanel title="Attachments" count={attachments.length}>
-            {attachments.length === 0 ? (
-                <PanelEmpty text="No attachments." />
-            ) : (
-                <ul className="space-y-2">
-                    {attachments.map((attachment) => {
-                        const previewable = isImage(attachment.mime) || isPdf(attachment.mime);
-                        const Icon = isImage(attachment.mime) ? Image01Icon : File01Icon;
-                        return (
-                            <li key={attachment.id}>
-                                <div className="group flex items-start gap-3 rounded-md border border-[#E2E0D8] bg-[#FAFAF8] px-3 py-2.5 text-sm transition-colors hover:bg-white">
-                                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-white text-[#6366F1] ring-1 ring-[#E2E0D8]">
-                                        <HugeiconsIcon icon={Icon} size={14} />
-                                    </span>
-                                    <div className="min-w-0 flex-1">
-                                        <p className="truncate font-medium text-[#18181B]">
-                                            {attachment.name ?? `File ${attachment.file_id}`}
-                                        </p>
-                                        <p className="mt-0.5 flex items-center gap-2 text-xs text-[#A1A1AA]">
-                                            {attachment.mime && <span className="truncate">{attachment.mime}</span>}
-                                            {formatBytes(attachment.size) && (
-                                                <>
-                                                    <span className="text-[#E2E0D8]">·</span>
-                                                    <span>{formatBytes(attachment.size)}</span>
-                                                </>
-                                            )}
-                                        </p>
-                                    </div>
-                                    <div className="flex flex-col gap-1">
-                                        {previewable && (
-                                            <button
-                                                type="button"
-                                                onClick={() => setPreview(attachment)}
-                                                className="grid h-7 w-7 place-items-center rounded text-[#A1A1AA] transition-colors hover:bg-[#F4F2EB] hover:text-[#EC4899]"
-                                                title="Preview"
-                                                aria-label="Preview attachment"
-                                            >
-                                                <HugeiconsIcon icon={Image01Icon} size={13} />
-                                            </button>
-                                        )}
-                                        <a
-                                            href={attachment.download_url}
-                                            className="grid h-7 w-7 place-items-center rounded text-[#A1A1AA] transition-colors hover:bg-[#F4F2EB] hover:text-[#EC4899]"
-                                            title="Download"
-                                            aria-label="Download attachment"
-                                            download
-                                        >
-                                            <HugeiconsIcon icon={Download01Icon} size={13} />
-                                        </a>
-                                    </div>
-                                </div>
-                            </li>
-                        );
-                    })}
-                </ul>
-            )}
-            <AttachmentPreview attachment={preview} onClose={() => setPreview(null)} />
-        </SidebarPanel>
-    );
-}
-
 function AttachmentPreview({ attachment, onClose }: { attachment: Attachment | null; onClose: () => void }) {
     const open = attachment !== null;
 
@@ -633,163 +249,313 @@ function AttachmentPreview({ attachment, onClose }: { attachment: Attachment | n
     );
 }
 
-function CollaboratorsPanel({ collaborators }: { collaborators: Collaborator[] }) {
-    return (
-        <SidebarPanel title="Collaborators" count={collaborators.length}>
-            {collaborators.length === 0 ? (
-                <PanelEmpty text="No collaborators." />
-            ) : (
-                <ul className="space-y-3">
-                    {collaborators.map((collaborator) => (
-                        <li key={collaborator.id} className="flex items-start gap-3">
-                            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#F4F2EB] text-[#6366F1]">
-                                <HugeiconsIcon icon={UserGroupIcon} size={14} />
-                            </span>
-                            <div className="min-w-0 flex-1 text-sm">
-                                <p className="truncate font-medium text-[#18181B]">
-                                    {collaborator.name ?? collaborator.email ?? 'Unknown'}
-                                </p>
-                                {collaborator.email && collaborator.name && (
-                                    <p className="truncate text-xs text-[#A1A1AA]">{collaborator.email}</p>
-                                )}
-                                {collaborator.role && (
-                                    <span className="mt-1 inline-flex items-center rounded-full bg-[#FFF4EC] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#6366F1]">
-                                        {collaborator.role}
-                                    </span>
-                                )}
-                            </div>
-                        </li>
-                    ))}
-                </ul>
-            )}
-        </SidebarPanel>
-    );
-}
+export default function TicketShow({ ticket, customFields, timeline, attachments, collaborators, referrals, permissions, staffOptions, teamOptions, availableStatuses }: TicketShowProps) {
+    const [activeTab, setActiveTab] = useState('conversation');
+    const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+    const [now, setNow] = useState<Date>(() => new Date());
 
-function ReferralsPanel({ referrals }: { referrals: Referral[] }) {
-    return (
-        <SidebarPanel title="Referrals" count={referrals.length}>
-            {referrals.length === 0 ? (
-                <PanelEmpty text="No referrals." />
-            ) : (
-                <ul className="space-y-2 text-sm">
-                    {referrals.map((referral) => (
-                        <li key={referral.id} className="flex items-center justify-between rounded-md border border-[#E2E0D8] bg-[#FAFAF8] px-3 py-2">
-                            <span className="flex items-center gap-2 font-medium text-[#18181B]">
-                                <HugeiconsIcon icon={Link01Icon} size={12} className="text-[#6366F1]" />
-                                {referral.object_type ?? 'object'} #{referral.object_id ?? '?'}
-                            </span>
-                            {referral.created && (
-                                <time dateTime={referral.created} className="text-xs text-[#A1A1AA]" title={formatDateTime(referral.created) ?? undefined}>
-                                    {formatRelative(referral.created)}
-                                </time>
-                            )}
-                        </li>
-                    ))}
-                </ul>
-            )}
-        </SidebarPanel>
-    );
-}
+    useEffect(() => {
+        const id = window.setInterval(() => setNow(new Date()), 60_000);
+        return () => window.clearInterval(id);
+    }, []);
 
-function SidebarPanel({ title, count, children }: { title: string; count?: number; children: ReactNode }) {
-    return (
-        <section className="rounded-[18px] border border-[#E2E0D8] bg-white p-5 shadow-sm shadow-[#18181B]/[0.03]">
-            <header className="mb-4 flex items-center justify-between">
-                <h3 className="font-display text-base font-medium text-[#18181B]">{title}</h3>
-                {count !== undefined && (
-                    <span className="rounded-full bg-[#F4F2EB] px-2 py-0.5 text-[10px] font-semibold text-[#71717A]">{count}</span>
-                )}
-            </header>
-            {children}
-        </section>
-    );
-}
+    const sla = computeSlaProgress(ticket, now);
 
-function PanelEmpty({ text }: { text: string }) {
-    return <p className="text-sm text-[#71717A]">{text}</p>;
-}
+    const tabs = [
+        { id: 'conversation', label: 'Conversation' },
+        { id: 'task', label: 'Task' },
+        { id: 'activity', label: 'Activity Logs' },
+        { id: 'notes', label: 'Notes' },
+    ];
 
-function StatusSummary({ ticket }: { ticket: Ticket }) {
-    return (
-        <SidebarPanel title="Summary">
-            <dl className="space-y-3 text-sm">
-                <SummaryRow icon={CheckmarkCircle02Icon} label="Status" value={ticket.status ?? '—'} />
-                <SummaryRow icon={AlertCircleIcon} label="Priority" value={ticket.priority ?? '—'} />
-                <SummaryRow icon={UserGroupIcon} label="Department" value={ticket.department ?? '—'} />
-                <SummaryRow icon={Calendar01Icon} label="Created" value={(ticket.created ? formatDateTime(ticket.created) : null) ?? '—'} />
-            </dl>
-        </SidebarPanel>
-    );
-}
+    const sideIcons = [
+        UserIcon,
+        UserGroupIcon,
+        Chat01Icon,
+        SmartPhone01Icon,
+        Mail01Icon,
+    ];
 
-function SummaryRow({ icon, label, value }: { icon: typeof Mail01Icon; label: string; value: string }) {
-    return (
-        <div className="flex items-start gap-2.5">
-            <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-md bg-[#F4F2EB] text-[#6366F1]">
-                <HugeiconsIcon icon={icon} size={11} />
-            </span>
-            <div className="min-w-0 flex-1">
-                <dt className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#A1A1AA]">{label}</dt>
-                <dd className="mt-0.5 break-words text-[#18181B]">{value}</dd>
-            </div>
-        </div>
-    );
-}
+    // Reconstruct timeline into Thread Messages format
+    const threadMessages = useMemo(() => timeline.map(item => {
+        if (item.kind === 'event') {
+            return {
+                id: item.id,
+                type: 'system',
+                content: item.label ?? 'Event',
+                time: item.created ? formatDateTime(item.created) : '',
+            };
+        } else {
+            const isInternal = item.type === 'N';
+            const isAgent = item.type === 'M'; // Or R for response
+            return {
+                id: item.id,
+                type: isInternal ? 'internal' : (isAgent ? 'agent' : 'customer'),
+                author: item.author ?? 'Unknown',
+                avatar: (item.author ?? '?').slice(0, 2).toUpperCase(),
+                time: item.created ? formatDateTime(item.created) : '',
+                via: 'Portal',
+                content: sanitizeHtml(item.body ?? ''),
+                isHtml: (item.format ?? '').toLowerCase() === 'html'
+            };
+        }
+    }), [timeline]);
 
-export default function TicketShow({ ticket, customFields, timeline, attachments, collaborators, referrals }: TicketShowProps) {
+    const [preview, setPreview] = useState<Attachment | null>(null);
+
     return (
         <>
             <SetPageHeader>
-                <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0 flex-1">
-                        <TicketHeaderTitle />
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+                <div className="flex w-full items-center justify-between">
+                    <div className="flex min-w-0 items-center gap-3">
                         <Link
                             href="/scp/queues"
-                            className="inline-flex h-7 items-center gap-1.5 rounded-[3px] border border-[#E2E0D8] bg-white px-3 text-[12px] font-medium uppercase leading-4 tracking-[1.2px] text-[#27272A] transition-colors hover:border-[#18181B] hover:bg-[#FAFAF8] hover:text-[#18181B]"
+                            className="flex items-center gap-1.5 whitespace-nowrap px-0 font-sans text-[13px] font-medium text-[#A1A1AA] hover:text-[#18181B]"
                         >
-                            <span aria-hidden>&larr;</span>
-                            Tickets
+                            <HugeiconsIcon icon={ArrowLeft01Icon} size={16} />
+                            Ticket List
                         </Link>
+
+                        <div className="flex gap-0.5">
+                            <IconBtn icon={ArrowLeft02Icon} size={28} className="border-none shadow-none" />
+                            <IconBtn icon={ArrowRight02Icon} size={28} className="border-none shadow-none" />
+                        </div>
+
+                        <div className="flex min-w-0 items-baseline gap-2.5">
+                            <span className="shrink-0 font-mono text-[14px] font-semibold text-[#18181B]">#{ticket.number}</span>
+                            <span className="truncate text-[15px] font-medium text-[#18181B]">{ticket.subject ?? 'No Subject'}</span>
+                        </div>
+                    </div>
+
+                    <div className="relative flex shrink-0 items-center gap-2.5">
+                        <IconBtn
+                            icon={MoreHorizontalIcon}
+                            size={34}
+                            onClick={() => setMoreMenuOpen(!moreMenuOpen)}
+                        />
+                        <SplitButton label="Submit as New" />
+
+                        {moreMenuOpen && (
+                            <div className="absolute right-14 top-full z-50 mt-1 w-[180px] rounded-md border border-[#E2E0D8] bg-white py-1.5 shadow-[0_8px_24px_rgba(0,0,0,0.1)]">
+                                {[
+                                    { icon: ComputerIcon, label: 'Remote Assist' },
+                                    { icon: RefreshIcon, label: 'Refresh' },
+                                    { icon: FilterIcon, label: 'Filters' },
+                                    { icon: Copy01Icon, label: 'Merge Ticket' },
+                                    { icon: Bookmark01Icon, label: 'Add to Shortcut' },
+                                    { icon: Delete01Icon, label: 'Delete', danger: true },
+                                ].map((item, i) => (
+                                    <button
+                                        key={item.label}
+                                        className={cn(
+                                            'flex w-full items-center gap-2 px-4 py-2 font-sans text-[13px] text-left transition-colors hover:bg-[#F4F2EB]',
+                                            item.danger ? 'text-red-600' : 'text-[#18181B]'
+                                        )}
+                                    >
+                                        <HugeiconsIcon icon={item.icon} size={16} className={item.danger ? 'text-red-600' : 'text-[#A1A1AA]'} />
+                                        {item.label}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
             </SetPageHeader>
 
-            <div className="space-y-6">
-                <TicketHeader ticket={ticket} />
+            <div className="-mx-6 -my-5 flex h-[calc(100vh-80px)] flex-col sm:-mx-8 lg:-mx-10 lg:flex-row">
+                {/* Center / Thread Area */}
+                <div className="flex min-w-0 flex-1 flex-col border-r border-[#E2E0D8]">
+                    {/* Tabs */}
+                    <div className="flex shrink-0 justify-center gap-0 border-b border-[#E2E0D8]">
+                        {tabs.map(tab => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={cn(
+                                    'mb-[-1px] border-b-2 px-5 py-2.5 font-sans text-[13px] transition-all',
+                                    activeTab === tab.id
+                                        ? 'border-[#F97316] font-medium text-[#F97316]'
+                                        : 'border-transparent font-normal text-[#A1A1AA] hover:text-[#18181B]'
+                                )}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
 
-            <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-                <Timeline items={timeline} />
+                    {/* Messages Area */}
+                    <div className="custom-scrollbar flex-1 overflow-y-auto px-8 py-6">
+                        {threadMessages.length === 0 ? (
+                            <p className="text-sm text-[#A1A1AA]">No thread entries found.</p>
+                        ) : (
+                            threadMessages.map((msg, idx) => {
+                                if (msg.type === 'system') {
+                                    return (
+                                        <div key={msg.id + '-' + idx} className="mb-6 flex items-center gap-2.5">
+                                            <div className="flex h-8 w-8 items-center justify-center rounded-full border border-[#E2E0D8] bg-[#F4F2EB]">
+                                                <HugeiconsIcon icon={Ticket01Icon} size={14} className="text-[#A1A1AA]" />
+                                            </div>
+                                            <span className="text-[13px] text-[#A1A1AA]">
+                                                <strong className="font-medium text-[#18181B]">{msg.content}</strong>
+                                                {' · ' + msg.time}
+                                            </span>
+                                        </div>
+                                    );
+                                }
 
-                <aside className="space-y-6 xl:sticky xl:top-6 xl:self-start">
-                    <StatusSummary ticket={ticket} />
-                    <CustomFieldsPanel fields={customFields} />
-                    <AttachmentsPanel attachments={attachments} />
-                    <CollaboratorsPanel collaborators={collaborators} />
-                    <ReferralsPanel referrals={referrals} />
-                </aside>
+                                const isAgent = msg.type === 'agent' || msg.type === 'internal';
+
+                                return (
+                                    <div key={msg.id + '-' + idx} className="mb-6 flex gap-3">
+                                        <div className={cn(
+                                            'flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold tracking-[0.02em]',
+                                            isAgent ? 'bg-gradient-to-br from-[#FB923C] via-[#EC4899] to-[#6366F1] text-white' : 'bg-[#E2E0D8] text-[#71717A]'
+                                        )}>
+                                            {msg.avatar}
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="mb-1 flex flex-wrap items-center gap-2">
+                                                <span className="text-[13px] font-semibold text-[#18181B]">{msg.author}</span>
+                                                <span className="text-[12px] text-[#71717A]">{'· ' + msg.time}</span>
+                                                <span className="text-[11px] text-[#71717A]">· Via</span>
+                                                <span className="inline-flex items-center gap-[3px] text-[11px] text-[#A1A1AA]">
+                                                    <HugeiconsIcon icon={msg.via === 'Email' ? Mail01Icon : Chat01Icon} size={12} className="text-[#71717A]" />
+                                                    {msg.via}
+                                                </span>
+                                            </div>
+                                            {msg.isHtml ? (
+                                                <div
+                                                    className="prose-ticket text-[14px] leading-[22px] text-[#18181B]"
+                                                    dangerouslySetInnerHTML={{ __html: msg.content }}
+                                                />
+                                            ) : (
+                                                <p className="whitespace-pre-wrap text-[14px] leading-[22px] text-[#18181B]">
+                                                    {msg.content}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        )}
+                    </div>
+
+                    {permissions?.canPostNote && (
+                        <NoteComposer ticketId={ticket.id} expectedUpdated={ticket.updated ?? ''} />
+                    )}
+                </div>
+
+                {/* Right Sidebar */}
+                <div className="flex w-[260px] shrink-0 overflow-hidden">
+                    <div className="custom-scrollbar flex-1 overflow-y-auto px-4 py-5">
+                        <h3 className="mb-5 text-[14px] font-semibold text-[#18181B]">Ticket Details</h3>
+
+                        <div className="mb-4">
+                            <label className="mb-1.5 block text-xs font-medium text-[#A1A1AA]">Ticket type</label>
+                            <select
+                                defaultValue={ticket.department ?? 'Incident'}
+                                className="w-full appearance-none rounded-sm border border-[#E2E0D8] bg-white px-3 py-2 pr-8 text-[13px] text-[#18181B] outline-none"
+                                style={{
+                                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 12 12' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 5l3 3 3-3' fill='none' stroke='%23A1A1AA' stroke-width='1.5'/%3E%3C/svg%3E")`,
+                                    backgroundRepeat: 'no-repeat',
+                                    backgroundPosition: 'right 10px center'
+                                }}
+                            >
+                                {['Incident', 'Problem', 'Question', 'Suggestion'].map(o => (
+                                    <option key={o} value={o}>{o}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="mb-4">
+                            <label className="mb-1.5 block text-xs font-medium text-[#A1A1AA]">Priority</label>
+                            <PrioritySegmented value={ticket.priority ?? 'High'} onChange={() => {}} />
+                        </div>
+
+                        <div className="mb-4">
+                            <label className="mb-1.5 block text-xs font-medium text-[#A1A1AA]">Linked Problem</label>
+                            <select
+                                defaultValue=""
+                                className="w-full appearance-none rounded-sm border border-[#E2E0D8] bg-white px-3 py-2 pr-8 text-[13px] text-[#71717A] outline-none"
+                                style={{
+                                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 12 12' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 5l3 3 3-3' fill='none' stroke='%23A1A1AA' stroke-width='1.5'/%3E%3C/svg%3E")`,
+                                    backgroundRepeat: 'no-repeat',
+                                    backgroundPosition: 'right 10px center'
+                                }}
+                            >
+                                <option value="">Select problems</option>
+                            </select>
+                        </div>
+
+                        <div className="mb-4">
+                            <label className="mb-1.5 block text-xs font-medium text-[#A1A1AA]">Tags</label>
+                            <div className="flex min-h-[60px] flex-wrap gap-1.5 rounded-sm border border-[#E2E0D8] p-2.5">
+                                <TagChip label="Support" onRemove={() => {}} />
+                            </div>
+                        </div>
+
+                        {sla && (
+                            <div className="mt-6 flex flex-col gap-2.5">
+                                <div className="rounded-md border border-[#E2E0D8] bg-white p-3">
+                                    <div className="mb-1 flex items-center gap-1.5">
+                                        <div className="h-1.5 w-1.5 rounded-full bg-[#F97316]" />
+                                        <span className="text-[11px] font-medium text-[#A1A1AA]">{sla.label} (SLA)</span>
+                                    </div>
+                                    <p className="text-[13px] font-medium text-[#18181B]">{sla.helper}</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Extra sections folded in */}
+                        {attachments.length > 0 && (
+                            <div className="mt-6">
+                                <h3 className="mb-2 text-[12px] font-semibold text-[#18181B]">Attachments ({attachments.length})</h3>
+                                <ul className="space-y-2">
+                                    {attachments.map(att => (
+                                        <li key={att.id} className="flex items-center justify-between rounded border border-[#E2E0D8] p-2 text-xs">
+                                            <span className="truncate">{att.name}</span>
+                                            <button onClick={() => setPreview(att)}><HugeiconsIcon icon={Image01Icon} size={14} /></button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+
+                        {Object.entries(customFields).length > 0 && (
+                            <div className="mt-6">
+                                <h3 className="mb-2 text-[12px] font-semibold text-[#18181B]">Custom Fields</h3>
+                                <dl className="space-y-2 text-xs">
+                                    {Object.entries(customFields).map(([key, val]) => (
+                                        <div key={key}>
+                                            <dt className="text-[#A1A1AA]">{key}</dt>
+                                            <dd className="text-[#18181B]">{String(val || '—')}</dd>
+                                        </div>
+                                    ))}
+                                </dl>
+                            </div>
+                        )}
+
+                        <AttachmentPreview attachment={preview} onClose={() => setPreview(null)} />
+                    </div>
+
+                    {/* Icon Strip */}
+                    <div className="flex w-10 shrink-0 flex-col items-center gap-1 border-l border-[#E2E0D8] bg-[#FAFAF8] pt-4">
+                        {sideIcons.map((ic, i) => (
+                            <button
+                                key={i}
+                                type="button"
+                                className={cn(
+                                    'flex h-8 w-8 items-center justify-center rounded-sm transition-colors',
+                                    i === 0 ? 'bg-[#F97316] text-white' : 'text-[#71717A] hover:bg-[#E2E0D8] hover:text-[#18181B]'
+                                )}
+                            >
+                                <HugeiconsIcon icon={ic} size={16} />
+                            </button>
+                        ))}
+                    </div>
+                </div>
             </div>
-        </div>
-    </>
-    );
-}
-
-function TicketHeaderTitle() {
-    const { props } = usePage<{ ticket?: Ticket }>();
-    const number = props.ticket?.number ?? '';
-
-    return (
-        <div className="flex items-baseline gap-2.5">
-            <h1 className="font-display text-xl font-medium tracking-[-0.02em] text-[#18181B]">
-                #{number}
-            </h1>
-            <span className="text-[#A1A1AA]">·</span>
-            <span className="font-body text-[11px] font-medium uppercase tracking-[0.12em] text-[#A1A1AA]">
-                Tickets
-            </span>
-        </div>
+        </>
     );
 }
 

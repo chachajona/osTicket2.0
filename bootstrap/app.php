@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\AuthenticateStaff;
+use App\Http\Middleware\EnforceTicketLock;
 use App\Http\Middleware\EnsureAdminAccess;
 use App\Http\Middleware\EnsureScpStaff;
 use App\Http\Middleware\HandleInertiaRequests;
@@ -38,6 +39,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'dept.access' => RequireDepartmentAccess::class,
             'scp.access' => EnsureScpStaff::class,
             'scp.log' => LogScpAccess::class,
+            'scp.ticket-lock' => EnforceTicketLock::class,
         ]);
     })
     ->withExceptions(function (): void {
