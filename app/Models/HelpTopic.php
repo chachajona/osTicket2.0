@@ -18,6 +18,9 @@ use Illuminate\Database\Eloquent\Collection;
  * @property int $staff_id
  * @property int $team_id
  * @property int $sla_id
+ * @property int|null $form_id
+ * @property int $isactive
+ * @property int $disabled
  * @property int $page_id
  * @property int $sequence_id
  * @property int $sort
@@ -31,6 +34,8 @@ use Illuminate\Database\Eloquent\Collection;
  * @property-read Staff|null       $staff
  * @property-read Team|null        $team
  * @property-read Sla|null         $sla
+ * @property-read DynamicForm|null $form
+ * @property-read Collection<int, HelpTopicForm> $formAssignments
  * @property-read Collection<int, Faq> $faqs
  */
 class HelpTopic extends LegacyModel
@@ -47,6 +52,37 @@ class HelpTopic extends LegacyModel
     public function children()
     {
         return $this->hasMany(HelpTopic::class, 'topic_pid', 'topic_id');
+    }
+
+    /**
+     * @return list<int>
+     */
+    public function descendantIds(): array
+    {
+        $rootId = (int) $this->getKey();
+        $frontier = [$rootId];
+        $descendantIds = [];
+
+        while ($frontier !== []) {
+            $childIds = HelpTopic::query()
+                ->whereIn('topic_pid', $frontier)
+                ->pluck('topic_id')
+                ->map(static fn (mixed $id): int => (int) $id)
+                ->all();
+
+            $frontier = [];
+
+            foreach ($childIds as $childId) {
+                if ($childId === $rootId || in_array($childId, $descendantIds, true)) {
+                    continue;
+                }
+
+                $descendantIds[] = $childId;
+                $frontier[] = $childId;
+            }
+        }
+
+        return $descendantIds;
     }
 
     public function department()
@@ -67,6 +103,16 @@ class HelpTopic extends LegacyModel
     public function sla()
     {
         return $this->belongsTo(Sla::class, 'sla_id', 'id');
+    }
+
+    public function form()
+    {
+        return $this->belongsTo(DynamicForm::class, 'form_id', 'id');
+    }
+
+    public function formAssignments()
+    {
+        return $this->hasMany(HelpTopicForm::class, 'topic_id', 'topic_id');
     }
 
     public function faqs()

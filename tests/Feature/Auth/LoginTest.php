@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Mail\PasswordResetLinkMail;
 use App\Models\Staff;
@@ -122,7 +124,7 @@ test('2fa page renders when session has staff_id', function () {
         ->get('/scp/2fa');
 
     $response->assertStatus(200);
-    $response->assertJsonPath('component', 'Auth/TwoFactor');
+    $response->assertJsonPath('component', 'Auth/TwoFactorEmail');
 });
 
 test('2fa verify without session redirects to login', function () {
@@ -309,4 +311,119 @@ test('inactive staff cannot reset their password with a valid token', function (
     $response->assertSessionHasErrors(['token']);
     expect(Cache::get("password_reset.{$token}"))->toBeNull()
         ->and(Cache::get('password_reset_staff.120'))->toBeNull();
+});
+
+test('admin with last_active_panel=admin redirects to admin landing', function () {
+    Mail::fake();
+
+    DB::connection('legacy')->table('staff')->insert([
+        'staff_id' => 150,
+        'username' => 'admin-staff',
+        'firstname' => 'Admin',
+        'lastname' => 'Staff',
+        'email' => 'admin@example.com',
+        'passwd' => bcrypt('password'),
+        'isactive' => 1,
+        'isadmin' => 1,
+        'created' => now(),
+    ]);
+
+    // Create staff preference with last_active_panel = 'admin'
+    DB::connection('osticket2')->table('staff_preferences')->insert([
+        'staff_id' => 150,
+        'theme' => 'system',
+        'language' => null,
+        'timezone' => null,
+        'notifications' => json_encode(['desktop' => true, 'email' => false, 'sound' => false]),
+        'last_active_panel' => 'admin',
+        'default_scp_tab' => null,
+        'default_admin_tab' => null,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $response = $this->post('/scp/login', [
+        'username' => 'admin-staff',
+        'password' => 'password',
+    ]);
+
+    $response->assertRedirect('/scp/2fa');
+    expect($this->app['session.store']->get('url.intended'))->toContain('/admin');
+});
+
+test('default scp staff redirects to scp landing', function () {
+    Mail::fake();
+
+    DB::connection('legacy')->table('staff')->insert([
+        'staff_id' => 151,
+        'username' => 'scp-staff',
+        'firstname' => 'SCP',
+        'lastname' => 'Staff',
+        'email' => 'scp@example.com',
+        'passwd' => bcrypt('password'),
+        'isactive' => 1,
+        'isadmin' => 0,
+        'created' => now(),
+    ]);
+
+    // Create staff preference with default last_active_panel = 'scp'
+    DB::connection('osticket2')->table('staff_preferences')->insert([
+        'staff_id' => 151,
+        'theme' => 'system',
+        'language' => null,
+        'timezone' => null,
+        'notifications' => json_encode(['desktop' => true, 'email' => false, 'sound' => false]),
+        'last_active_panel' => 'scp',
+        'default_scp_tab' => null,
+        'default_admin_tab' => null,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $response = $this->post('/scp/login', [
+        'username' => 'scp-staff',
+        'password' => 'password',
+    ]);
+
+    $response->assertRedirect('/scp/2fa');
+    expect($this->app['session.store']->get('url.intended'))->toContain('/scp');
+});
+
+test('non-admin with last_active_panel=admin self-heals to scp landing', function () {
+    Mail::fake();
+
+    DB::connection('legacy')->table('staff')->insert([
+        'staff_id' => 152,
+        'username' => 'non-admin-staff',
+        'firstname' => 'NonAdmin',
+        'lastname' => 'Staff',
+        'email' => 'nonadmin@example.com',
+        'passwd' => bcrypt('password'),
+        'isactive' => 1,
+        'isadmin' => 0,
+        'created' => now(),
+    ]);
+
+    // Create staff preference with last_active_panel = 'admin' (but staff is not admin)
+    DB::connection('osticket2')->table('staff_preferences')->insert([
+        'staff_id' => 152,
+        'theme' => 'system',
+        'language' => null,
+        'timezone' => null,
+        'notifications' => json_encode(['desktop' => true, 'email' => false, 'sound' => false]),
+        'last_active_panel' => 'admin',
+        'default_scp_tab' => null,
+        'default_admin_tab' => null,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $response = $this->post('/scp/login', [
+        'username' => 'non-admin-staff',
+        'password' => 'password',
+    ]);
+
+    $response->assertRedirect('/scp/2fa');
+    // Should redirect to scp, not admin (self-healed)
+    expect($this->app['session.store']->get('url.intended'))->toContain('/scp');
 });

@@ -1,10 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\Staff;
 use App\Services\LegacyTwoFactorMigrationService;
+use App\Services\Panels\PanelLandingResolver;
 use App\Services\TwoFactorAppChallengeService;
 use App\Services\TwoFactorAuthService;
 use Illuminate\Http\RedirectResponse;
@@ -73,7 +76,7 @@ class LoginController extends Controller
 
         $staff->rehashPasswordIfNeeded($credentials['password']);
         $this->legacyMigration->migrateIfNeeded($staff);
-        $this->ensureDashboardIsTheFallbackIntendedUrl($request);
+        $this->ensureDashboardIsTheFallbackIntendedUrl($request, $staff);
 
         if ($staff->hasTotpEnabled()) {
             $this->twoFactor->clearToken($staff->staff_id);
@@ -115,7 +118,7 @@ class LoginController extends Controller
         return redirect()->route('scp.login');
     }
 
-    private function ensureDashboardIsTheFallbackIntendedUrl(Request $request): void
+    private function ensureDashboardIsTheFallbackIntendedUrl(Request $request, Staff $staff): void
     {
         $session = $request->session();
         $intendedUrl = $session->get('url.intended');
@@ -125,7 +128,9 @@ class LoginController extends Controller
             return;
         }
 
-        $session->put('url.intended', route('scp.dashboard'));
+        $resolver = app(PanelLandingResolver::class);
+        $landingUrl = $resolver->resolve($staff, $resolver->defaultPanelFor($staff));
+        $session->put('url.intended', $landingUrl);
     }
 
     private function throttleKeyFor(Request $request): string

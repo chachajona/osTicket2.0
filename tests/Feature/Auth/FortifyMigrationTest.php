@@ -269,7 +269,7 @@ test('recovery code is not consumed when challenge expires during verification',
 
     $recoveryCode = $staff->fresh()->recoveryCodes()[0];
 
-    $challenge = \Mockery::mock(TwoFactorAppChallengeService::class);
+    $challenge = Mockery::mock(TwoFactorAppChallengeService::class);
     $challenge->shouldReceive('hasActiveChallenge')
         ->once()
         ->with($staff->staff_id)

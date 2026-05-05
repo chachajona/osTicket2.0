@@ -36,5 +36,6 @@
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
         <env name="LEGACY_DB_DRIVER" value="sqlite"/>
+        <env name="LEGACY_DB_DATABASE" value="/tmp/osticket_test.sqlite"/>
     </php>
 </phpunit>

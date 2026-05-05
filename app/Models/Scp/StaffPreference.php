@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models\Scp;
 
 use Illuminate\Database\Eloquent\Model;
@@ -28,6 +30,14 @@ class StaffPreference extends Model
                 'email' => false,
                 'sound' => false,
             ],
+            'last_active_panel' => 'scp',
+            'default_scp_tab' => null,
+            'default_admin_tab' => null,
         ];
+    }
+
+    public static function forStaff(int $staffId): self
+    {
+        return self::firstOrCreate(['staff_id' => $staffId], self::defaults($staffId));
     }
 }

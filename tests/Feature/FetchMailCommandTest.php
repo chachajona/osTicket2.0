@@ -5,9 +5,9 @@ use App\Models\EmailAccount;
 use App\Models\EmailModel;
 use App\Models\Thread;
 use App\Support\OsTicketCrypto;
-use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Console\OutputStyle;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -438,23 +438,23 @@ test('saveAttachments rolls back newly created files when chunk persistence fail
 });
 
 test('resolveOrCreateUser retries with a locking read after a unique constraint race', function () {
-    $initialLookup = \Mockery::mock();
+    $initialLookup = Mockery::mock();
     $initialLookup->shouldReceive('where')->once()->with('address', 'race@example.test')->andReturnSelf();
     $initialLookup->shouldReceive('first')->once()->andReturnNull();
 
-    $fallbackLookup = \Mockery::mock();
+    $fallbackLookup = Mockery::mock();
     $fallbackLookup->shouldReceive('where')->once()->with('address', 'race@example.test')->andReturnSelf();
     $fallbackLookup->shouldReceive('lockForUpdate')->once()->andReturnSelf();
     $fallbackLookup->shouldReceive('first')->once()->andReturn((object) ['user_id' => 44]);
 
-    $connection = \Mockery::mock();
+    $connection = Mockery::mock();
     $connection->shouldReceive('table')->once()->with('user_email')->andReturn($initialLookup);
     $connection->shouldReceive('transaction')->once()->andThrow(
         new UniqueConstraintViolationException(
             'legacy',
             'insert into "user_email" ("address") values (?)',
             ['race@example.test'],
-            new \PDOException('duplicate entry', '23000')
+            new PDOException('duplicate entry', '23000')
         )
     );
     $connection->shouldReceive('table')->once()->with('user_email')->andReturn($fallbackLookup);

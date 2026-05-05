@@ -1,0 +1,190 @@
+import { useState } from 'react';
+import { Head, Link, useForm, router } from '@inertiajs/react';
+import { appShellLayout } from '@/layouts/AppShell';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { FormGrid } from '@/components/admin/FormGrid';
+import { FormSection } from '@/components/admin/FormSection';
+import { PermissionMatrix, type PermissionGroup } from '@/components/admin/PermissionMatrix';
+import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { buttonVariants, Button } from '@/components/ui/button';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { FloppyDiskIcon, Delete01Icon } from '@hugeicons/core-free-icons';
+import type { ReactElement } from 'react';
+
+declare global {
+    function route(name: string, params?: any): string;
+}
+
+interface Role {
+    id: number;
+    name: string;
+    notes: string | null;
+}
+
+interface Props {
+    role?: Role;
+    permissions: PermissionGroup[];
+    selectedPermissions: string[];
+}
+
+export default function RolesEdit({ role, permissions, selectedPermissions }: Props) {
+    const isEdit = !!role;
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+    const { data, setData, post, patch, processing, errors } = useForm({
+        name: role?.name || '',
+        notes: role?.notes || '',
+        permissions: selectedPermissions || [],
+    });
+
+    const handleSubmit = (e: React.SyntheticEvent) => {
+        e.preventDefault();
+        if (isEdit) {
+            patch(route('admin.roles.update', role.id));
+        } else {
+            post(route('admin.roles.store'));
+        }
+    };
+
+    const handleDelete = () => {
+        if (!role) return;
+        router.delete(route('admin.roles.destroy', role.id));
+    };
+
+    return (
+        <>
+            <Head title={isEdit ? `Edit Role: ${role.name}` : 'Create Role'} />
+
+            <PageHeader
+                title={isEdit ? 'Edit Role' : 'Create Role'}
+                subtitle={isEdit ? 'Update role details and permissions.' : 'Create a new role to assign to agents.'}
+                headerActions={
+                    <>
+                        <Link
+                            href={route('admin.roles.index')}
+                            className="inline-flex h-7 items-center gap-1.5 rounded-[3px] border border-[#E2E0D8] bg-white px-3 text-[12px] font-medium uppercase leading-4 tracking-[1.2px] text-[#27272A] transition-colors hover:border-[#18181B] hover:bg-[#FAFAF8] hover:text-[#18181B]"
+                        >
+                            <span aria-hidden>&larr;</span>
+                            Back to Roles
+                        </Link>
+                        {isEdit && (
+                            <Button
+                                variant="outline"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                                onClick={() => setShowDeleteConfirm(true)}
+                            >
+                                <HugeiconsIcon icon={Delete01Icon} size={18} className="mr-2" />
+                                Delete Role
+                            </Button>
+                        )}
+                    </>
+                }
+            />
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+                <Tabs defaultValue="definition" className="space-y-6">
+                    <TabsList>
+                        <TabsTrigger value="definition">Definition</TabsTrigger>
+                        <TabsTrigger value="permissions">Permissions</TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="definition">
+                        <FormSection
+                            title="Role Details"
+                            description="Basic information about this role."
+                            collapsible={false}
+                        >
+                            <FormGrid columns={1} className="max-w-3xl">
+                                <div className="space-y-2">
+                                    <Label htmlFor="name">Role Name</Label>
+                                    <Input
+                                        id="name"
+                                        value={data.name}
+                                        onChange={(e) => setData('name', e.target.value)}
+                                        placeholder="e.g. Support Manager"
+                                        className={errors.name ? 'border-red-500 focus-visible:ring-red-500' : ''}
+                                    />
+                                    {errors.name && (
+                                        <p className="text-sm text-red-500">{errors.name}</p>
+                                    )}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="notes">Internal Notes</Label>
+                                    <Textarea
+                                        id="notes"
+                                        value={data.notes}
+                                        onChange={(e) => setData('notes', e.target.value)}
+                                        placeholder="Optional notes about when to use this role..."
+                                        rows={3}
+                                        className={errors.notes ? 'border-red-500 focus-visible:ring-red-500' : ''}
+                                    />
+                                    {errors.notes && (
+                                        <p className="text-sm text-red-500">{errors.notes}</p>
+                                    )}
+                                </div>
+                            </FormGrid>
+                        </FormSection>
+                    </TabsContent>
+
+                    <TabsContent value="permissions">
+                        <FormSection
+                            title="Permissions"
+                            description="Select the permissions granted to agents with this role."
+                            collapsible={false}
+                        >
+                            <PermissionMatrix
+                                groups={permissions}
+                                selectedPermissions={data.permissions}
+                                onChange={(selected) => setData('permissions', selected)}
+                            />
+                            {errors.permissions && (
+                                <p className="text-sm text-red-500 mt-4">{errors.permissions}</p>
+                            )}
+                        </FormSection>
+                    </TabsContent>
+                </Tabs>
+
+                <div className="flex items-center justify-end gap-4 pt-4">
+                    <Link
+                        href={route('admin.roles.index')}
+                        className={buttonVariants({ variant: 'outline' })}
+                    >
+                        Cancel
+                    </Link>
+                    <Button type="submit" disabled={processing}>
+                        <HugeiconsIcon icon={FloppyDiskIcon} size={18} className="mr-2" />
+                        {isEdit ? 'Save Changes' : 'Create Role'}
+                    </Button>
+                </div>
+            </form>
+
+            {isEdit && (
+                <ConfirmDialog
+                    open={showDeleteConfirm}
+                    onOpenChange={setShowDeleteConfirm}
+                    title="Delete Role"
+                    description={
+                        <>
+                            Are you sure you want to delete the <strong>{role.name}</strong> role?
+                            This action cannot be undone. Agents using this role may lose access.
+                        </>
+                    }
+                    confirmText="Delete Role"
+                    variant="destructive"
+                    onConfirm={handleDelete}
+                />
+            )}
+        </>
+    );
+}
+
+type RolesEditComponent = typeof RolesEdit & {
+    layout?: (page: ReactElement) => React.ReactNode;
+};
+
+(RolesEdit as RolesEditComponent).layout = appShellLayout;
