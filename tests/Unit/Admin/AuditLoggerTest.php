@@ -47,6 +47,7 @@ test('record captures create events and request context', function (): void {
     app()->instance('request', $request);
 
     $actor = Staff::create([
+        'dept_id' => 1,
         'username' => 'admin',
         'firstname' => 'Admin',
         'lastname' => 'User',
@@ -78,6 +79,7 @@ test('record redacts excluded fields for updates', function (): void {
     app()->instance('request', Request::create('/admin/staff/1', 'PATCH'));
 
     $actor = Staff::create([
+        'dept_id' => 1,
         'username' => 'auditor',
         'firstname' => 'Audit',
         'lastname' => 'User',
@@ -104,6 +106,7 @@ test('record supports delete events', function (): void {
     app()->instance('request', Request::create('/admin/roles/7', 'DELETE'));
 
     $actor = Staff::create([
+        'dept_id' => 1,
         'username' => 'deleter',
         'firstname' => 'Delete',
         'lastname' => 'User',

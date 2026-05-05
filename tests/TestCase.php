@@ -42,6 +42,10 @@ abstract class TestCase extends BaseTestCase
             $osticket2 = Schema::connection('osticket2');
             $osticket2Connection = DB::connection('osticket2');
 
+            if ($this->legacyStaffTableNeedsRebuild()) {
+                $legacy->dropIfExists('staff');
+            }
+
             // Clean up tables left behind by older test runs before the
             // prefix changed from osticket2_ to scp_.
             foreach ([
@@ -283,6 +287,12 @@ abstract class TestCase extends BaseTestCase
                 $table->timestamps();
             });
 
+            $this->addMissingOsticket2Columns($osticket2, 'staff_preferences', [
+                'last_active_panel' => fn (Blueprint $table) => $table->string('last_active_panel', 16)->default('scp'),
+                'default_scp_tab' => fn (Blueprint $table) => $table->string('default_scp_tab', 64)->nullable(),
+                'default_admin_tab' => fn (Blueprint $table) => $table->string('default_admin_tab', 64)->nullable(),
+            ]);
+
             $this->ensureLegacyTable($osticket2, 'access_log', function (Blueprint $table) {
                 $table->id();
                 $table->unsignedBigInteger('staff_id')->index();
@@ -295,7 +305,21 @@ abstract class TestCase extends BaseTestCase
                 $table->timestamp('created_at')->useCurrent();
             });
 
-            foreach (['access_log', 'staff_preferences', 'staff_auth_migrations', 'staff_two_factor'] as $table) {
+            $this->ensureLegacyTable($osticket2, 'admin_audit_log', function (Blueprint $table) {
+                $table->bigIncrements('id');
+                $table->unsignedBigInteger('actor_id');
+                $table->string('action', 64);
+                $table->string('subject_type', 64);
+                $table->unsignedBigInteger('subject_id');
+                $table->json('before')->nullable();
+                $table->json('after')->nullable();
+                $table->json('metadata')->nullable();
+                $table->string('ip_address', 45)->nullable();
+                $table->string('user_agent', 255)->nullable();
+                $table->timestamp('created_at')->useCurrent();
+            });
+
+            foreach (['admin_audit_log', 'access_log', 'staff_preferences', 'staff_auth_migrations', 'staff_two_factor'] as $table) {
                 $osticket2Connection->table($table)->delete();
             }
 
@@ -337,5 +361,47 @@ abstract class TestCase extends BaseTestCase
         if (! $schema->hasTable($table)) {
             $schema->create($table, $definition);
         }
+    }
+
+    private function legacyStaffTableNeedsRebuild(): bool
+    {
+        if (! Schema::connection('legacy')->hasTable('staff')) {
+            return false;
+        }
+
+        $tableName = DB::connection('legacy')->getTablePrefix().'staff';
+        $columns = DB::connection('legacy')->select("PRAGMA table_info('{$tableName}')");
+
+        foreach ($columns as $column) {
+            if (($column->name ?? null) !== 'dept_id') {
+                continue;
+            }
+
+            return (int) ($column->notnull ?? 0) === 1 && ($column->dflt_value ?? null) === null;
+        }
+
+        return true;
+    }
+
+    /**
+     * @param  array<string, \Closure>  $columns
+     */
+    private function addMissingOsticket2Columns($schema, string $table, array $columns): void
+    {
+        $missingColumns = array_filter(
+            $columns,
+            fn (string $column): bool => ! $schema->hasColumn($table, $column),
+            ARRAY_FILTER_USE_KEY,
+        );
+
+        if ($missingColumns === []) {
+            return;
+        }
+
+        $schema->table($table, function (Blueprint $table) use ($missingColumns): void {
+            foreach ($missingColumns as $definition) {
+                $definition($table);
+            }
+        });
     }
 }
