@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Middleware;
 
 use Closure;
@@ -18,6 +20,8 @@ class AuthenticateStaff
 
             return redirect()->guest(route('scp.login'));
         }
+
+        Auth::shouldUse('staff');
 
         return $next($request);
     }

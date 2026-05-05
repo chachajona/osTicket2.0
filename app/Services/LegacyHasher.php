@@ -21,8 +21,6 @@ class LegacyHasher implements Hasher
 {
     /**
      * The underlying bcrypt hasher instance.
-     *
-     * @var \Illuminate\Hashing\BcryptHasher
      */
     protected BcryptHasher $bcrypt;
 
@@ -31,7 +29,7 @@ class LegacyHasher implements Hasher
      */
     public function __construct()
     {
-        $this->bcrypt = new BcryptHasher();
+        $this->bcrypt = new BcryptHasher;
     }
 
     /**
@@ -55,8 +53,6 @@ class LegacyHasher implements Hasher
      * All new passwords are hashed with bcrypt regardless of the legacy format.
      *
      * @param  string  $value
-     * @param  array  $options
-     * @return string
      */
     public function make($value, array $options = []): string
     {
@@ -72,8 +68,6 @@ class LegacyHasher implements Hasher
      *
      * @param  string  $value
      * @param  string|null  $hashedValue
-     * @param  array  $options
-     * @return bool
      */
     public function check($value, $hashedValue, array $options = []): bool
     {
@@ -95,8 +89,6 @@ class LegacyHasher implements Hasher
      * against current cost/algorithm settings.
      *
      * @param  string  $hashedValue
-     * @param  array  $options
-     * @return bool
      */
     public function needsRehash($hashedValue, array $options = []): bool
     {
@@ -109,9 +101,6 @@ class LegacyHasher implements Hasher
 
     /**
      * Determine if a hash is a bcrypt hash.
-     *
-     * @param  string  $hash
-     * @return bool
      */
     private function isBcrypt(string $hash): bool
     {

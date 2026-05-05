@@ -38,7 +38,7 @@ function paletteFor(name: string): string {
 
 export function Avatar({ name, size = 24, className }: AvatarProps) {
     const label = name?.trim() ?? '';
-    const tone = useMemo(() => (label === '' ? 'bg-zinc-200 text-zinc-500' : paletteFor(label)), [label]);
+    const tone = useMemo(() => (label === '' ? 'bg-[#E2E0D8] text-[#71717A]' : paletteFor(label)), [label]);
     const text = label === '' ? '?' : initials(label);
 
     return (

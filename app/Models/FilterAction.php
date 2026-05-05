@@ -9,7 +9,7 @@ namespace App\Models;
  * @property int $filter_id
  * @property int $sort
  * @property string $type
- * @property string $configuration
+ * @property string $target
  * @property string $updated
  * @property-read Filter $filter
  */

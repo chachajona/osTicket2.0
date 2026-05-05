@@ -7,7 +7,7 @@ namespace App\Models;
  *
  * Stores custom field data associated with tickets.
  *
- * @property int    $ticket_id
+ * @property int $ticket_id
  * @property string $subject
  * @property string $priority
  */

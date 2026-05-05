@@ -7,9 +7,10 @@ $legacy = env('LEGACY_DB_DRIVER', 'mysql') === 'sqlite'
     ? [
         'driver' => 'sqlite',
         'url' => env('DB_URL'),
-        'database' => env('DB_DATABASE', ':memory:'),
+        'database' => env('LEGACY_DB_DATABASE', env('DB_DATABASE', ':memory:')),
         'prefix' => 'ost_',
         'foreign_key_constraints' => false,
+        'transaction_mode' => 'DEFERRED',
     ]
     : [
         'driver' => 'mysql',

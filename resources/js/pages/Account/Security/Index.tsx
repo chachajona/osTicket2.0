@@ -4,7 +4,8 @@ import { type ReactElement, type ReactNode } from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import DashboardLayout from '@/layouts/DashboardLayout';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { appShellLayout } from '@/layouts/AppShell';
 import Sessions from '@/pages/Account/Security/Sessions';
 
 interface TwoFactorState {
@@ -76,6 +77,7 @@ export default function SecurityIndex({ twoFactor, migration, revealedRecoveryCo
 
     return (
         <>
+            <PageHeader title="Account Security" subtitle="Manage two-factor authentication and active sessions." eyebrow="Security Settings" headerActions={null} />
             {props.status && (
                 <div className="rounded-md border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3 text-sm text-[#0F172A] mb-6">
                     {props.status}
@@ -211,14 +213,4 @@ type SecurityPageComponent = typeof SecurityIndex & {
     layout?: (page: ReactElement) => ReactNode;
 };
 
-(SecurityIndex as SecurityPageComponent).layout = (page: ReactElement) => (
-    <DashboardLayout
-        title="Account Security"
-        subtitle="Manage two-factor authentication and active sessions."
-        eyebrow="Security Settings"
-        activeNav="security"
-        headerActions={null}
-    >
-        {page}
-    </DashboardLayout>
-);
+(SecurityIndex as SecurityPageComponent).layout = appShellLayout;

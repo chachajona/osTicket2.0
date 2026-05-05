@@ -6,7 +6,7 @@ test('captures staff with department from legacy DB', function () {
     skipIfLegacyTablesMissing(['staff', 'department']);
     skipIfLegacyColumnsMissing('staff', ['role_id']);
 
-    $staff = DB::connection('legacy')->selectOne("
+    $staff = DB::connection('legacy')->selectOne('
         SELECT s.staff_id, s.dept_id, s.role_id, s.username,
                s.firstname, s.lastname, s.email, s.isactive, s.isadmin,
                s.created, s.lastlogin,
@@ -15,7 +15,7 @@ test('captures staff with department from legacy DB', function () {
         LEFT JOIN ost_department d ON d.id = s.dept_id
         ORDER BY s.staff_id ASC
         LIMIT 1
-    ");
+    ');
 
     file_put_contents(
         base_path('tests/fixtures/legacy/staff_sample_1.json'),
@@ -34,7 +34,7 @@ test('captures staff with department from legacy DB', function () {
 test('captures staff department access from legacy DB', function () {
     skipIfLegacyTablesMissing(['staff', 'staff_dept_access', 'department']);
 
-    $staff = DB::connection('legacy')->selectOne("SELECT staff_id FROM ost_staff LIMIT 1");
+    $staff = DB::connection('legacy')->selectOne('SELECT staff_id FROM ost_staff LIMIT 1');
 
     if ($staff === null) {
         $this->markTestSkipped('No staff found in legacy database.');
@@ -42,13 +42,13 @@ test('captures staff department access from legacy DB', function () {
 
     $staffId = $staff->staff_id;
 
-    $access = DB::connection('legacy')->select("
+    $access = DB::connection('legacy')->select('
         SELECT a.staff_id, a.dept_id, a.role_id,
                d.name AS dept_name
         FROM ost_staff_dept_access a
         LEFT JOIN ost_department d ON d.id = a.dept_id
         WHERE a.staff_id = ?
-    ", [$staffId]);
+    ', [$staffId]);
 
     file_put_contents(
         base_path("tests/fixtures/legacy/staff_dept_access_{$staffId}.json"),

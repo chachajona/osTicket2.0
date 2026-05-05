@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ticket Views — osTicket 2.0</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..800&family=Geist+Mono:wght@300..800&display=swap" rel="stylesheet">
+    <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #F97316; --primary-50: #FFF4EC; --primary-100: #FEE9DA; --primary-200: #FDD2B4;
+            --primary-400: #FB9A57; --primary-600: #D66313;
+            --secondary: #EC4899; --tertiary: #6366F1;
+            --neutral-500: #18181B; --neutral-400: #59595B; --neutral-300: #909092;
+            --neutral-200: #B5B5B6; --neutral-100: #DADADB; --neutral-50: #EDEDED;
+            --text-primary: #18181B; --text-secondary: #A1A1AA; --text-muted: #71717A;
+            --surface: #F4F2EB; --background: #FFFFFF; --border: #E2E0D8;
+            --destructive: #DC2626; --success: #16A34A; --warning: #CA8A04;
+            --font-sans: 'Inter', sans-serif; --font-mono: 'Geist Mono', ui-monospace, monospace;
+            --gradient-brand: linear-gradient(to right bottom, #FB923C 0%, #EC4899 55%, #6366F1 100%);
+            --radius-sm: 4px; --radius-md: 7px; --radius-lg: 8px;
+            --shadow-card: rgba(236,72,153,0.08) 0px 8px 12px -3px, rgba(236,72,153,0.06) 0px 3px 5px -4px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: var(--font-sans); -webkit-font-smoothing: antialiased;
+            background: var(--surface); color: var(--text-primary);
+            display: flex; align-items: center; justify-content: center;
+            height: 100vh; width: 100%; overflow: hidden; padding: 24px;
+        }
+        .caption { font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; line-height: 15px; color: var(--text-secondary); }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+        .app-shell { width: 100%; max-width: 1440px; height: 92vh; max-height: 900px; background: var(--background); border-radius: var(--radius-lg); border: 1px solid var(--border); box-shadow: var(--shadow-card); display: flex; overflow: hidden; }
+
+        /* Sidebar */
+        .sidebar { width: 256px; flex-shrink: 0; border-right: 1px solid var(--border); display: flex; flex-direction: column; background: var(--background); }
+        .sidebar-profile { padding: 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 150ms; }
+        .sidebar-profile:hover { background: var(--surface); }
+        .sidebar-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--gradient-brand); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; letter-spacing: 0.02em; }
+        .sidebar-profile-info h3 { font-size: 14px; font-weight: 500; line-height: 1.2; }
+        .sidebar-profile-info p { font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-secondary); margin-top: 1px; }
+        .search-box { padding: 16px 20px; }
+        .search-box .inner { position: relative; display: flex; align-items: center; }
+        .search-box input { width: 100%; padding: 8px 48px 8px 36px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 14px; font-family: var(--font-sans); outline: none; color: var(--text-primary); transition: border-color 150ms; }
+        .search-box input::placeholder { color: var(--text-secondary); }
+        .search-box input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(249,115,22,0.12); }
+        .search-box .icon { position: absolute; left: 10px; color: var(--text-secondary); font-size: 16px; }
+        .search-box .shortcut { position: absolute; right: 8px; font-size: 10px; font-weight: 500; font-family: var(--font-mono); color: var(--text-secondary); background: var(--background); border: 1px solid var(--border); padding: 1px 6px; border-radius: 3px; display: flex; align-items: center; gap: 2px; }
+        .nav-section { padding: 0 12px; }
+        .nav-section-label { padding: 6px 12px 8px; }
+        .nav-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: var(--radius-lg); font-size: 14px; font-weight: 400; color: var(--text-muted); text-decoration: none; transition: all 150ms; cursor: pointer; border: none; background: none; width: 100%; text-align: left; font-family: var(--font-sans); }
+        .nav-item:hover { background: rgba(244,242,235,0.6); color: var(--text-primary); }
+        .nav-item.active { background: var(--surface); color: var(--text-primary); font-weight: 500; }
+        .nav-item iconify-icon { font-size: 20px; color: #D4D4D8; flex-shrink: 0; }
+        .nav-item.active iconify-icon { color: var(--text-primary); }
+        .nav-item .badge { margin-left: auto; min-width: 20px; height: 20px; border-radius: 10px; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; padding: 0 6px; }
+        .sidebar-section { padding: 0 20px; margin-top: 20px; }
+        .sidebar-section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+        .sidebar-section-header button { font-size: 10px; font-family: var(--font-sans); font-weight: 500; color: var(--primary); background: none; border: none; cursor: pointer; letter-spacing: 0.05em; text-transform: uppercase; }
+        .convo-item { display: flex; align-items: center; justify-content: space-between; padding: 8px; border-radius: var(--radius-md); cursor: pointer; transition: background 150ms; }
+        .convo-item:hover { background: var(--surface); }
+        .convo-item.elevated { background: var(--background); border: 1px solid var(--border); box-shadow: rgba(0,0,0,0.04) 0 1px 3px; padding: 10px 12px; margin: 0 -4px; }
+        .convo-icon { width: 32px; height: 32px; border-radius: var(--radius-sm); background: var(--surface); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 16px; flex-shrink: 0; }
+        .convo-count { min-width: 20px; height: 20px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; }
+        .convo-count.hot { background: var(--primary); color: #fff; }
+        .convo-count.muted { background: var(--neutral-50); color: var(--text-secondary); }
+        .pinned-item { display: flex; align-items: center; justify-content: space-between; padding: 4px 0; cursor: pointer; }
+        .pinned-item:hover .pin-icon { color: var(--primary); }
+        .pinned-dot { width: 16px; height: 16px; border-radius: 50%; background: var(--success); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 9px; flex-shrink: 0; }
+        .pin-icon { color: var(--neutral-100); font-size: 12px; transition: color 150ms; }
+        .sidebar-footer { margin-top: auto; border-top: 1px solid var(--border); padding: 16px 20px; }
+        .sidebar-footer a { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-muted); text-decoration: none; margin-bottom: 16px; transition: color 150ms; }
+        .sidebar-footer a:hover { color: var(--text-primary); }
+        .brand-footer { display: flex; align-items: center; justify-content: space-between; }
+        .brand-name { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 500; color: var(--text-primary); }
+        .brand-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gradient-brand); }
+        .sidebar-toggle { width: 28px; height: 28px; border-radius: var(--radius-sm); background: var(--surface); border: none; color: var(--text-secondary); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 150ms; }
+        .sidebar-toggle:hover { background: var(--border); color: var(--text-primary); }
+
+        /* Main */
+        .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .main-header { height: 56px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 28px; flex-shrink: 0; }
+        .main-header h1 { font-size: 18px; font-weight: 500; letter-spacing: -0.02em; }
+    </style>
+
+    <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+
+<div id="root"></div>
+
+<script type="text/babel" src="ticket-shared.jsx"></script>
+<script type="text/babel" src="ticket-list.jsx"></script>
+<script type="text/babel" src="ticket-detail.jsx"></script>
+<script type="text/babel" src="new-ticket.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+
+<script type="text/babel">
+
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "tableDensity": "comfortable",
+  "formLayout": "single",
+  "detailSidebarWidth": 280
+}/*EDITMODE-END*/;
+
+function App() {
+  const [view, setView] = React.useState('list');
+  const [selectedTicket, setSelectedTicket] = React.useState(null);
+  const { tweaks, setTweak } = useTweaks(TWEAK_DEFAULTS);
+
+  const openTicket = (t) => { setSelectedTicket(t); setView('detail'); };
+  const openNew = () => setView('new');
+  const backToList = () => { setView('list'); setSelectedTicket(null); };
+
+  return React.createElement(React.Fragment, null,
+    React.createElement('main', { className: 'app-shell' },
+
+      /* ── Sidebar ── */
+      React.createElement('aside', { className: 'sidebar' },
+        React.createElement('div', { className: 'sidebar-profile' },
+          React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '12px' } },
+            React.createElement('div', { className: 'sidebar-avatar' }, 'FIK'),
+            React.createElement('div', { className: 'sidebar-profile-info' },
+              React.createElement('h3', null, 'Fikri Studio'),
+              React.createElement('p', null, 'Agent Admin'),
+            ),
+          ),
+          React.createElement('iconify-icon', { icon: 'solar:alt-arrow-down-linear', style: { color: 'var(--text-secondary)' } }),
+        ),
+        React.createElement('div', { className: 'search-box' },
+          React.createElement('div', { className: 'inner' },
+            React.createElement('iconify-icon', { icon: 'solar:magnifer-linear', className: 'icon' }),
+            React.createElement('input', { type: 'text', placeholder: 'Search' }),
+            React.createElement('div', { className: 'shortcut' }, '⌘ K'),
+          ),
+        ),
+        React.createElement('div', { style: { flex: 1, overflowY: 'auto', paddingBottom: '16px' }, className: 'custom-scrollbar' },
+          React.createElement('nav', { className: 'nav-section', style: { marginBottom: '4px' } },
+            React.createElement('a', { className: 'nav-item', onClick: () => setView('list'), style: { cursor: 'pointer' } },
+              React.createElement('iconify-icon', { icon: 'solar:widget-2-bold' }), 'Dashboard'),
+            React.createElement('a', { className: 'nav-item', style: { cursor: 'pointer' } },
+              React.createElement('iconify-icon', { icon: 'solar:inbox-linear' }), 'Inbox'),
+            React.createElement('a', { className: 'nav-item', style: { cursor: 'pointer' } },
+              React.createElement('iconify-icon', { icon: 'solar:bell-linear' }), 'Notification'),
+            React.createElement('a', { className: `nav-item ${view === 'list' || view === 'detail' ? 'active' : ''}`, onClick: () => backToList(), style: { cursor: 'pointer' } },
+              React.createElement('iconify-icon', { icon: 'solar:ticket-linear' }), 'Ticket',
+              React.createElement('span', { className: 'badge' }, '3')),
+            React.createElement('a', { className: 'nav-item', style: { cursor: 'pointer' } },
+              React.createElement('iconify-icon', { icon: 'solar:book-bookmark-linear' }), 'Knowledge Base'),
+            React.createElement('a', { className: 'nav-item', style: { cursor: 'pointer' } },
+              React.createElement('iconify-icon', { icon: 'solar:users-group-rounded-linear' }), 'Customer'),
+            React.createElement('a', { className: 'nav-item', style: { cursor: 'pointer' } },
+              React.createElement('iconify-icon', { icon: 'solar:chat-round-dots-linear' }), 'Forum'),
+            React.createElement('a', { className: 'nav-item', style: { cursor: 'pointer' } },
+              React.createElement('iconify-icon', { icon: 'solar:chart-square-linear' }), 'Report'),
+          ),
+          React.createElement('div', { className: 'sidebar-section' },
+            React.createElement('div', { className: 'sidebar-section-header' },
+              React.createElement('span', { className: 'caption' }, 'Conversation')),
+            React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: '4px' } },
+              React.createElement('div', { className: 'convo-item' },
+                React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '10px' } },
+                  React.createElement('div', { className: 'convo-icon' }, React.createElement('iconify-icon', { icon: 'solar:phone-linear' })),
+                  React.createElement('div', null,
+                    React.createElement('p', { style: { fontSize: '13px', fontWeight: 500 } }, 'Call'),
+                    React.createElement('p', { style: { fontSize: '11px', color: 'var(--text-secondary)' } }, '(123)45678...'))),
+                React.createElement('span', { className: 'convo-count hot' }, '1')),
+              React.createElement('div', { className: 'convo-item elevated' },
+                React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '10px' } },
+                  React.createElement('div', { className: 'convo-icon' }, React.createElement('iconify-icon', { icon: 'solar:chat-square-linear' })),
+                  React.createElement('div', null,
+                    React.createElement('p', { style: { fontSize: '13px', fontWeight: 500 } }, 'Side Conversa...'),
+                    React.createElement('p', { style: { fontSize: '11px', color: 'var(--text-secondary)' } }, '-'))),
+                React.createElement('span', { className: 'convo-count muted' }, '0')),
+            ),
+          ),
+          React.createElement('div', { className: 'sidebar-section' },
+            React.createElement('div', { className: 'sidebar-section-header' },
+              React.createElement('span', { className: 'caption' }, 'Pinned Tickets'),
+              React.createElement('button', null, 'Unpin All')),
+            React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '8px' } },
+              React.createElement('div', { className: 'pinned-item' },
+                React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '8px' } },
+                  React.createElement('div', { className: 'pinned-dot' }, React.createElement('iconify-icon', { icon: 'solar:chat-round-dots-linear', style: { fontSize: '8px' } })),
+                  React.createElement('span', { style: { fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, '#TC-192 produc...')),
+                React.createElement('iconify-icon', { icon: 'solar:pin-linear', className: 'pin-icon' })),
+              React.createElement('div', { className: 'pinned-item' },
+                React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '8px' } },
+                  React.createElement('div', { className: 'pinned-dot' }, React.createElement('iconify-icon', { icon: 'solar:chat-round-dots-linear', style: { fontSize: '8px' } })),
+                  React.createElement('span', { style: { fontSize: '13px', fontWeight: 500, color: 'var(--text-muted)', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, '#TC-191 paymen...')),
+                React.createElement('iconify-icon', { icon: 'solar:pin-linear', className: 'pin-icon' })),
+            ),
+          ),
+        ),
+        React.createElement('div', { className: 'sidebar-footer' },
+          React.createElement('a', { href: '#' },
+            React.createElement('iconify-icon', { icon: 'solar:help-linear', style: { fontSize: '18px' } }), 'Help & Support'),
+          React.createElement('div', { className: 'brand-footer' },
+            React.createElement('div', null,
+              React.createElement('span', { className: 'caption', style: { fontSize: '9px', letterSpacing: '0.15em' } }, 'Powered By'),
+              React.createElement('div', { className: 'brand-name' },
+                React.createElement('div', { className: 'brand-dot' }), 'osTicket')),
+            React.createElement('button', { className: 'sidebar-toggle' },
+              React.createElement('iconify-icon', { icon: 'solar:sidebar-minimalistic-linear' }))),
+        ),
+      ),
+
+      /* ── Main Content ── */
+      React.createElement('div', { className: 'main-content' },
+        /* Header */
+        React.createElement('header', { className: 'main-header' },
+          React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '10px' } },
+            React.createElement('h1', null, view === 'list' ? 'Tickets' : view === 'detail' ? 'Ticket Detail' : 'New Ticket'),
+            React.createElement('span', { className: 'caption', style: { marginTop: '2px' } },
+              view === 'list' ? '· All Tickets' : view === 'detail' ? '· #' + (selectedTicket?.id || '') : '· Create'),
+          ),
+          React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '12px' } },
+            React.createElement(IconBtn, { icon: 'solar:bell-linear' }),
+            React.createElement('div', { style: { width: 32, height: 32, borderRadius: '50%', background: 'var(--gradient-brand)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 600 } }, 'FIK'),
+          ),
+        ),
+        /* View */
+        React.createElement('div', { style: { flex: 1, overflow: 'hidden' } },
+          view === 'list' && React.createElement(TicketListView, { onOpenTicket: openTicket, onNewTicket: openNew, tweaks }),
+          view === 'detail' && React.createElement(TicketDetailView, { ticket: selectedTicket, onBack: backToList, tweaks }),
+          view === 'new' && React.createElement(NewTicketView, { onBack: backToList, tweaks }),
+        ),
+      ),
+    ),
+
+    /* Tweaks */
+    React.createElement(TweaksPanel, { title: 'Ticket View Tweaks' },
+      React.createElement(TweakSection, { label: 'Ticket List' },
+        React.createElement(TweakRadio, { label: 'Table Density', options: ['compact', 'comfortable', 'spacious'], value: tweaks.tableDensity, onChange: v => setTweak('tableDensity', v) }),
+      ),
+      React.createElement(TweakSection, { label: 'New Ticket Form' },
+        React.createElement(TweakRadio, { label: 'Form Layout', options: ['single', 'two-col'], value: tweaks.formLayout, onChange: v => setTweak('formLayout', v) }),
+      ),
+      React.createElement(TweakSection, { label: 'Ticket Detail' },
+        React.createElement(TweakSlider, { label: 'Sidebar Width', min: 240, max: 360, step: 10, value: tweaks.detailSidebarWidth, onChange: v => setTweak('detailSidebarWidth', v) }),
+      ),
+    ),
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+</script>
+</body>
+</html>

@@ -31,4 +31,11 @@ class StaffFactory extends Factory
             'lastlogin' => null,
         ];
     }
+
+    public function admin(): self
+    {
+        return $this->state([
+            'isadmin' => 1,
+        ]);
+    }
 }

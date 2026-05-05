@@ -45,6 +45,6 @@ it('flashes a countdown after exceeding the limit', function () {
         'password' => 'wrong',
     ]);
 
-    $response->assertSessionHas('throttle.secondsUntilRetry', fn($value) => $value > 0 && $value <= 300);
+    $response->assertSessionHas('throttle.secondsUntilRetry', fn ($value) => $value > 0 && $value <= 300);
     $response->assertSessionHas('throttle.username', 'tester');
 });

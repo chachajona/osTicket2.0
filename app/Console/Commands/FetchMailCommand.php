@@ -306,7 +306,9 @@ final class FetchMailCommand extends Command
 
             $this->saveAttachments($attachments, $entry->id);
 
-            $ticket = Ticket::where('ticket_id', $thread->object_id)->first();
+            $ticket = Ticket::withoutGlobalScopes()
+                ->where('ticket_id', $thread->object_id)
+                ->first();
 
             $updates = [
                 'lastupdate' => now()->format('Y-m-d H:i:s'),
@@ -318,7 +320,9 @@ final class FetchMailCommand extends Command
                 $updates['closed'] = null;
             }
 
-            Ticket::where('ticket_id', $thread->object_id)->update($updates);
+            Ticket::withoutGlobalScopes()
+                ->where('ticket_id', $thread->object_id)
+                ->update($updates);
 
             $reopened = array_key_exists('closed', $updates) ? ' (reopened)' : '';
             $this->line("  Appended reply to thread #{$thread->id}{$reopened}");

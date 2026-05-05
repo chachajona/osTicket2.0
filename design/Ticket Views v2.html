@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ticket Views — osTicket 2.0</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..800&family=Geist+Mono:wght@300..800&display=swap" rel="stylesheet">
+    <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #F97316; --primary-50: #FFF4EC; --primary-100: #FEE9DA; --primary-200: #FDD2B4;
+            --primary-400: #FB9A57; --primary-600: #D66313;
+            --secondary: #EC4899; --tertiary: #6366F1;
+            --neutral-500: #18181B; --neutral-400: #59595B; --neutral-300: #909092;
+            --neutral-200: #B5B5B6; --neutral-100: #DADADB; --neutral-50: #EDEDED;
+            --text-primary: #18181B; --text-secondary: #A1A1AA; --text-muted: #71717A;
+            --surface: #F4F2EB; --background: #FFFFFF; --border: #E2E0D8;
+            --destructive: #DC2626; --success: #16A34A; --warning: #CA8A04;
+            --font-sans: 'Inter', sans-serif; --font-mono: 'Geist Mono', ui-monospace, monospace;
+            --gradient-brand: linear-gradient(to right bottom, #FB923C 0%, #EC4899 55%, #6366F1 100%);
+            --radius-sm: 4px; --radius-md: 7px; --radius-lg: 8px;
+            --shadow-card: rgba(236,72,153,0.08) 0px 8px 12px -3px, rgba(236,72,153,0.06) 0px 3px 5px -4px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: var(--font-sans); -webkit-font-smoothing: antialiased;
+            background: var(--surface); color: var(--text-primary);
+            display: flex; align-items: center; justify-content: center;
+            height: 100vh; width: 100%; overflow: hidden; padding: 24px;
+        }
+        .caption { font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; line-height: 15px; color: var(--text-secondary); }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+        .app-shell { width: 100%; max-width: 1440px; height: 92vh; max-height: 900px; background: var(--background); border-radius: var(--radius-lg); border: 1px solid var(--border); box-shadow: var(--shadow-card); display: flex; overflow: hidden; position: relative; }
+
+        /* Sidebar */
+        .sidebar { width: 180px; flex-shrink: 0; border-right: 1px solid var(--border); display: flex; flex-direction: column; background: var(--background); }
+        .sidebar-profile { padding: 16px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 150ms; }
+        .sidebar-profile:hover { background: var(--surface); }
+        .sidebar-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--gradient-brand); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; letter-spacing: 0.02em; flex-shrink: 0; }
+        .sidebar-profile-info h3 { font-size: 13px; font-weight: 600; line-height: 1.2; }
+        .sidebar-profile-info p { font-size: 9px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-secondary); margin-top: 1px; }
+        .search-box { padding: 12px 14px; }
+        .search-box .inner { position: relative; display: flex; align-items: center; }
+        .search-box input { width: 100%; padding: 7px 40px 7px 30px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; font-family: var(--font-sans); outline: none; color: var(--text-primary); }
+        .search-box input::placeholder { color: var(--text-secondary); }
+        .search-box input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(249,115,22,0.12); }
+        .search-box .icon { position: absolute; left: 8px; color: var(--text-secondary); font-size: 14px; }
+        .search-box .shortcut { position: absolute; right: 6px; font-size: 9px; font-weight: 500; font-family: var(--font-mono); color: var(--text-secondary); background: var(--background); border: 1px solid var(--border); padding: 1px 4px; border-radius: 3px; display: flex; align-items: center; gap: 2px; }
+        .nav-section { padding: 0 10px; }
+        .nav-item { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: var(--radius-lg); font-size: 13px; font-weight: 400; color: var(--text-muted); text-decoration: none; transition: all 150ms; cursor: pointer; border: none; background: none; width: 100%; text-align: left; font-family: var(--font-sans); }
+        .nav-item:hover { background: rgba(244,242,235,0.6); color: var(--text-primary); }
+        .nav-item.active { background: var(--primary); color: #fff; font-weight: 500; }
+        .nav-item iconify-icon { font-size: 18px; color: #D4D4D8; flex-shrink: 0; }
+        .nav-item.active iconify-icon { color: #fff; }
+        .nav-item .badge { margin-left: auto; min-width: 18px; height: 18px; border-radius: 9px; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; padding: 0 5px; }
+        .nav-item.active .badge { background: rgba(255,255,255,0.3); }
+        .sidebar-section { padding: 0 14px; margin-top: 16px; }
+        .sidebar-section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+        .sidebar-section-header button { font-size: 9px; font-family: var(--font-sans); font-weight: 500; color: var(--primary); background: none; border: none; cursor: pointer; letter-spacing: 0.05em; text-transform: uppercase; }
+        .convo-item { display: flex; align-items: center; justify-content: space-between; padding: 6px; border-radius: var(--radius-md); cursor: pointer; transition: background 150ms; }
+        .convo-item:hover { background: var(--surface); }
+        .convo-item.elevated { background: var(--background); border: 1px solid var(--border); box-shadow: rgba(0,0,0,0.04) 0 1px 3px; padding: 8px 10px; margin: 0 -2px; }
+        .convo-icon { width: 28px; height: 28px; border-radius: var(--radius-sm); background: var(--surface); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 14px; flex-shrink: 0; }
+        .convo-count { min-width: 18px; height: 18px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; }
+        .convo-count.hot { background: var(--primary); color: #fff; }
+        .convo-count.muted { background: var(--neutral-50); color: var(--text-secondary); }
+        .pinned-item { display: flex; align-items: center; justify-content: space-between; padding: 3px 0; cursor: pointer; }
+        .pinned-item:hover .pin-icon { color: var(--primary); }
+        .pinned-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--success); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 8px; flex-shrink: 0; }
+        .pin-icon { color: var(--neutral-100); font-size: 11px; transition: color 150ms; }
+        .sidebar-footer { margin-top: auto; border-top: 1px solid var(--border); padding: 12px 14px; }
+        .sidebar-footer a { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); text-decoration: none; margin-bottom: 12px; transition: color 150ms; }
+        .sidebar-footer a:hover { color: var(--text-primary); }
+        .brand-footer { display: flex; align-items: center; justify-content: space-between; }
+        .brand-name { display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 500; color: var(--text-primary); }
+        .brand-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--gradient-brand); }
+        .sidebar-toggle { width: 24px; height: 24px; border-radius: var(--radius-sm); background: var(--surface); border: none; color: var(--text-secondary); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 150ms; }
+        .sidebar-toggle:hover { background: var(--border); color: var(--text-primary); }
+
+        .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    </style>
+
+    <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+
+<div id="root"></div>
+
+<script type="text/babel" src="ticket-shared.jsx"></script>
+<script type="text/babel" src="ticket-list.jsx"></script>
+<script type="text/babel" src="ticket-detail.jsx"></script>
+<script type="text/babel" src="new-ticket.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+
+<script type="text/babel">
+
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "sidebarWidth": 240
+}/*EDITMODE-END*/;
+
+function App() {
+  const [view, setView] = React.useState('list');
+  const [selectedTicket, setSelectedTicket] = React.useState(null);
+  const [showNewTicket, setShowNewTicket] = React.useState(false);
+  const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+
+  const openTicket = (t) => { setSelectedTicket(t); setView('detail'); };
+  const backToList = () => { setView('list'); setSelectedTicket(null); };
+
+  return React.createElement(React.Fragment, null,
+    React.createElement('main', { className: 'app-shell' },
+
+      /* ── Sidebar ── */
+      React.createElement('aside', { className: 'sidebar' },
+        React.createElement('div', { className: 'sidebar-profile' },
+          React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '10px' } },
+            React.createElement('div', { className: 'sidebar-avatar' }, 'FIK'),
+            React.createElement('div', { className: 'sidebar-profile-info' },
+              React.createElement('h3', null, 'Fikri Studio'),
+              React.createElement('p', null, 'Agent Admin'),
+            ),
+          ),
+          React.createElement('iconify-icon', { icon: 'solar:menu-dots-bold', style: { color: 'var(--text-secondary)', fontSize: '14px' } }),
+        ),
+
+        React.createElement('div', { className: 'search-box' },
+          React.createElement('div', { className: 'inner' },
+            React.createElement('iconify-icon', { icon: 'solar:magnifer-linear', className: 'icon' }),
+            React.createElement('input', { type: 'text', placeholder: 'Search' }),
+            React.createElement('div', { className: 'shortcut' }, '⌘ K'),
+          ),
+        ),
+
+        React.createElement('div', { style: { flex: 1, overflowY: 'auto', paddingBottom: '12px' }, className: 'custom-scrollbar' },
+          React.createElement('nav', { className: 'nav-section', style: { marginBottom: '4px' } },
+            React.createElement('button', { className: 'nav-item', onClick: backToList },
+              React.createElement('iconify-icon', { icon: 'solar:widget-2-bold' }), 'Dashboard'),
+            React.createElement('button', { className: 'nav-item' },
+              React.createElement('iconify-icon', { icon: 'solar:inbox-linear' }), 'Inbox'),
+            React.createElement('button', { className: 'nav-item' },
+              React.createElement('iconify-icon', { icon: 'solar:bell-linear' }), 'Notification'),
+            React.createElement('button', { className: 'nav-item active', onClick: backToList },
+              React.createElement('iconify-icon', { icon: 'solar:ticket-linear' }), 'Ticket'),
+            React.createElement('button', { className: 'nav-item' },
+              React.createElement('iconify-icon', { icon: 'solar:book-bookmark-linear' }), 'Knowledge Base'),
+            React.createElement('button', { className: 'nav-item' },
+              React.createElement('iconify-icon', { icon: 'solar:users-group-rounded-linear' }), 'Customer'),
+            React.createElement('button', { className: 'nav-item' },
+              React.createElement('iconify-icon', { icon: 'solar:chat-round-dots-linear' }), 'Forum'),
+            React.createElement('button', { className: 'nav-item' },
+              React.createElement('iconify-icon', { icon: 'solar:chart-square-linear' }), 'Report'),
+          ),
+
+          /* Conversation */
+          React.createElement('div', { className: 'sidebar-section' },
+            React.createElement('div', { className: 'sidebar-section-header' },
+              React.createElement('span', { className: 'caption' }, 'Conversation')),
+            React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: '3px' } },
+              React.createElement('div', { className: 'convo-item' },
+                React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '8px' } },
+                  React.createElement('div', { className: 'convo-icon' }, React.createElement('iconify-icon', { icon: 'solar:phone-linear' })),
+                  React.createElement('div', null,
+                    React.createElement('p', { style: { fontSize: '12px', fontWeight: 500 } }, 'Call'),
+                    React.createElement('p', { style: { fontSize: '10px', color: 'var(--text-secondary)' } }, '(123)45678...'))),
+                React.createElement('span', { className: 'convo-count hot' }, '1')),
+              React.createElement('div', { className: 'convo-item elevated' },
+                React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '8px' } },
+                  React.createElement('div', { className: 'convo-icon' }, React.createElement('iconify-icon', { icon: 'solar:chat-square-linear' })),
+                  React.createElement('div', null,
+                    React.createElement('p', { style: { fontSize: '12px', fontWeight: 500 } }, 'Side Conversa...'),
+                    React.createElement('p', { style: { fontSize: '10px', color: 'var(--text-secondary)' } }, '-'))),
+                React.createElement('span', { className: 'convo-count muted' }, '0')),
+            ),
+          ),
+
+          /* Favorites */
+          React.createElement('div', { className: 'sidebar-section' },
+            React.createElement('div', { className: 'sidebar-section-header' },
+              React.createElement('span', { className: 'caption' }, 'Favorites')),
+            React.createElement('p', { style: { fontSize: '11px', color: 'var(--text-secondary)', lineHeight: 1.5 } }, 'Hover over any table and click the star to add it here.'),
+          ),
+
+          /* Pinned */
+          React.createElement('div', { className: 'sidebar-section' },
+            React.createElement('div', { className: 'sidebar-section-header' },
+              React.createElement('span', { className: 'caption' }, 'Pinned Tickets'),
+              React.createElement('button', null, 'Unpin All')),
+            React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '6px' } },
+              React.createElement('div', { className: 'pinned-item' },
+                React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '6px' } },
+                  React.createElement('div', { className: 'pinned-dot' }, React.createElement('iconify-icon', { icon: 'solar:chat-round-dots-linear', style: { fontSize: '7px' } })),
+                  React.createElement('span', { style: { fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, '#TC-192 produc...')),
+                React.createElement('iconify-icon', { icon: 'solar:pin-linear', className: 'pin-icon' })),
+              React.createElement('div', { className: 'pinned-item' },
+                React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '6px' } },
+                  React.createElement('div', { className: 'pinned-dot' }, React.createElement('iconify-icon', { icon: 'solar:chat-round-dots-linear', style: { fontSize: '7px' } })),
+                  React.createElement('span', { style: { fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, '#TC-191 paymen...')),
+                React.createElement('iconify-icon', { icon: 'solar:pin-linear', className: 'pin-icon' })),
+              React.createElement('div', { className: 'pinned-item' },
+                React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '6px' } },
+                  React.createElement('iconify-icon', { icon: 'solar:phone-linear', style: { fontSize: '12px', color: 'var(--text-muted)', width: '14px', textAlign: 'center' } }),
+                  React.createElement('span', { style: { fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)' } }, '+1 678-908-78...')),
+                React.createElement('iconify-icon', { icon: 'solar:pin-linear', className: 'pin-icon' })),
+              React.createElement('button', { className: 'nav-item', style: { padding: '3px 0', gap: '5px', fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)' } },
+                React.createElement('iconify-icon', { icon: 'solar:add-circle-linear', style: { fontSize: '16px', color: 'var(--text-secondary)' } }), 'Add new'),
+            ),
+          ),
+        ),
+
+        /* Footer */
+        React.createElement('div', { className: 'sidebar-footer' },
+          React.createElement('a', { href: '#' },
+            React.createElement('iconify-icon', { icon: 'solar:help-linear', style: { fontSize: '16px' } }), 'Help & Support'),
+          React.createElement('div', { className: 'brand-footer' },
+            React.createElement('div', null,
+              React.createElement('span', { className: 'caption', style: { fontSize: '8px', letterSpacing: '0.15em' } }, 'Powered By'),
+              React.createElement('div', { className: 'brand-name' },
+                React.createElement('div', { className: 'brand-dot' }), 'kirridesk')),
+            React.createElement('button', { className: 'sidebar-toggle' },
+              React.createElement('iconify-icon', { icon: 'solar:sidebar-minimalistic-linear', style: { fontSize: '14px' } }))),
+        ),
+      ),
+
+      /* ── Main Content ── */
+      React.createElement('div', { className: 'main-content' },
+        view === 'list' && React.createElement(TicketListView, {
+          onOpenTicket: openTicket,
+          onNewTicket: () => setShowNewTicket(true),
+        }),
+        view === 'detail' && React.createElement(TicketDetailView, {
+          ticket: selectedTicket,
+          onBack: backToList,
+        }),
+      ),
+
+      /* New Ticket Modal */
+      showNewTicket && React.createElement(NewTicketModal, {
+        onClose: () => setShowNewTicket(false),
+        onSubmit: () => { setShowNewTicket(false); },
+      }),
+    ),
+
+    /* Tweaks */
+    React.createElement(TweaksPanel, { title: 'Tweaks' },
+      React.createElement(TweakSection, { label: 'Layout' },
+        React.createElement(TweakSlider, { label: 'Sidebar Width', min: 160, max: 260, step: 10, value: tweaks.sidebarWidth, onChange: v => setTweak('sidebarWidth', v) }),
+      ),
+    ),
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+</script>
+</body>
+</html>

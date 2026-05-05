@@ -90,7 +90,7 @@ export function AuthLayout({
             </div>
 
             {/* Editorial grid: 12-col on desktop, stacked on mobile. */}
-            <main className="relative z-10 mx-auto grid w-full max-w-310 flex-1 grid-cols-12 gap-6 px-6 py-12 sm:px-10 sm:py-16 lg:gap-10 lg:py-20">
+            <main className="relative z-10 mx-auto grid w-full max-w-310 flex-1 place-content-center grid-cols-12 gap-6 px-6 py-12 sm:px-10 sm:py-16 lg:gap-10 lg:py-20">
                 {/* Left rail — section number + meta caption. */}
                 <aside className="col-span-12 lg:col-span-3 lg:pt-4">
                     <div

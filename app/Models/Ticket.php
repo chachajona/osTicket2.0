@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Eloquent\Scopes\TicketAccessibleScope;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
@@ -37,6 +38,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  */
 class Ticket extends LegacyModel
 {
+    use HasFactory;
+
     /**
      * The table associated with the model.
      *

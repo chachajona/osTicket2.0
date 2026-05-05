@@ -1,17 +1,24 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use App\Auth\StaffTwoFactorAuthenticatable;
+use App\Models\Concerns\CanCheckDepartmentPermissions;
 use App\Models\Eloquent\Scopes\TicketAccessibleScope;
 use Database\Factories\StaffFactory;
+use Illuminate\Contracts\Auth\Access\Authorizable as AuthorizableContract;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Foundation\Auth\Access\Authorizable;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Exceptions\PermissionDoesNotExist;
 use Spatie\Permission\Traits\HasRoles;
 
 /**
@@ -23,6 +30,7 @@ use Spatie\Permission\Traits\HasRoles;
  *
  * @property int $staff_id
  * @property int $dept_id
+ * @property int|null $role_id
  * @property string $username
  * @property string $firstname
  * @property string $lastname
@@ -35,11 +43,13 @@ use Spatie\Permission\Traits\HasRoles;
  * @property-read Department|null $department
  * @property-read Collection<int, Ticket> $assignedTickets
  */
-class Staff extends LegacyModel implements Authenticatable
+class Staff extends LegacyModel implements Authenticatable, AuthorizableContract
 {
     /** @use HasFactory<StaffFactory> */
-    use HasFactory;
+    use Authorizable;
 
+    use CanCheckDepartmentPermissions;
+    use HasFactory;
     use HasRoles;
     use StaffTwoFactorAuthenticatable;
 
@@ -49,6 +59,11 @@ class Staff extends LegacyModel implements Authenticatable
      * The guard name for spatie/laravel-permission.
      */
     protected string $guard_name = 'staff';
+
+    /**
+     * @var list<string>
+     */
+    protected array $auditExcluded = ['passwd', 'password'];
 
     /**
      * The table associated with the model.
@@ -77,6 +92,31 @@ class Staff extends LegacyModel implements Authenticatable
     public function department()
     {
         return $this->belongsTo(Department::class, 'dept_id', 'id');
+    }
+
+    /**
+     * @return BelongsTo<LegacyRole, $this>
+     */
+    public function role(): BelongsTo
+    {
+        return $this->belongsTo(LegacyRole::class, 'role_id');
+    }
+
+    /**
+     * @return HasMany<StaffDeptAccess, $this>
+     */
+    public function departmentAccesses(): HasMany
+    {
+        return $this->hasMany(StaffDeptAccess::class, 'staff_id', 'staff_id');
+    }
+
+    /**
+     * @return BelongsToMany<Team, $this>
+     */
+    public function teams(): BelongsToMany
+    {
+        return $this->belongsToMany(Team::class, 'team_member', 'staff_id', 'team_id', 'staff_id', 'team_id')
+            ->withPivot('flags');
     }
 
     /**
@@ -168,6 +208,19 @@ class Staff extends LegacyModel implements Authenticatable
         }
     }
 
+    /**
+     * Override to prevent the legacy `permissions` column from shadowing
+     * Spatie's permissions relationship.
+     */
+    public function getAttribute($key)
+    {
+        if ($key === 'permissions') {
+            return $this->getRelationValue('permissions');
+        }
+
+        return parent::getAttribute($key);
+    }
+
     public function displayName(): string
     {
         return trim($this->firstname.' '.$this->lastname) ?: $this->username;
@@ -176,6 +229,36 @@ class Staff extends LegacyModel implements Authenticatable
     public function hasTotpEnabled(): bool
     {
         return $this->hasEnabledTwoFactorAuthentication();
+    }
+
+    public function canAccessAdminPanel(): bool
+    {
+        return (bool) $this->isactive
+            && ((bool) $this->isadmin || $this->hasPermissionNamed('admin.access'));
+    }
+
+    public function hasAdminPermission(string ...$permissions): bool
+    {
+        if ((bool) $this->isadmin) {
+            return true;
+        }
+
+        foreach ($permissions as $permission) {
+            if ($this->hasPermissionNamed($permission)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function hasPermissionNamed(string $permission): bool
+    {
+        try {
+            return $this->hasPermissionTo($permission);
+        } catch (PermissionDoesNotExist) {
+            return false;
+        }
     }
 
     public function isMigrated(): bool
