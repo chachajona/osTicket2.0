@@ -16,7 +16,7 @@ $legacy = env('LEGACY_DB_DRIVER', 'mysql') === 'sqlite'
         'driver' => 'mysql',
         'host' => env('LEGACY_DB_HOST', '127.0.0.1'),
         'port' => env('LEGACY_DB_PORT', '3307'),
-        'database' => env('LEGACY_DB_DATABASE', 'osticketdb_rl'),
+        'database' => env('LEGACY_DB_DATABASE', 'osticketdb_sbb'),
         'username' => env('LEGACY_DB_USERNAME', 'root'),
         'password' => env('LEGACY_DB_PASSWORD', ''),
         'unix_socket' => env('DB_SOCKET', ''),

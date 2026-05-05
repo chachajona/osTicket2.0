@@ -40,7 +40,7 @@ final class EnsureLegacyPermissionTables extends Command
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         if ($this->option('seed')) {
-            $this->call(PermissionCatalogSeeder::class);
+            $this->call('db:seed', ['--class' => PermissionCatalogSeeder::class, '--force' => true]);
         }
 
         $this->info('Legacy permission tables are ready.');
