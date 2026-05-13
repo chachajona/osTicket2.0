@@ -128,6 +128,20 @@ class Ticket extends LegacyModel
     }
 
     /**
+     * Get the team assigned to the ticket.
+     *
+     * @return BelongsTo<Team, $this>
+     */
+    public function team()
+    {
+        return $this->belongsTo(
+            Team::class,
+            'team_id',
+            'team_id'
+        );
+    }
+
+    /**
      * Get the ticket's custom field data from ost_ticket__cdata.
      *
      * @return HasOne<TicketCdata, $this>
