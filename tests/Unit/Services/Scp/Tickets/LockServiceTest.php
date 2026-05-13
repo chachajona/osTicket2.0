@@ -6,9 +6,9 @@ namespace Tests\Unit\Services\Scp\Tickets;
 
 use App\Exceptions\TicketLockedException;
 use App\Models\Lock;
+use App\Models\Scp\ScpActionLog;
 use App\Models\Staff;
 use App\Models\Ticket;
-use App\Models\Scp\ScpActionLog;
 use App\Services\Scp\Tickets\ActionLogger;
 use App\Services\Scp\Tickets\LegacyConfigReader;
 use App\Services\Scp\Tickets\LockService;
@@ -42,7 +42,7 @@ final class LockServiceTest extends TestCase
         $this->ensureLegacyTables();
         $this->resetTables();
 
-        $this->service = new LockService(new LegacyConfigReader(), new ActionLogger());
+        $this->service = new LockService(new LegacyConfigReader, new ActionLogger);
     }
 
     protected function tearDown(): void
@@ -148,14 +148,14 @@ final class LockServiceTest extends TestCase
             'staff_id' => $caller->staff_id,
             'expire' => '2026-05-03 10:15:00',
         ], 'legacy');
-        $this->assertDatabaseHas('scp_action_log', [
+        $this->assertDatabaseHas('action_log', [
             'staff_id' => $caller->staff_id,
             'ticket_id' => $ticket->ticket_id,
             'action' => 'lock.stolen',
             'outcome' => 'success',
             'http_status' => 200,
             'lock_id' => (string) $existing->lock_id,
-        ]);
+        ], 'osticket2');
 
         $audit = ScpActionLog::query()->where('action', 'lock.stolen')->firstOrFail();
         $this->assertSame(['staff_id' => $owner->staff_id, 'expire' => '2026-05-03 10:09:00'], $audit->before_state);
@@ -247,6 +247,7 @@ final class LockServiceTest extends TestCase
     private function ensureLegacyTables(): void
     {
         $schema = Schema::connection('legacy');
+        $osticket2 = Schema::connection('osticket2');
 
         if (! $schema->hasTable('config')) {
             $schema->create('config', function (Blueprint $table): void {
@@ -305,6 +306,26 @@ final class LockServiceTest extends TestCase
                 $table->unsignedInteger('object_id');
                 $table->unsignedInteger('staff_id');
                 $table->timestamp('expire');
+            });
+        }
+
+        if (! $osticket2->hasTable('action_log')) {
+            $osticket2->create('action_log', function (Blueprint $table): void {
+                $table->id();
+                $table->unsignedInteger('staff_id');
+                $table->unsignedInteger('ticket_id')->nullable();
+                $table->unsignedInteger('thread_id')->nullable();
+                $table->unsignedInteger('queue_id')->nullable();
+                $table->string('action', 64);
+                $table->string('outcome', 16);
+                $table->unsignedSmallInteger('http_status');
+                $table->json('before_state')->nullable();
+                $table->json('after_state')->nullable();
+                $table->unsignedInteger('lock_id')->nullable();
+                $table->string('request_id', 64)->nullable();
+                $table->string('ip_address', 45)->nullable();
+                $table->string('user_agent', 255)->nullable();
+                $table->timestamp('created_at')->useCurrent();
             });
         }
     }
