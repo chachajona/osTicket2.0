@@ -36,6 +36,10 @@ test('login page renders at /scp/login', function () {
     $response->assertJsonPath('component', 'Auth/Login');
 });
 
+test('login submit route is explicitly named', function () {
+    expect(route('scp.login.store', absolute: false))->toBe('/scp/login');
+});
+
 test('root redirects guests to the login page', function () {
     $response = $this->get('/');
 

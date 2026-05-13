@@ -32,6 +32,31 @@ function createLegacyStaff(array $attributes = []): Staff
     return Staff::on('legacy')->findOrFail($staffId);
 }
 
+function setLegacyTwoFactorConfig(string $namespace, string $key, string $value): void
+{
+    DB::connection('legacy')->table('config')->updateOrInsert(
+        [
+            'namespace' => $namespace,
+            'key' => $key,
+        ],
+        [
+            'value' => $value,
+            'updated' => now(),
+        ],
+    );
+}
+
+function legacyAuthenticatorConfig(): string
+{
+    return json_encode([
+        'config' => [
+            'key' => 'test-fixture',
+            'external2fa' => true,
+        ],
+        'verified' => now()->timestamp,
+    ], JSON_THROW_ON_ERROR);
+}
+
 test('security page renders for authenticated staff', function () {
     $staff = createLegacyStaff();
 
@@ -179,6 +204,91 @@ test('login routes totp-enrolled staff to the app challenge', function () {
     $this->travelBack();
 });
 
+test('login bypasses two-factor when legacy does not require it globally and no default backend is selected', function () {
+    Mail::fake();
+
+    $staff = createLegacyStaff();
+    $service = app(StaffTwoFactorService::class);
+    $service->enable($staff);
+    $service->confirm($staff->fresh(), app(Google2FA::class)->getCurrentOtp((string) $staff->fresh()->two_factor_secret));
+
+    setLegacyTwoFactorConfig('core', 'require_agent_2fa', '0');
+    setLegacyTwoFactorConfig("staff.{$staff->staff_id}", 'default_2fa', '');
+    setLegacyTwoFactorConfig("staff.{$staff->staff_id}", 'auth.agent', legacyAuthenticatorConfig());
+
+    $response = $this->post('/scp/login', [
+        'username' => $staff->username,
+        'password' => 'password',
+    ]);
+
+    $response->assertRedirect();
+    expect(auth('staff')->check())->toBeTrue();
+    expect(session('2fa.staff_id'))->toBeNull();
+    expect(session('2fa_app.staff_id'))->toBeNull();
+    Mail::assertNothingSent();
+    Mail::assertNothingQueued();
+});
+
+test('login still routes totp-enrolled staff to the app challenge when legacy default backend is authenticator', function () {
+    $this->travelTo(now());
+    Mail::fake();
+
+    $staff = createLegacyStaff();
+    $service = app(StaffTwoFactorService::class);
+    $service->enable($staff);
+    $service->confirm($staff->fresh(), app(Google2FA::class)->getCurrentOtp((string) $staff->fresh()->two_factor_secret));
+
+    setLegacyTwoFactorConfig('core', 'require_agent_2fa', '0');
+    setLegacyTwoFactorConfig("staff.{$staff->staff_id}", 'default_2fa', 'auth.agent');
+    setLegacyTwoFactorConfig("staff.{$staff->staff_id}", 'auth.agent', legacyAuthenticatorConfig());
+
+    $response = $this->post('/scp/login', [
+        'username' => $staff->username,
+        'password' => 'password',
+    ]);
+
+    $response->assertRedirect('/scp/2fa-app');
+    $response->assertSessionHas('2fa_app.staff_id', $staff->staff_id);
+    Mail::assertNothingSent();
+    Mail::assertNothingQueued();
+
+    $this->travelBack();
+});
+
+test('login bypasses stale legacy app defaults when current totp has been disabled', function () {
+    Mail::fake();
+
+    $staff = createLegacyStaff();
+    $service = app(StaffTwoFactorService::class);
+    $service->enable($staff);
+    $service->confirm($staff->fresh(), app(Google2FA::class)->getCurrentOtp((string) $staff->fresh()->two_factor_secret));
+    $service->disable($staff->fresh());
+    $staff->authMigration()->updateOrCreate(
+        ['staff_id' => $staff->staff_id],
+        [
+            'migrated_at' => null,
+            'upgrade_method' => null,
+            'dismissed_migration_banner_at' => null,
+        ],
+    );
+
+    setLegacyTwoFactorConfig('core', 'require_agent_2fa', '0');
+    setLegacyTwoFactorConfig("staff.{$staff->staff_id}", 'default_2fa', 'auth.agent');
+    setLegacyTwoFactorConfig("staff.{$staff->staff_id}", 'auth.agent', legacyAuthenticatorConfig());
+
+    $response = $this->post('/scp/login', [
+        'username' => $staff->username,
+        'password' => 'password',
+    ]);
+
+    $response->assertRedirect();
+    expect(auth('staff')->check())->toBeTrue();
+    expect(session('2fa.staff_id'))->toBeNull();
+    expect(session('2fa_app.staff_id'))->toBeNull();
+    Mail::assertNothingSent();
+    Mail::assertNothingQueued();
+});
+
 test('totp challenge accepts a valid app code', function () {
     $staff = createLegacyStaff();
     $service = app(StaffTwoFactorService::class);
@@ -199,7 +309,7 @@ test('totp challenge accepts a valid app code', function () {
 
     expect($response->getStatusCode())->toBe(302)
         ->and((string) $response->headers->get('Location'))->toEndWith('/scp');
-    expect($response->baseResponse->getSession()->get('errors'))->toBeNull();
+    $response->assertSessionDoesntHaveErrors();
     expect(auth('staff')->check())->toBeTrue();
 });
 
