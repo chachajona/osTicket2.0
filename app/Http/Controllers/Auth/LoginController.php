@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\Staff;
+use App\Services\LegacyStaffTwoFactorPolicy;
 use App\Services\LegacyTwoFactorMigrationService;
 use App\Services\Panels\PanelLandingResolver;
 use App\Services\TwoFactorAppChallengeService;
@@ -27,6 +28,7 @@ class LoginController extends Controller
     private const LOGIN_THROTTLE_SECONDS = 300;
 
     public function __construct(
+        private readonly LegacyStaffTwoFactorPolicy $legacyTwoFactorPolicy,
         private readonly TwoFactorAuthService $twoFactor,
         private readonly TwoFactorAppChallengeService $appChallenge,
         private readonly LegacyTwoFactorMigrationService $legacyMigration,
@@ -78,7 +80,17 @@ class LoginController extends Controller
         $this->legacyMigration->migrateIfNeeded($staff);
         $this->ensureDashboardIsTheFallbackIntendedUrl($request, $staff);
 
-        if ($staff->hasTotpEnabled()) {
+        $challengeMethod = $this->legacyTwoFactorPolicy->challengeMethodFor($staff);
+
+        if ($challengeMethod === null) {
+            Auth::guard('staff')->loginUsingId($staff->staff_id, $request->boolean('remember'));
+            $intendedUrl = $this->resolveIntendedUrl($request);
+            $request->session()->regenerate();
+
+            return redirect()->to($intendedUrl);
+        }
+
+        if ($challengeMethod === 'app') {
             $this->twoFactor->clearToken($staff->staff_id);
             $this->appChallenge->begin($staff->staff_id);
             $request->session()->put('2fa_app.staff_id', $staff->staff_id);
@@ -153,5 +165,16 @@ class LoginController extends Controller
     private function normalizedThrottleUsername(Request $request): string
     {
         return Str::lower(trim((string) $request->input('username')));
+    }
+
+    private function resolveIntendedUrl(Request $request): string
+    {
+        $intendedUrl = $request->session()->pull('url.intended');
+
+        if (! is_string($intendedUrl) || rtrim($intendedUrl, '/') === rtrim(url('/'), '/')) {
+            return route('scp.dashboard');
+        }
+
+        return $intendedUrl;
     }
 }

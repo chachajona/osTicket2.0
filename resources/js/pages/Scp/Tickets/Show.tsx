@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { useEffect, useMemo, useState, type ReactElement, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactElement, type ReactNode } from 'react';
 import { Dialog as DialogPrimitive } from '@base-ui/react/dialog';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
@@ -22,6 +22,8 @@ import {
     Chat01Icon,
     SmartPhone01Icon,
     Mail01Icon,
+    PinIcon,
+    PinOffIcon,
 } from '@hugeicons/core-free-icons';
 
 import { type StatusOption } from '@/components/tickets/StatusPicker';
@@ -31,11 +33,10 @@ import { formatBytes, formatDateTime, formatRelative } from '@/lib/datetime';
 import { sanitizeHtml } from '@/lib/sanitizeHtml';
 import { cn } from '@/lib/utils';
 import {
-    PrioritySegmented,
-    TagChip,
     SplitButton,
     IconBtn
 } from '@/components/tickets/TicketDetailComponents';
+import { TicketInfoPanel } from '@/components/tickets/TicketInfoPanel';
 
 interface Ticket {
     id: number;
@@ -45,10 +46,21 @@ interface Ticket {
     priority: string | null;
     department: string | null;
     assignee: string | null;
+    team: string | null;
     sla_id: number;
+    source: string | null;
+    source_extra: string | null;
+    ip_address: string | null;
+    isoverdue: boolean;
+    isanswered: boolean;
     duedate: string | null;
+    est_duedate: string | null;
+    reopened: string | null;
     created: string | null;
     updated: string | null;
+    lastupdate: string | null;
+    lastmessage: string | null;
+    lastresponse: string | null;
     closed: string | null;
     subject: string | null;
     requester: string | null;
@@ -303,6 +315,27 @@ export default function TicketShow({ ticket, customFields, timeline, attachments
 
     const [preview, setPreview] = useState<Attachment | null>(null);
 
+    const PANEL_COLLAPSED_KEY = 'ticket.panel.collapsed';
+    const [panelCollapsed, setPanelCollapsed] = useState(() => {
+        if (typeof window === 'undefined') return false;
+        try {
+            return window.localStorage.getItem(PANEL_COLLAPSED_KEY) === '1';
+        } catch {
+            return false;
+        }
+    });
+
+    const togglePanel = useCallback(() => {
+        setPanelCollapsed((prev) => {
+            const next = !prev;
+            try {
+                window.localStorage.setItem(PANEL_COLLAPSED_KEY, next ? '1' : '0');
+            } catch {
+            }
+            return next;
+        });
+    }, []);
+
     return (
         <>
             <SetPageHeader>
@@ -445,101 +478,36 @@ export default function TicketShow({ ticket, customFields, timeline, attachments
                     )}
                 </div>
 
-                {/* Right Sidebar */}
-                <div className="flex w-[260px] shrink-0 overflow-hidden">
-                    <div className="custom-scrollbar flex-1 overflow-y-auto px-4 py-5">
-                        <h3 className="mb-5 text-[14px] font-semibold text-[#18181B]">Ticket Details</h3>
-
-                        <div className="mb-4">
-                            <label className="mb-1.5 block text-xs font-medium text-[#A1A1AA]">Ticket type</label>
-                            <select
-                                defaultValue={ticket.department ?? 'Incident'}
-                                className="w-full appearance-none rounded-sm border border-[#E2E0D8] bg-white px-3 py-2 pr-8 text-[13px] text-[#18181B] outline-none"
-                                style={{
-                                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 12 12' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 5l3 3 3-3' fill='none' stroke='%23A1A1AA' stroke-width='1.5'/%3E%3C/svg%3E")`,
-                                    backgroundRepeat: 'no-repeat',
-                                    backgroundPosition: 'right 10px center'
-                                }}
-                            >
-                                {['Incident', 'Problem', 'Question', 'Suggestion'].map(o => (
-                                    <option key={o} value={o}>{o}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div className="mb-4">
-                            <label className="mb-1.5 block text-xs font-medium text-[#A1A1AA]">Priority</label>
-                            <PrioritySegmented value={ticket.priority ?? 'High'} onChange={() => {}} />
-                        </div>
-
-                        <div className="mb-4">
-                            <label className="mb-1.5 block text-xs font-medium text-[#A1A1AA]">Linked Problem</label>
-                            <select
-                                defaultValue=""
-                                className="w-full appearance-none rounded-sm border border-[#E2E0D8] bg-white px-3 py-2 pr-8 text-[13px] text-[#71717A] outline-none"
-                                style={{
-                                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 12 12' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 5l3 3 3-3' fill='none' stroke='%23A1A1AA' stroke-width='1.5'/%3E%3C/svg%3E")`,
-                                    backgroundRepeat: 'no-repeat',
-                                    backgroundPosition: 'right 10px center'
-                                }}
-                            >
-                                <option value="">Select problems</option>
-                            </select>
-                        </div>
-
-                        <div className="mb-4">
-                            <label className="mb-1.5 block text-xs font-medium text-[#A1A1AA]">Tags</label>
-                            <div className="flex min-h-[60px] flex-wrap gap-1.5 rounded-sm border border-[#E2E0D8] p-2.5">
-                                <TagChip label="Support" onRemove={() => {}} />
-                            </div>
-                        </div>
-
-                        {sla && (
-                            <div className="mt-6 flex flex-col gap-2.5">
-                                <div className="rounded-md border border-[#E2E0D8] bg-white p-3">
-                                    <div className="mb-1 flex items-center gap-1.5">
-                                        <div className="h-1.5 w-1.5 rounded-full bg-[#F97316]" />
-                                        <span className="text-[11px] font-medium text-[#A1A1AA]">{sla.label} (SLA)</span>
-                                    </div>
-                                    <p className="text-[13px] font-medium text-[#18181B]">{sla.helper}</p>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Extra sections folded in */}
-                        {attachments.length > 0 && (
-                            <div className="mt-6">
-                                <h3 className="mb-2 text-[12px] font-semibold text-[#18181B]">Attachments ({attachments.length})</h3>
-                                <ul className="space-y-2">
-                                    {attachments.map(att => (
-                                        <li key={att.id} className="flex items-center justify-between rounded border border-[#E2E0D8] p-2 text-xs">
-                                            <span className="truncate">{att.name}</span>
-                                            <button onClick={() => setPreview(att)}><HugeiconsIcon icon={Image01Icon} size={14} /></button>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        )}
-
-                        {Object.entries(customFields).length > 0 && (
-                            <div className="mt-6">
-                                <h3 className="mb-2 text-[12px] font-semibold text-[#18181B]">Custom Fields</h3>
-                                <dl className="space-y-2 text-xs">
-                                    {Object.entries(customFields).map(([key, val]) => (
-                                        <div key={key}>
-                                            <dt className="text-[#A1A1AA]">{key}</dt>
-                                            <dd className="text-[#18181B]">{String(val || '—')}</dd>
-                                        </div>
-                                    ))}
-                                </dl>
-                            </div>
-                        )}
-
-                        <AttachmentPreview attachment={preview} onClose={() => setPreview(null)} />
+                <div className="flex shrink-0 overflow-hidden border-l border-[#E2E0D8]">
+                    <div
+                        className="transition-[width] duration-200 ease-in-out"
+                        style={{ width: panelCollapsed ? 0 : 300 }}
+                    >
+                        <TicketInfoPanel
+                            ticket={ticket}
+                            customFields={customFields}
+                            attachments={attachments}
+                            collaborators={collaborators}
+                            referrals={referrals}
+                            onPreviewAttachment={setPreview}
+                            onToggleCollapse={togglePanel}
+                            isCollapsed={panelCollapsed}
+                        />
                     </div>
 
-                    {/* Icon Strip */}
                     <div className="flex w-10 shrink-0 flex-col items-center gap-1 border-l border-[#E2E0D8] bg-[#FAFAF8] pt-4">
+                        <button
+                            type="button"
+                            onClick={togglePanel}
+                            className={cn(
+                                'flex h-8 w-8 items-center justify-center rounded-sm transition-colors',
+                                panelCollapsed ? 'text-[#F97316]' : 'bg-[#F97316] text-white'
+                            )}
+                            title={panelCollapsed ? 'Expand panel' : 'Collapse panel'}
+                        >
+                            <HugeiconsIcon icon={panelCollapsed ? PinIcon : PinOffIcon} size={16} />
+                        </button>
+                        <div className="my-1 h-px w-6 bg-[#E2E0D8]" />
                         {sideIcons.map((ic, i) => (
                             <button
                                 key={i}
