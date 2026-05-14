@@ -140,7 +140,7 @@ Check sibling files, related controllers, models, or tests for established patte
 - `onOneServer()` on multi-server deployments
 - `runInBackground()` for concurrent long tasks
 - `environments()` to restrict to appropriate environments
-- `takeUntilTimeout()` for time-bounded processing
+- `withoutOverlapping()`, `onOneServer()`, or job timeouts
 - Schedule groups for shared configuration
 
 ### 15. Architecture → `rules/architecture.md`

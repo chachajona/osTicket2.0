@@ -25,7 +25,9 @@ Use `search-docs` for detailed Tailwind CSS v4 patterns and documentation.
 
 ### CSS-First Configuration
 
-In Tailwind v4, configuration is CSS-first using the `@theme` directive — no separate `tailwind.config.js` file is needed:
+In Tailwind v4, CSS-first configuration using the `@theme` directive is
+recommended. A legacy `tailwind.config.js` file remains supported via the
+`@config` directive for backward compatibility:
 
 <!-- CSS-First Config -->
 ```css
@@ -52,17 +54,19 @@ Tailwind v4 removed deprecated utilities. Use the replacements shown below. Opac
 
 | Deprecated | Replacement |
 |------------|-------------|
-| bg-opacity-* | bg-black/* |
-| text-opacity-* | text-black/* |
-| border-opacity-* | border-black/* |
-| divide-opacity-* | divide-black/* |
-| ring-opacity-* | ring-black/* |
-| placeholder-opacity-* | placeholder-black/* |
+| bg-opacity-* | bg-{color}/{opacity} |
+| text-opacity-* | text-{color}/{opacity} |
+| border-opacity-* | border-{color}/{opacity} |
+| divide-opacity-* | divide-{color}/{opacity} |
+| ring-opacity-* | ring-{color}/{opacity} |
+| placeholder-opacity-* | placeholder-{color}/{opacity} |
 | flex-shrink-* | shrink-* |
 | flex-grow-* | grow-* |
 | overflow-ellipsis | text-ellipsis |
 | decoration-slice | box-decoration-slice |
 | decoration-clone | box-decoration-clone |
+
+Examples: `bg-blue-500/20`, `text-gray-900/80`, `border-red-500/50`.
 
 ## Spacing
 
@@ -114,6 +118,7 @@ If existing pages and components support dark mode, new pages and components mus
 
 - Using deprecated v3 utilities (bg-opacity-*, flex-shrink-*, etc.)
 - Using `@tailwind` directives instead of `@import "tailwindcss"`
-- Trying to use `tailwind.config.js` instead of CSS `@theme` directive
+- Relying on automatic `tailwind.config.js` detection instead of CSS-first
+  `@theme` configuration or an explicit `@config` directive
 - Using margins for spacing between siblings instead of gap utilities
 - Forgetting to add dark mode variants when the project uses dark mode

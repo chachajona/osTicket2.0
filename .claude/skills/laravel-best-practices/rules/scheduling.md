@@ -20,9 +20,12 @@ Prevent accidental execution of production-only tasks (billing, reporting) on st
 Schedule::command('billing:charge')->monthly()->environments(['production']);
 ```
 
-## Use `takeUntilTimeout()` for Time-Bounded Processing
+## Use Overlap Guards and Job Timeouts for Bounded Processing
 
-A task running every 15 minutes that processes an unbounded cursor can overlap with the next run. Bound execution time.
+A task running every 15 minutes that processes an unbounded cursor can overlap
+with the next run. Use `withoutOverlapping()` to prevent concurrent runs on one
+machine, add `onOneServer()` for multi-server deployments, or move the work to
+queued jobs with explicit timeout settings.
 
 ## Use Schedule Groups for Shared Configuration
 

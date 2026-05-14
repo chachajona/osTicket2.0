@@ -90,7 +90,9 @@ Correct:
 
 ## CSRF Protection
 
-Include `@csrf` in all POST/PUT/DELETE Blade forms. In Inertia apps, the `@csrf` directive is automatically applied.
+Include `@csrf` in all POST/PUT/DELETE Blade forms. Inertia requests handle CSRF
+protection via the `XSRF-TOKEN` cookie and `X-XSRF-TOKEN` header, but Blade
+forms still require explicit `@csrf`.
 
 Incorrect:
 ```blade

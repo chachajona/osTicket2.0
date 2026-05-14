@@ -49,8 +49,12 @@ if (env('APP_ENV') === 'production') {
 Correct:
 ```php
 if (app()->isProduction()) {
+    // ...
+}
 // or
 if (App::environment('production')) {
+    // ...
+}
 ```
 
 ## Use Constants and Language Files

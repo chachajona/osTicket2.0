@@ -39,7 +39,7 @@ Enable in `config/fortify.php` features array:
 
 ### Two-Factor Authentication Setup
 
-```
+```text
 - [ ] Add TwoFactorAuthenticatable trait to User model
 - [ ] Enable feature in config/fortify.php
 - [ ] If the `*_add_two_factor_columns_to_users_table.php` migration is missing, publish via `php artisan vendor:publish --tag=fortify-migrations` and migrate
@@ -52,7 +52,7 @@ Enable in `config/fortify.php` features array:
 
 ### Email Verification Setup
 
-```
+```text
 - [ ] Enable emailVerification feature in config
 - [ ] Implement MustVerifyEmail interface on User model
 - [ ] Set up verifyEmailView callback
@@ -64,7 +64,7 @@ Enable in `config/fortify.php` features array:
 
 ### Password Reset Setup
 
-```
+```text
 - [ ] Enable resetPasswords feature in config
 - [ ] Set up requestPasswordResetLinkView callback
 - [ ] Set up resetPasswordView callback
@@ -76,7 +76,7 @@ Enable in `config/fortify.php` features array:
 
 ### SPA Authentication Setup
 
-```
+```text
 - [ ] Set 'views' => false in config/fortify.php
 - [ ] Install and configure Laravel Sanctum for session-based SPA authentication
 - [ ] Use the 'web' guard in config/fortify.php (required for session-based authentication)

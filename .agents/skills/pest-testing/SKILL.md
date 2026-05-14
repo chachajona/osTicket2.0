@@ -18,7 +18,9 @@ Use `search-docs` for detailed Pest 4 patterns and documentation.
 
 All tests must be written using Pest. Use `php artisan make:test --pest {name}`.
 
-The `{name}` argument should include only the path and test name, but should not include the test suite.
+Provide only the test class name or nested path inside the target suite. Do not
+prefix the name with the suite directory (`Feature/` or `Unit/`).
+
 - Incorrect: `php artisan make:test --pest Feature/SomeFeatureTest` will generate `tests/Feature/Feature/SomeFeatureTest.php`
 - Correct: `php artisan make:test --pest SomeControllerTest` will generate `tests/Feature/SomeControllerTest.php`
 - Incorrect: `php artisan make:test --pest --unit Unit/SomeServiceTest` will generate `tests/Unit/Unit/SomeServiceTest.php`
