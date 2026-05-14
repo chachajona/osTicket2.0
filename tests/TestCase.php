@@ -22,21 +22,19 @@ abstract class TestCase extends BaseTestCase
             );
         }
 
-        // Prevent 60-second SQLite busy waits when multiple connections
-        // (sqlite, legacy, osticket2) share the same database file in tests.
         if (config('database.connections.legacy.driver') === 'sqlite') {
+            $this->prepareSqliteDatabaseFile(config('database.connections.sqlite.database'));
+            $this->prepareSqliteDatabaseFile(config('database.connections.legacy.database'));
+            $this->prepareSqliteDatabaseFile(config('database.connections.osticket2.database'));
+
+            // Prevent 60-second SQLite busy waits when multiple connections
+            // (sqlite, legacy, osticket2) share the same database file in tests.
             DB::connection('sqlite')->statement('PRAGMA busy_timeout = 0');
             DB::connection('legacy')->statement('PRAGMA busy_timeout = 0');
             DB::connection('osticket2')->statement('PRAGMA busy_timeout = 0');
         }
 
         if (config('database.connections.legacy.driver') === 'sqlite') {
-            $dbPath = config('database.connections.legacy.database');
-
-            if ($dbPath && $dbPath !== ':memory:') {
-                touch($dbPath);
-            }
-
             $legacy = Schema::connection('legacy');
             $legacyConnection = DB::connection('legacy');
             $osticket2 = Schema::connection('osticket2');
@@ -319,7 +317,29 @@ abstract class TestCase extends BaseTestCase
                 $table->timestamp('created_at')->useCurrent();
             });
 
-            foreach (['admin_audit_log', 'access_log', 'staff_preferences', 'staff_auth_migrations', 'staff_two_factor'] as $table) {
+            $this->ensureLegacyTable($osticket2, 'action_log', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedInteger('staff_id');
+                $table->unsignedInteger('ticket_id')->nullable();
+                $table->unsignedInteger('thread_id')->nullable();
+                $table->unsignedInteger('queue_id')->nullable();
+                $table->string('action', 64);
+                $table->string('outcome', 16);
+                $table->unsignedSmallInteger('http_status');
+                $table->json('before_state')->nullable();
+                $table->json('after_state')->nullable();
+                $table->unsignedInteger('lock_id')->nullable();
+                $table->string('request_id', 64)->nullable();
+                $table->string('ip_address', 45)->nullable();
+                $table->string('user_agent', 255)->nullable();
+                $table->timestamp('created_at')->useCurrent();
+
+                $table->index(['staff_id', 'created_at']);
+                $table->index(['ticket_id', 'created_at']);
+                $table->index(['action', 'created_at']);
+            });
+
+            foreach (['action_log', 'admin_audit_log', 'access_log', 'staff_preferences', 'staff_auth_migrations', 'staff_two_factor'] as $table) {
                 $osticket2Connection->table($table)->delete();
             }
 
@@ -360,6 +380,23 @@ abstract class TestCase extends BaseTestCase
     {
         if (! $schema->hasTable($table)) {
             $schema->create($table, $definition);
+        }
+    }
+
+    private function prepareSqliteDatabaseFile(mixed $database): void
+    {
+        if (! is_string($database) || $database === '' || $database === ':memory:') {
+            return;
+        }
+
+        $directory = dirname($database);
+
+        if (! is_dir($directory)) {
+            mkdir($directory, 0755, true);
+        }
+
+        if (! file_exists($database)) {
+            touch($database);
         }
     }
 

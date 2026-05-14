@@ -8,7 +8,7 @@ $legacy = env('LEGACY_DB_DRIVER', 'mysql') === 'sqlite'
         'driver' => 'sqlite',
         'url' => env('DB_URL'),
         'database' => env('LEGACY_DB_DATABASE', env('DB_DATABASE', ':memory:')),
-        'prefix' => 'ost_',
+        'prefix' => env('LEGACY_DB_PREFIX', 'ost_'),
         'foreign_key_constraints' => false,
         'transaction_mode' => 'DEFERRED',
     ]
@@ -23,6 +23,33 @@ $legacy = env('LEGACY_DB_DRIVER', 'mysql') === 'sqlite'
         'charset' => 'utf8mb4',
         'collation' => 'utf8mb4_unicode_ci',
         'prefix' => env('LEGACY_DB_PREFIX', 'ost_'),
+        'prefix_indexes' => true,
+        'strict' => true,
+    ];
+
+$osticket2 = env('OSTICKET2_DB_DRIVER', env('DB_CONNECTION', 'mysql')) === 'sqlite'
+    ? [
+        'driver' => 'sqlite',
+        'url' => env('OSTICKET2_DB_URL', env('DB_URL')),
+        'database' => env('OSTICKET2_DB_DATABASE', env('DB_DATABASE', database_path('database.sqlite'))),
+        'prefix' => env('OSTICKET2_DB_PREFIX', 'scp_'),
+        'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
+        'busy_timeout' => null,
+        'journal_mode' => null,
+        'synchronous' => null,
+        'transaction_mode' => 'DEFERRED',
+    ]
+    : [
+        'driver' => 'mysql',
+        'host' => env('OSTICKET2_DB_HOST', env('DB_HOST', '127.0.0.1')),
+        'port' => env('OSTICKET2_DB_PORT', env('DB_PORT', '3306')),
+        'database' => env('OSTICKET2_DB_DATABASE', env('DB_DATABASE', 'laravel')),
+        'username' => env('OSTICKET2_DB_USERNAME', env('DB_USERNAME', 'root')),
+        'password' => env('OSTICKET2_DB_PASSWORD', env('DB_PASSWORD', '')),
+        'unix_socket' => env('OSTICKET2_DB_SOCKET', env('DB_SOCKET', '')),
+        'charset' => env('OSTICKET2_DB_CHARSET', env('DB_CHARSET', 'utf8mb4')),
+        'collation' => env('OSTICKET2_DB_COLLATION', env('DB_COLLATION', 'utf8mb4_unicode_ci')),
+        'prefix' => env('OSTICKET2_DB_PREFIX', 'scp_'),
         'prefix_indexes' => true,
         'strict' => true,
     ];
@@ -60,7 +87,7 @@ return [
             'driver' => 'sqlite',
             'url' => env('DB_URL'),
             'database' => env('DB_DATABASE', database_path('database.sqlite')),
-            'prefix' => 'ost_',
+            'prefix' => env('DB_PREFIX', 'scp_'),
             'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
             'busy_timeout' => null,
             'journal_mode' => null,
@@ -70,9 +97,7 @@ return [
 
         'legacy' => $legacy,
 
-        'osticket2' => array_merge($legacy, [
-            'prefix' => env('OSTICKET2_DB_PREFIX', 'scp_'),
-        ]),
+        'osticket2' => $osticket2,
 
         'mysql' => [
             'driver' => 'mysql',
@@ -85,7 +110,7 @@ return [
             'unix_socket' => env('DB_SOCKET', ''),
             'charset' => env('DB_CHARSET', 'utf8mb4'),
             'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
-            'prefix' => env('DB_PREFIX', 'ost_'),
+            'prefix' => env('DB_PREFIX', 'scp_'),
             'prefix_indexes' => true,
             'strict' => true,
             'engine' => null,

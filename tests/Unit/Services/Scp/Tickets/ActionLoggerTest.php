@@ -20,7 +20,7 @@ final class ActionLoggerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->logger = new ActionLogger();
+        $this->logger = new ActionLogger;
     }
 
     public function test_logs_success_action_with_full_context(): void
@@ -43,7 +43,7 @@ final class ActionLoggerTest extends TestCase
         );
 
         $this->assertInstanceOf(ScpActionLog::class, $log);
-        $this->assertDatabaseHas('scp_action_log', [
+        $this->assertDatabaseHas('action_log', [
             'staff_id' => $staff->staff_id,
             'ticket_id' => 42,
             'thread_id' => 10,
@@ -55,7 +55,7 @@ final class ActionLoggerTest extends TestCase
             'request_id' => 'req-123',
             'ip_address' => '192.168.1.1',
             'user_agent' => 'Mozilla/5.0',
-        ]);
+        ], 'osticket2');
 
         $this->assertEquals(['status' => 'open'], $log->before_state);
         $this->assertEquals(['status' => 'closed'], $log->after_state);
@@ -76,7 +76,7 @@ final class ActionLoggerTest extends TestCase
         );
 
         $this->assertInstanceOf(ScpActionLog::class, $log);
-        $this->assertDatabaseHas('scp_action_log', [
+        $this->assertDatabaseHas('action_log', [
             'staff_id' => $staff->staff_id,
             'ticket_id' => 99,
             'action' => 'ticket_lock_check',
@@ -85,7 +85,7 @@ final class ActionLoggerTest extends TestCase
             'request_id' => 'req-456',
             'ip_address' => '10.0.0.1',
             'user_agent' => 'Chrome/90',
-        ]);
+        ], 'osticket2');
 
         $this->assertEquals(['error_class' => 'TicketLockedException'], $log->before_state);
     }

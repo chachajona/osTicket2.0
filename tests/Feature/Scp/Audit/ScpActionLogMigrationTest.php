@@ -1,9 +1,13 @@
 <?php
 
+use App\Models\Scp\ScpActionLog;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Schema;
 
 test('scp_action_log table exists with required columns', function (): void {
-    expect(Schema::hasTable('scp_action_log'))->toBeTrue();
+    $schema = Schema::connection('osticket2');
+
+    expect($schema->hasTable('action_log'))->toBeTrue();
 
     $columns = [
         'id',
@@ -24,25 +28,25 @@ test('scp_action_log table exists with required columns', function (): void {
     ];
 
     foreach ($columns as $column) {
-        expect(Schema::hasColumn('scp_action_log', $column))
+        expect($schema->hasColumn('action_log', $column))
             ->toBeTrue("Column {$column} should exist in scp_action_log table");
     }
 });
 
 test('scp_action_log table has correct indexes', function (): void {
-    $indexes = Schema::getIndexes('scp_action_log');
-    $indexNames = array_map(fn ($idx) => $idx['name'], $indexes);
+    $indexes = Schema::connection('osticket2')->getIndexes('action_log');
+    $indexedColumns = array_map(fn ($idx) => $idx['columns'], $indexes);
 
-    // Check for composite indexes
-    expect(in_array('scp_action_log_staff_id_created_at_index', $indexNames))->toBeTrue();
-    expect(in_array('scp_action_log_ticket_id_created_at_index', $indexNames))->toBeTrue();
-    expect(in_array('scp_action_log_action_created_at_index', $indexNames))->toBeTrue();
+    expect(in_array(['staff_id', 'created_at'], $indexedColumns, true))->toBeTrue();
+    expect(in_array(['ticket_id', 'created_at'], $indexedColumns, true))->toBeTrue();
+    expect(in_array(['action', 'created_at'], $indexedColumns, true))->toBeTrue();
 });
 
 test('scp_action_log model can be instantiated', function (): void {
-    $model = new \App\Models\Scp\ScpActionLog();
+    $model = new ScpActionLog;
 
-    expect($model)->toBeInstanceOf(\Illuminate\Database\Eloquent\Model::class);
-    expect($model->getTable())->toBe('scp_action_log');
+    expect($model)->toBeInstanceOf(Model::class);
+    expect($model->getConnectionName())->toBe('osticket2');
+    expect($model->getTable())->toBe('action_log');
     expect($model->timestamps)->toBeFalse();
 });

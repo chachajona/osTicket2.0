@@ -8,7 +8,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class ScpActionLog extends Model
 {
-    protected $table = 'scp_action_log';
+    protected $connection = 'osticket2';
+
+    protected $table = 'action_log';
 
     public $timestamps = false;
 

@@ -52,7 +52,7 @@ Route::post('/panel/switch', PanelSwitchController::class)->middleware('auth.sta
 Route::prefix('scp')->name('scp.')->group(function () {
     Route::middleware('guest:staff')->group(function () {
         Route::get('/login', [LoginController::class, 'showLogin'])->name('login');
-        Route::post('/login', [LoginController::class, 'login']);
+        Route::post('/login', [LoginController::class, 'login'])->name('login.store');
 
         Route::get('/2fa', [TwoFactorController::class, 'show'])->name('2fa');
         Route::post('/2fa', [TwoFactorController::class, 'verify'])->name('2fa.verify');
