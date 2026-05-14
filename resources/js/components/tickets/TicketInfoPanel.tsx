@@ -343,56 +343,6 @@ function TagChip({ tag, onRemove }: { tag: Tag; onRemove?: () => void }) {
     );
 }
 
-function PriorityToggle({ priority, onChange }: { priority: string | null; onChange?: (p: string) => void }) {
-    const options = [
-        { value: 'Low', label: 'Low', dot: 'bg-emerald-500' },
-        { value: 'Medium', label: 'Medium', dot: 'bg-amber-400' },
-        { value: 'High', label: 'High', dot: 'bg-red-500' },
-    ];
-
-    return (
-        <div className="flex items-center gap-1.5">
-            {options.map((opt) => {
-                const isActive = (priority ?? 'Medium') === opt.value;
-                return (
-                    <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => onChange?.(opt.value)}
-                        className={cn(
-                            'flex flex-1 items-center justify-center gap-1.5 rounded border px-2 py-1.5 text-xs font-medium transition-colors',
-                            isActive
-                                ? 'border-[#F97316] bg-orange-50 text-[#F97316]'
-                                : 'border-[#E2E0D8] text-[#71717A] hover:bg-[#FAFAF8]'
-                        )}
-                    >
-                        <span className={cn('h-1.5 w-1.5 rounded-full', opt.dot)} />
-                        {opt.label}
-                    </button>
-                );
-            })}
-        </div>
-    );
-}
-
-function TicketTypeSelector({ type, onChange }: { type: string | null; onChange?: (t: string) => void }) {
-    const options = ['Incident', 'Request'];
-    return (
-        <div className="relative">
-            <select
-                value={type ?? 'Incident'}
-                onChange={(e) => onChange?.(e.target.value)}
-                className="w-full appearance-none rounded-md border border-[#E2E0D8] bg-white px-3 py-2 pr-8 text-sm text-[#18181B] outline-none transition-colors focus:border-[#F97316]"
-            >
-                {options.map((opt) => (
-                    <option key={opt} value={opt}>{opt}</option>
-                ))}
-            </select>
-            <HugeiconsIcon icon={ArrowDown01Icon} size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#A1A1AA]" />
-        </div>
-    );
-}
-
 export function TicketInfoPanel({
     ticket,
     customFields,
@@ -464,24 +414,21 @@ export function TicketInfoPanel({
                 <Section title="Properties" icon={HashtagIcon}>
                     <dl className="space-y-3">
                         <div>
-                            <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wide text-[#A1A1AA]">Ticket Type</label>
-                            <TicketTypeSelector type="Incident" />
-                        </div>
-                        <div>
                             <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wide text-[#A1A1AA]">Priority</label>
-                            <PriorityToggle priority={ticket.priority} />
+                            <PriorityBadge priority={ticket.priority} />
                         </div>
                         {hasLinkedProblems && (
                             <div>
                                 <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wide text-[#A1A1AA]">Linked Problem</label>
-                                <div className="relative">
-                                    <select className="w-full appearance-none rounded-md border border-[#E2E0D8] bg-white px-3 py-2 pr-8 text-sm text-[#71717A] outline-none transition-colors focus:border-[#F97316]">
-                                        <option value="">Select problem</option>
-                                        {linkedProblems.map((p) => (
-                                            <option key={p.id} value={p.id}>{p.subject}</option>
-                                        ))}
-                                    </select>
-                                    <HugeiconsIcon icon={ArrowDown01Icon} size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#A1A1AA]" />
+                                <div className="space-y-1.5">
+                                    {linkedProblems.map((problem) => (
+                                        <div key={problem.id} className="rounded border border-[#E2E0D8] bg-white px-2.5 py-2">
+                                            <p className="truncate text-[12px] font-medium text-[#18181B]">{problem.subject}</p>
+                                            <p className="mt-0.5 text-[10px] text-[#A1A1AA]">
+                                                #{problem.number} · {problem.status}
+                                            </p>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         )}

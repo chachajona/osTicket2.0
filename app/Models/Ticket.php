@@ -29,9 +29,11 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property string $lastresponse
  * @property string $created
  * @property string $updated
+ * @property int|null $team_id
  * @property-read Staff|null      $staff
  * @property-read Department|null $department
  * @property-read TicketStatus|null $status
+ * @property-read Team|null       $team
  * @property-read Thread|null     $thread
  * @property-read LegacyUser|null $user
  * @property-read TicketCdata|null $cdata

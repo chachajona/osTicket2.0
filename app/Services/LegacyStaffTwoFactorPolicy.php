@@ -16,7 +16,11 @@ class LegacyStaffTwoFactorPolicy
         $defaultBackend = $this->defaultBackendFor($staff);
 
         if ($defaultBackend !== null && $this->backendIsVerified($staff, $defaultBackend)) {
-            return $this->availableChallengeMethodFor($staff, $defaultBackend);
+            $challengeMethod = $this->availableChallengeMethodFor($staff, $defaultBackend);
+
+            if ($challengeMethod !== null) {
+                return $challengeMethod;
+            }
         }
 
         if (! $this->requiresAgentsGlobally()) {
