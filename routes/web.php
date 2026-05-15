@@ -125,7 +125,7 @@ Route::middleware([AuthenticateStaff::class, 'admin.access'])->prefix('admin')->
     Route::resource('filters', FilterController::class)->except(['show']);
     Route::resource('roles', RoleController::class)->except(['show']);
     Route::resource('slas', SlaController::class)->except(['show']);
-    Route::resource('staff', StaffController::class)->except(['show']);
+    Route::resource('staff', StaffController::class)->except(['show', 'destroy']);
     Route::resource('teams', TeamController::class)->except(['show']);
 });
 

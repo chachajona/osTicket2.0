@@ -1,8 +1,6 @@
-import { useState } from 'react';
-import { Head, Link, router, useForm } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import { appShellLayout } from '@/layouts/AppShell';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { FormGrid } from '@/components/admin/FormGrid';
 import { FormSection } from '@/components/admin/FormSection';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -12,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { Delete01Icon, FloppyDiskIcon, PlusSignIcon } from '@hugeicons/core-free-icons';
+import { FloppyDiskIcon, PlusSignIcon } from '@hugeicons/core-free-icons';
 import type { ReactElement } from 'react';
 
 declare global {
@@ -104,7 +102,6 @@ function SelectField({
 
 export default function StaffEdit({ staffMember, departmentOptions, roleOptions, teamOptions }: Props) {
     const isEdit = !!staffMember;
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     const { data, setData, post, patch, processing, errors } = useForm({
         username: staffMember?.username ?? '',
@@ -127,12 +124,6 @@ export default function StaffEdit({ staffMember, departmentOptions, roleOptions,
         })) ?? [],
         teams: staffMember?.teams.map(String) ?? [],
     });
-
-    const handleDelete = () => {
-        if (!staffMember) return;
-
-        router.delete(route('admin.staff.destroy', staffMember.id));
-    };
 
     const addDepartmentAccess = () => {
         setData('dept_access', [...data.dept_access, { dept_id: '', role_id: '' }]);
@@ -162,26 +153,13 @@ export default function StaffEdit({ staffMember, departmentOptions, roleOptions,
                 title={isEdit ? 'Edit Staff Member' : 'Create Staff Member'}
                 subtitle="Manage core profile data, access, team membership, and password settings."
                 headerActions={
-                    <>
-                        <Link
-                            href={route('admin.staff.index')}
-                            className="inline-flex h-7 items-center gap-1.5 rounded-[3px] border border-[#E2E0D8] bg-white px-3 text-[12px] font-medium uppercase leading-4 tracking-[1.2px] text-[#27272A] transition-colors hover:border-[#18181B] hover:bg-[#FAFAF8] hover:text-[#18181B]"
-                        >
-                            <span aria-hidden>&larr;</span>
-                            Back to Staff
-                        </Link>
-                        {isEdit && staffMember && (
-                            <Button
-                                type="button"
-                                variant="outline"
-                                className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                                onClick={() => setShowDeleteConfirm(true)}
-                            >
-                                <HugeiconsIcon icon={Delete01Icon} size={18} className="mr-2" />
-                                Delete Staff
-                            </Button>
-                        )}
-                    </>
+                    <Link
+                        href={route('admin.staff.index')}
+                        className="inline-flex h-7 items-center gap-1.5 rounded-[3px] border border-[#E2E0D8] bg-white px-3 text-[12px] font-medium uppercase leading-4 tracking-[1.2px] text-[#27272A] transition-colors hover:border-[#18181B] hover:bg-[#FAFAF8] hover:text-[#18181B]"
+                    >
+                        <span aria-hidden>&larr;</span>
+                        Back to Staff
+                    </Link>
                 }
             />
 
@@ -428,23 +406,6 @@ export default function StaffEdit({ staffMember, departmentOptions, roleOptions,
                     </Button>
                 </div>
             </form>
-
-            {isEdit && staffMember && (
-                <ConfirmDialog
-                    open={showDeleteConfirm}
-                    onOpenChange={setShowDeleteConfirm}
-                    title="Delete Staff Member"
-                    description={
-                        <>
-                            Are you sure you want to delete <strong>{staffMember.username}</strong>? This action cannot be
-                            undone.
-                        </>
-                    }
-                    confirmText="Delete Staff"
-                    variant="destructive"
-                    onConfirm={handleDelete}
-                />
-            )}
         </>
     );
 }

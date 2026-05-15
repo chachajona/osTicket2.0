@@ -11,7 +11,6 @@ use App\Models\LegacyRole;
 use App\Models\Staff;
 use App\Services\Admin\StaffService;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -128,19 +127,6 @@ class StaffController extends Controller
         return redirect()
             ->route('admin.staff.edit', $staff)
             ->with('status', 'Staff member updated.');
-    }
-
-    public function destroy(Request $request, Staff $staff): RedirectResponse
-    {
-        $this->authorize('delete', $staff);
-
-        /** @var Staff $actor */
-        $actor = $request->user('staff');
-        $this->staffService->delete($staff, $actor);
-
-        return redirect()
-            ->route('admin.staff.index')
-            ->with('status', 'Staff member deleted.');
     }
 
     /**

@@ -83,7 +83,6 @@ class PermissionCatalogSeeder extends Seeder
                 'admin.role.delete',
                 'admin.staff.create',
                 'admin.staff.update',
-                'admin.staff.delete',
                 'admin.department.create',
                 'admin.department.update',
                 'admin.department.delete',
