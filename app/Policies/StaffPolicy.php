@@ -13,7 +13,6 @@ class StaffPolicy
         return $staff->hasAdminPermission(
             'admin.staff.create',
             'admin.staff.update',
-            'admin.staff.delete',
         );
     }
 
@@ -25,10 +24,5 @@ class StaffPolicy
     public function update(Staff $staff, Staff $subject): bool
     {
         return $subject instanceof Staff && $staff->hasAdminPermission('admin.staff.update');
-    }
-
-    public function delete(Staff $staff, Staff $subject): bool
-    {
-        return $subject instanceof Staff && $staff->hasAdminPermission('admin.staff.delete');
     }
 }

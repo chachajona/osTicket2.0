@@ -67,21 +67,6 @@ class StaffService
         return $staff;
     }
 
-    public function delete(Staff $staff, Staff $actor): void
-    {
-        $staff->loadMissing(['department', 'role', 'departmentAccesses', 'teams', 'twoFactorCredential']);
-        $before = $this->snapshot($staff);
-
-        DB::connection('legacy')->transaction(function () use ($staff): void {
-            StaffDeptAccess::query()->where('staff_id', (int) $staff->getKey())->delete();
-            TeamMember::query()->where('staff_id', (int) $staff->getKey())->delete();
-            $staff->syncRoles([]);
-            $staff->delete();
-        });
-
-        $this->auditLogger->record($actor, 'staff.delete', $staff, before: $before, after: null);
-    }
-
     /**
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>

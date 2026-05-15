@@ -13,11 +13,11 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Spatie\Permission\PermissionRegistrar;
+use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\assertDatabaseHas;
 use function Pest\Laravel\assertDatabaseMissing;
-use function Pest\Laravel\delete;
 use function Pest\Laravel\from;
 use function Pest\Laravel\get;
 use function Pest\Laravel\post;
@@ -467,54 +467,11 @@ it('updates a staff member, rehashes password, syncs relationships, and writes a
     );
 });
 
-it('deletes a staff member, cascades relationships, and writes an audit log', function (): void {
-    $department = Department::query()->create(['name' => 'Support', 'ispublic' => 1]);
-    $secondaryDepartment = Department::query()->create(['name' => 'Billing', 'ispublic' => 1]);
-    $role = LegacyRole::query()->create(['name' => 'Managers', 'guard_name' => 'staff']);
-    $overrideRole = LegacyRole::query()->create(['name' => 'Escalations', 'guard_name' => 'staff']);
-    $team = Team::query()->create(['name' => 'Escalations', 'flags' => 1, 'created' => now(), 'updated' => now()]);
-
-    $member = Staff::factory()->create([
-        'dept_id' => $department->id,
-        'role_id' => $role->id,
-        'username' => 'jrivera',
-        'isvisible' => 1,
-        'updated' => now(),
-    ]);
-    $member->syncRoles([$role]);
-
-    StaffDeptAccess::query()->create([
-        'staff_id' => $member->staff_id,
-        'dept_id' => $secondaryDepartment->id,
-        'role_id' => $overrideRole->id,
-        'flags' => 0,
-    ]);
-    TeamMember::query()->create(['team_id' => $team->team_id, 'staff_id' => $member->staff_id, 'flags' => 0]);
-
-    $staff = grantStaffPermissions(actingAsAdmin(), ['admin.staff.delete']);
-
-    actingAs($staff, 'staff');
-
-    delete(route('admin.staff.destroy', $member))
-        ->assertRedirect(route('admin.staff.index'));
-
-    assertDatabaseMissing('staff', ['staff_id' => $member->staff_id], 'legacy');
-    assertDatabaseMissing('staff_dept_access', ['staff_id' => $member->staff_id], 'legacy');
-    assertDatabaseMissing('team_member', ['staff_id' => $member->staff_id], 'legacy');
-
-    assertAuditLogged(
-        'staff.delete',
-        $member,
-        staffAuditPayload(
-            $member,
-            [['dept_id' => $secondaryDepartment->id, 'role_id' => $overrideRole->id]],
-            [$team->team_id],
-        ),
-        null,
-    );
+it('does not expose a staff destroy route — disable via isactive instead', function (): void {
+    expect(fn () => route('admin.staff.destroy', 1))->toThrow(RouteNotFoundException::class);
 });
 
-it('forbids unauthorized updates and deletion', function (): void {
+it('forbids unauthorized updates', function (): void {
     $department = Department::query()->create(['name' => 'Support', 'ispublic' => 1]);
     $role = LegacyRole::query()->create(['name' => 'Managers', 'guard_name' => 'staff']);
     $member = Staff::factory()->create([
@@ -536,8 +493,6 @@ it('forbids unauthorized updates and deletion', function (): void {
         'isadmin' => false,
         'isvisible' => true,
     ])->assertForbidden();
-
-    delete(route('admin.staff.destroy', $member))->assertForbidden();
 
     expect(AdminAuditLog::query()->where('subject_type', 'Staff')->count())->toBe(0);
 });

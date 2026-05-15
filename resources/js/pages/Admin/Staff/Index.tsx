@@ -1,8 +1,6 @@
-import { useState } from 'react';
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { appShellLayout } from '@/layouts/AppShell';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 import { buttonVariants } from '@/components/ui/button';
 import {
     Table,
@@ -13,7 +11,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { Delete01Icon, PencilEdit01Icon, PlusSignIcon } from '@hugeicons/core-free-icons';
+import { PencilEdit01Icon, PlusSignIcon } from '@hugeicons/core-free-icons';
 import type { ReactElement } from 'react';
 
 declare global {
@@ -44,16 +42,6 @@ interface Props {
 }
 
 export default function StaffIndex({ staff }: Props) {
-    const [staffToDelete, setStaffToDelete] = useState<StaffRow | null>(null);
-
-    const handleDelete = () => {
-        if (!staffToDelete) return;
-
-        router.delete(route('admin.staff.destroy', staffToDelete.id), {
-            onSuccess: () => setStaffToDelete(null),
-        });
-    };
-
     return (
         <>
             <Head title="Staff" />
@@ -118,14 +106,6 @@ export default function StaffIndex({ staff }: Props) {
                                                 <HugeiconsIcon icon={PencilEdit01Icon} size={18} />
                                                 <span className="sr-only">Edit</span>
                                             </Link>
-                                            <button
-                                                type="button"
-                                                className={`${buttonVariants({ variant: 'ghost', size: 'icon' })} text-red-600 hover:bg-red-50 hover:text-red-700`}
-                                                onClick={() => setStaffToDelete(member)}
-                                            >
-                                                <HugeiconsIcon icon={Delete01Icon} size={18} />
-                                                <span className="sr-only">Delete</span>
-                                            </button>
                                         </div>
                                     </TableCell>
                                 </TableRow>
@@ -134,21 +114,6 @@ export default function StaffIndex({ staff }: Props) {
                     </TableBody>
                 </Table>
             </div>
-
-            <ConfirmDialog
-                open={staffToDelete !== null}
-                onOpenChange={(isOpen) => !isOpen && setStaffToDelete(null)}
-                title="Delete Staff Member"
-                description={
-                    <>
-                        Are you sure you want to delete <strong>{staffToDelete?.name}</strong>? This removes department
-                        access and team membership.
-                    </>
-                }
-                confirmText="Delete Staff"
-                variant="destructive"
-                onConfirm={handleDelete}
-            />
         </>
     );
 }
