@@ -50,6 +50,7 @@ class HandleInertiaRequests extends Middleware
             'status' => fn () => $request->session()->get('status'),
             'currentPanel' => fn () => $this->getCurrentPanel($routeName, $staff),
             'currentPanelNav' => fn () => $this->getCurrentPanelNav($routeName),
+            'mail_event_owner' => config('mail.event_class_owner'),
             'auth' => fn () => [
                 'staff' => $staff
                     ? $this->buildStaffAuthData($staff, $request)
