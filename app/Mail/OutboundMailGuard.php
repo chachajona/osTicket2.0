@@ -18,6 +18,10 @@ class OutboundMailGuard
             return;
         }
 
+        if ($this->isLaravelOwnedEvent($event)) {
+            return;
+        }
+
         if ($this->allRecipientsExplicitlyAllowed($event)) {
             return;
         }
@@ -28,6 +32,19 @@ class OutboundMailGuard
     private function isPasswordReset(MessageSending $event): bool
     {
         return ($event->data['__laravel_mailable'] ?? null) === PasswordResetLinkMail::class;
+    }
+
+    private function isLaravelOwnedEvent(MessageSending $event): bool
+    {
+        $headers = $event->message->getHeaders();
+
+        if (! $headers->has(EventClassHeader::NAME)) {
+            return false;
+        }
+
+        $eventClass = $headers->get(EventClassHeader::NAME)->getBodyAsString();
+
+        return (string) config("mail.event_class_owner.{$eventClass}", 'legacy') === 'laravel';
     }
 
     private function allRecipientsExplicitlyAllowed(MessageSending $event): bool

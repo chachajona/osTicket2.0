@@ -22,3 +22,6 @@
 - `scp_action_log` rows, keep for postmortem.
 - The `scp_action_log` table itself, additive, doesn't touch legacy.
 - `lock` table, legacy still uses it; harmless to leave.
+
+## See also
+- `phase-2c-mail-swap.md` covers per-event-class rollback for Task 10b customer mail. Use that runbook for reply and close-with-notify rollbacks; this runbook covers the broader Phase 2b write surface.

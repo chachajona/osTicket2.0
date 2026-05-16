@@ -122,4 +122,9 @@ return [
         ))),
     ],
 
+    'event_class_owner' => [
+        'reply' => env('MAIL_OWNER_REPLY', 'legacy'),
+        'close_notify' => env('MAIL_OWNER_CLOSE_NOTIFY', 'legacy'),
+    ],
+
 ];
