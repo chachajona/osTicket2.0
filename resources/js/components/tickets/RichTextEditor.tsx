@@ -206,7 +206,7 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
 
         return (
             <div className="relative">
-                <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }}>
+                <BubbleMenu editor={editor}>
                     <div className="inline-flex items-center gap-0.5 rounded-md border border-[#E2E0D8] bg-white px-1 py-1 shadow-[0_4px_12px_-2px_rgba(24,24,27,0.12)]">
                         <button
                             type="button"
