@@ -22,6 +22,7 @@ use App\Http\Controllers\Auth\TwoFactorAppController;
 use App\Http\Controllers\Auth\TwoFactorController;
 use App\Http\Controllers\Panels\PanelSwitchController;
 use App\Http\Controllers\Scp\AttachmentController;
+use App\Http\Controllers\Scp\CannedResponseController as ScpCannedResponseController;
 use App\Http\Controllers\Scp\DashboardController;
 use App\Http\Controllers\Scp\QueueController;
 use App\Http\Controllers\Scp\Queues\QueueColumnsController;
@@ -121,6 +122,8 @@ Route::prefix('scp')->name('scp.')->group(function () {
         Route::patch('/preferences', [StaffPreferencesController::class, 'update'])->name('preferences.update');
         Route::get('/staff/autocomplete', AutocompleteController::class)
             ->name('staff.autocomplete');
+        Route::get('/canned-responses', ScpCannedResponseController::class)
+            ->name('canned-responses.index');
     });
 });
 
