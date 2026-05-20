@@ -569,3 +569,12 @@
     height: 0;
     pointer-events: none;
 }
+
+/* @-mention chip */
+.mention {
+    background: #F3F3FE;
+    border-radius: 4px;
+    color: #5558CF;
+    font-weight: 500;
+    padding: 0 3px;
+}
