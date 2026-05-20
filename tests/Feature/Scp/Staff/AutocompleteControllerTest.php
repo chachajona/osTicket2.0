@@ -14,6 +14,7 @@ final class AutocompleteControllerTest extends TestCase
 
     public function test_returns_active_staff_matching_query(): void
     {
+        /** @var Staff $current */
         $current = Staff::factory()->create(['isactive' => 1, 'firstname' => 'Current', 'lastname' => 'User', 'username' => 'current']);
         Staff::factory()->create(['isactive' => 1, 'firstname' => 'Ada', 'lastname' => 'Lovelace', 'username' => 'ada']);
         Staff::factory()->create(['isactive' => 1, 'firstname' => 'Alice', 'lastname' => 'Smith', 'username' => 'alice']);
@@ -28,6 +29,7 @@ final class AutocompleteControllerTest extends TestCase
 
     public function test_excludes_current_staff(): void
     {
+        /** @var Staff $current */
         $current = Staff::factory()->create(['isactive' => 1, 'firstname' => 'Current', 'lastname' => 'User', 'username' => 'current']);
 
         $this->actingAs($current, 'staff')
@@ -38,6 +40,7 @@ final class AutocompleteControllerTest extends TestCase
 
     public function test_excludes_inactive_staff(): void
     {
+        /** @var Staff $current */
         $current = Staff::factory()->create(['isactive' => 1, 'firstname' => 'Active', 'lastname' => 'User', 'username' => 'active']);
         Staff::factory()->create(['isactive' => 0, 'firstname' => 'Inactive', 'lastname' => 'Person', 'username' => 'gone']);
 
@@ -49,6 +52,7 @@ final class AutocompleteControllerTest extends TestCase
 
     public function test_returns_at_most_ten_results(): void
     {
+        /** @var Staff $current */
         $current = Staff::factory()->create(['isactive' => 1]);
         Staff::factory()->count(15)->create(['isactive' => 1]);
 
