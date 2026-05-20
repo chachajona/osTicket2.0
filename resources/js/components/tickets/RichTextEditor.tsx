@@ -2,8 +2,6 @@ import { forwardRef, useImperativeHandle } from 'react';
 import { useEditor, EditorContent, ReactRenderer } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import StarterKit from '@tiptap/starter-kit';
-import Underline from '@tiptap/extension-underline';
-import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
 import Mention from '@tiptap/extension-mention';
 import { Extension } from '@tiptap/core';
@@ -115,9 +113,9 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
     function RichTextEditor({ value = '', onChange, placeholder, onFocus, ticketDeptId }, ref) {
         const editor = useEditor({
             extensions: [
-                StarterKit,
-                Underline,
-                Link.configure({ openOnClick: false, defaultProtocol: 'https' }),
+                StarterKit.configure({
+                    link: { openOnClick: false, defaultProtocol: 'https' },
+                }),
                 Placeholder.configure({ placeholder: placeholder ?? '' }),
                 Mention.configure({
                     HTMLAttributes: { class: 'mention' },

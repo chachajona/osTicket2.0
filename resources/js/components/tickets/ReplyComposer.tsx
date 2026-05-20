@@ -413,21 +413,6 @@ function AttachmentChip({ name, size, onRemove }: { name: string; size: string; 
     );
 }
 
-function MacroChip({ name, onRemove }: { name: string; onRemove: () => void }) {
-    return (
-        <span className="inline-flex items-center gap-1.5 rounded-sm border border-[#CDCEFB] bg-[#F3F3FE] px-2 py-1 text-xs font-medium text-[#5558CF]">
-            <HugeiconsIcon icon={FlashIcon} size={12} />
-            Macro · {name}
-            <button
-                type="button"
-                onClick={onRemove}
-                className="inline-flex bg-transparent p-0 text-[#5558CF] hover:text-[#33357D]"
-            >
-                <HugeiconsIcon icon={CancelCircleIcon} size={13} />
-            </button>
-        </span>
-    );
-}
 
 function SignatureSelect({
     value,
@@ -595,7 +580,8 @@ export function ReplyComposer({
     const [notify, setNotify] = useState(true);
     const [body, setBody] = useState('');
     const [attachments, setAttachments] = useState<{ name: string; size: string }[]>([]);
-    const [macro, setMacro] = useState<string | null>(null);
+    const [cannedResponses, setCannedResponses] = useState<{ id: number; title: string; response: string }[]>([]);
+    const [isFetchingCanned, setIsFetchingCanned] = useState(false);
     const [expanded, setExpanded] = useState(false);
     const [sigPref, setSigPref] = useState<SignatureChoice>(() =>
         resolvePref(defaultSignatureType, hasMySignature, hasDeptSignature)
@@ -686,7 +672,7 @@ export function ReplyComposer({
                         void deleteDraft();
                         editorRef.current?.clearContent();
                         setBody('');
-                        setMacro(null);
+                        setCannedResponses([]);
                         setAttachments([]);
                         onSuccess?.();
                     },
@@ -715,7 +701,7 @@ export function ReplyComposer({
                         editorRef.current?.clearContent();
                         setBody('');
                         setStatusId(null);
-                        setMacro(null);
+                        setCannedResponses([]);
                         setAttachments([]);
                         onSuccess?.();
                     },
@@ -783,10 +769,22 @@ export function ReplyComposer({
         e.target.value = '';
     };
 
-    const applyMacro = (name: string) => {
-        setMacro(name);
+    const applyMacro = (item: { id: number; title: string; response: string }) => {
+        editorRef.current?.insertContent(item.response);
         setMacroOpen(false);
     };
+
+    useEffect(() => {
+        if (!macroOpen) return;
+        setIsFetchingCanned(true);
+        const params = new URLSearchParams();
+        if (ticketDeptId) params.set('dept_id', String(ticketDeptId));
+        fetch(`/scp/canned-responses?${params.toString()}`)
+            .then((r) => r.json())
+            .then((data: { id: number; title: string; response: string }[]) => setCannedResponses(data))
+            .catch(() => setCannedResponses([]))
+            .finally(() => setIsFetchingCanned(false));
+    }, [macroOpen, ticketDeptId]);
 
     useEffect(() => {
         if (!ccOpen) return;
@@ -988,30 +986,23 @@ export function ReplyComposer({
                                     <div className="px-3 py-2 text-[10px] font-medium uppercase tracking-[0.1em] text-[#A1A1AA]">
                                         Canned responses
                                     </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => applyMacro('Greeting')}
-                                        className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-[13px] text-[#18181B] hover:bg-[#FAFAF8]"
-                                    >
-                                        <HugeiconsIcon icon={FlashIcon} size={12} className="text-[#A1A1AA]" />
-                                        Greeting
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => applyMacro('Closing')}
-                                        className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-[13px] text-[#18181B] hover:bg-[#FAFAF8]"
-                                    >
-                                        <HugeiconsIcon icon={FlashIcon} size={12} className="text-[#A1A1AA]" />
-                                        Closing
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => applyMacro('Escalation')}
-                                        className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-[13px] text-[#18181B] hover:bg-[#FAFAF8]"
-                                    >
-                                        <HugeiconsIcon icon={FlashIcon} size={12} className="text-[#A1A1AA]" />
-                                        Escalation
-                                    </button>
+                                    {isFetchingCanned && (
+                                        <div className="px-3 py-2 text-[13px] text-[#A1A1AA]">Loading…</div>
+                                    )}
+                                    {!isFetchingCanned && cannedResponses.length === 0 && (
+                                        <div className="px-3 py-2 text-[13px] text-[#A1A1AA]">No canned responses found.</div>
+                                    )}
+                                    {cannedResponses.map((item) => (
+                                        <button
+                                            key={item.id}
+                                            type="button"
+                                            onClick={() => applyMacro(item)}
+                                            className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-[13px] text-[#18181B] hover:bg-[#FAFAF8]"
+                                        >
+                                            <HugeiconsIcon icon={FlashIcon} size={12} className="text-[#A1A1AA]" />
+                                            {item.title}
+                                        </button>
+                                    ))}
                                 </div>
                             )}
                         </div>
@@ -1030,9 +1021,8 @@ export function ReplyComposer({
                         </button>
                     </div>
 
-                    {(macro || attachments.length > 0) && (
+                    {attachments.length > 0 && (
                         <div className="mb-2.5 flex flex-wrap gap-1.5">
-                            {macro && <MacroChip name={macro} onRemove={() => setMacro(null)} />}
                             {attachments.map((a, i) => (
                                 <AttachmentChip
                                     key={i}
