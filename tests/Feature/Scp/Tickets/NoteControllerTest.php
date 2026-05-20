@@ -33,6 +33,7 @@ final class NoteControllerTest extends TestCase
             'name' => 'created',
         ]);
 
+        /** @var Staff $staff */
         $staff = Staff::factory()->create();
 
         $ticket = Ticket::factory()->create();
@@ -59,6 +60,7 @@ final class NoteControllerTest extends TestCase
         ]);
 
         $perm = LegacyPermission::create(['name' => 'tickets.post-note', 'guard_name' => 'staff']);
+        /** @var Staff $staff */
         $staff = Staff::factory()->create();
         $staff->givePermissionTo($perm);
         app(PermissionRegistrar::class)->forgetCachedPermissions();
@@ -87,6 +89,7 @@ final class NoteControllerTest extends TestCase
         ]);
 
         $perm = LegacyPermission::create(['name' => 'tickets.post-note', 'guard_name' => 'staff']);
+        /** @var Staff $staff */
         $staff = Staff::factory()->create();
         $staff->givePermissionTo($perm);
         app(PermissionRegistrar::class)->forgetCachedPermissions();
