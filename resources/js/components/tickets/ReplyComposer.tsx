@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef, useEffect, useCallback } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import { router, usePage } from '@inertiajs/react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
@@ -43,6 +43,7 @@ import {
 import { type StatusOption } from './StatusPicker';
 import { RichTextEditor, type RichTextEditorHandle } from './RichTextEditor';
 import { cn } from '@/lib/utils';
+import { useAutoSave } from '@/hooks/useAutoSave';
 
 type Mode = 'reply' | 'note';
 type SignatureChoice = 'none' | 'mine' | 'dept';
@@ -566,6 +567,7 @@ export interface ReplyComposerProps {
     deptLabel?: string;
     deptSignatureAvailable?: boolean;
     collaborators?: Collaborator[];
+    ticketDeptId?: number;
     onSuccess?: () => void;
 }
 
@@ -580,6 +582,7 @@ export function ReplyComposer({
     deptLabel = 'Department',
     deptSignatureAvailable = false,
     collaborators = [],
+    ticketDeptId,
     onSuccess,
 }: ReplyComposerProps) {
     const staffAuth = useStaffAuth();
@@ -619,6 +622,25 @@ export function ReplyComposer({
 
     const isNote = mode === 'note';
 
+    const { forceSave, deleteDraft, loadDraft } = useAutoSave({
+        body,
+        ticketId,
+        type: isNote ? 'note' : 'reply',
+        onStateChange: setSaveDraftState,
+    });
+
+    useEffect(() => {
+        loadDraft().then((saved) => {
+            if (saved && !body) {
+                editorRef.current?.getEditor()?.commands.setContent(saved);
+                setBody(saved);
+                setSaveDraftState('saved');
+                setTimeout(() => setSaveDraftState('idle'), 2000);
+            }
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     const selectedStatus = statusId ? statusOptions.find((s) => String(s.id) === statusId) : null;
 
     useEffect(() => {
@@ -627,6 +649,22 @@ export function ReplyComposer({
 
     const channel = useMemo(() => channelFromSource(source), [source]);
     const recipientInitials = useMemo(() => initialsFromName(requester), [requester]);
+
+    const extractMentionIds = (): number[] => {
+        const doc = editorRef.current?.getEditor()?.getJSON();
+        if (!doc) return [];
+        const ids: number[] = [];
+        const traverse = (nodes: any[]): void => {
+            for (const node of nodes ?? []) {
+                if (node.type === 'mention' && node.attrs?.id) {
+                    ids.push(Number(node.attrs.id));
+                }
+                if (node.content) traverse(node.content);
+            }
+        };
+        traverse(doc.content ?? []);
+        return [...new Set(ids)];
+    };
 
     const handleSend = () => {
         if (!body.trim()) return;
@@ -640,10 +678,12 @@ export function ReplyComposer({
                     body,
                     format: 'html',
                     expected_updated: expectedUpdated,
+                    mentioned_staff_ids: extractMentionIds(),
                 },
                 {
                     preserveScroll: true,
                     onSuccess: () => {
+                        void deleteDraft();
                         editorRef.current?.clearContent();
                         setBody('');
                         setMacro(null);
@@ -661,6 +701,7 @@ export function ReplyComposer({
                 signature: sigPref,
                 reply_status_id: statusId ? Number(statusId) : null,
                 expected_updated: expectedUpdated,
+                mentioned_staff_ids: extractMentionIds(),
             };
             if (ccIds.length > 0) payload.ccs = ccIds;
 
@@ -670,6 +711,7 @@ export function ReplyComposer({
                 {
                     preserveScroll: true,
                     onSuccess: () => {
+                        void deleteDraft();
                         editorRef.current?.clearContent();
                         setBody('');
                         setStatusId(null);
@@ -682,42 +724,6 @@ export function ReplyComposer({
             );
         }
     };
-
-    const handleSaveDraft = useCallback(async () => {
-        if (!body.trim()) return;
-        setSaveDraftState('saving');
-
-        const headers: Record<string, string> = {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-        };
-        const csrfToken = document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-        if (csrfToken) {
-            headers['X-CSRF-TOKEN'] = csrfToken;
-        } else {
-            const match = document.cookie.match(new RegExp('(^|;\\s*)XSRF-TOKEN=([^;]*)'));
-            if (match) {
-                headers['X-XSRF-TOKEN'] = decodeURIComponent(match[2]);
-            }
-        }
-
-        try {
-            const response = await fetch(`/scp/tickets/${ticketId}/draft`, {
-                method: 'POST',
-                headers,
-                body: JSON.stringify({ body }),
-            });
-            if (response.ok) {
-                setSaveDraftState('saved');
-                setTimeout(() => setSaveDraftState('idle'), 2000);
-            } else {
-                setSaveDraftState('idle');
-            }
-        } catch {
-            setSaveDraftState('idle');
-        }
-    }, [body, ticketId]);
 
     const toggleCc = (id: number) => {
         setSelectedCcIds((prev) => {
@@ -1045,6 +1051,7 @@ export function ReplyComposer({
                             onChange={setBody}
                             placeholder={isNote ? 'Type an internal note…' : 'Type your reply… use "/" for canned responses, "@" to mention.'}
                             onFocus={() => setExpanded(true)}
+                            ticketDeptId={ticketDeptId}
                         />
                     </div>
 
@@ -1079,7 +1086,7 @@ export function ReplyComposer({
                         </span>
                         <button
                             type="button"
-                            onClick={handleSaveDraft}
+                            onClick={() => void forceSave()}
                             disabled={saveDraftState === 'saving' || !body.trim()}
                             className="inline-flex items-center gap-1 bg-transparent p-0 font-sans text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-[#A1A1AA] hover:text-[#18181B]"
                         >
@@ -1121,7 +1128,7 @@ export function ReplyComposer({
                                     <button
                                         type="button"
                                         onClick={() => {
-                                            handleSaveDraft();
+                                            void forceSave();
                                             setSendOptionsOpen(false);
                                         }}
                                         className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-[13px] text-[#18181B] hover:bg-[#FAFAF8]"
