@@ -78,6 +78,8 @@ class HandleInertiaRequests extends Middleware
             'lastActivePanel' => $preferences->last_active_panel,
             'defaultScpTab' => $preferences->default_scp_tab,
             'defaultAdminTab' => $preferences->default_admin_tab,
+            'defaultSignatureType' => $this->defaultSignatureType($staff),
+            'hasSignature' => trim((string) ($staff->signature ?? '')) !== '',
         ];
     }
 
@@ -154,5 +156,12 @@ class HandleInertiaRequests extends Middleware
         }
 
         return ['subId' => $subId];
+    }
+
+    private function defaultSignatureType(Staff $staff): string
+    {
+        $signatureType = (string) ($staff->default_signature_type ?? '');
+
+        return in_array($signatureType, ['mine', 'dept'], true) ? $signatureType : 'none';
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Scp\Tickets;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\NotifyMentionedStaffJob;
 use App\Models\Ticket;
 use App\Services\Scp\Tickets\ActionLogger;
 use App\Services\Scp\Tickets\DraftService;
@@ -28,9 +29,14 @@ final class NoteController extends Controller
             'body' => 'required|string|max:65535',
             'format' => 'required|in:html,text',
             'expected_updated' => 'required|string',
+            'mentioned_staff_ids' => 'nullable|array',
+            'mentioned_staff_ids.*' => 'integer',
         ]);
         $thread = $ticket->thread()->firstOrFail();
-        $this->notes->post($ticket, $thread, $staff, $validated['body'], $validated['format'], $validated['expected_updated']);
+        $entry = $this->notes->post($ticket, $thread, $staff, $validated['body'], $validated['format'], $validated['expected_updated']);
+        foreach ((array) ($validated['mentioned_staff_ids'] ?? []) as $mentionedId) {
+            NotifyMentionedStaffJob::dispatch($ticket, $entry, $staff, (int) $mentionedId);
+        }
         $this->drafts->discard($staff, "ticket.note.{$ticket->ticket_id}");
         $this->audit->record(
             staff: $staff,
@@ -40,6 +46,7 @@ final class NoteController extends Controller
             ticketId: $ticket->ticket_id,
             request: $request,
         );
+
         return back()->with('success', 'Note posted.');
     }
 }

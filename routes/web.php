@@ -22,17 +22,20 @@ use App\Http\Controllers\Auth\TwoFactorAppController;
 use App\Http\Controllers\Auth\TwoFactorController;
 use App\Http\Controllers\Panels\PanelSwitchController;
 use App\Http\Controllers\Scp\AttachmentController;
+use App\Http\Controllers\Scp\CannedResponseController as ScpCannedResponseController;
 use App\Http\Controllers\Scp\DashboardController;
 use App\Http\Controllers\Scp\QueueController;
 use App\Http\Controllers\Scp\Queues\QueueColumnsController;
 use App\Http\Controllers\Scp\Queues\QueueConfigController;
 use App\Http\Controllers\Scp\SearchController;
+use App\Http\Controllers\Scp\Staff\AutocompleteController;
 use App\Http\Controllers\Scp\StaffPreferencesController;
 use App\Http\Controllers\Scp\TicketController;
 use App\Http\Controllers\Scp\Tickets\AssignmentController;
 use App\Http\Controllers\Scp\Tickets\DraftController;
 use App\Http\Controllers\Scp\Tickets\LockController;
 use App\Http\Controllers\Scp\Tickets\NoteController;
+use App\Http\Controllers\Scp\Tickets\ReplyController;
 use App\Http\Controllers\Scp\Tickets\StatusController;
 use App\Http\Middleware\AuthenticateStaff;
 use Illuminate\Auth\Middleware\RequirePassword;
@@ -97,6 +100,9 @@ Route::prefix('scp')->name('scp.')->group(function () {
         Route::post('/tickets/{ticket}/notes', [NoteController::class, 'store'])
             ->middleware('scp.ticket-lock')
             ->name('tickets.notes.store');
+        Route::post('/tickets/{ticket}/replies', [ReplyController::class, 'store'])
+            ->middleware('scp.ticket-lock')
+            ->name('tickets.replies.store');
         Route::get('/tickets/{ticket}/draft', [DraftController::class, 'show'])->name('tickets.draft.show');
         Route::post('/tickets/{ticket}/draft', [DraftController::class, 'store'])->name('tickets.draft.store');
         Route::patch('/tickets/{ticket}/draft', [DraftController::class, 'update'])->name('tickets.draft.update');
@@ -114,6 +120,10 @@ Route::prefix('scp')->name('scp.')->group(function () {
         Route::get('/search', [SearchController::class, 'index'])->name('search');
         Route::get('/preferences', [StaffPreferencesController::class, 'show'])->name('preferences.show');
         Route::patch('/preferences', [StaffPreferencesController::class, 'update'])->name('preferences.update');
+        Route::get('/staff/autocomplete', AutocompleteController::class)
+            ->name('staff.autocomplete');
+        Route::get('/canned-responses', ScpCannedResponseController::class)
+            ->name('canned-responses.index');
     });
 });
 

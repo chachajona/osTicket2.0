@@ -124,6 +124,7 @@ abstract class TestCase extends BaseTestCase
                 $table->unsignedInteger('ticket_id')->autoIncrement();
                 $table->string('number', 20)->unique();
                 $table->unsignedInteger('user_id')->default(0);
+                $table->unsignedInteger('topic_id')->default(0);
                 $table->unsignedInteger('status_id')->default(1);
                 $table->unsignedInteger('dept_id')->default(0);
                 $table->unsignedInteger('staff_id')->default(0);
@@ -142,6 +143,12 @@ abstract class TestCase extends BaseTestCase
                 $table->dateTime('created')->useCurrent();
                 $table->dateTime('updated')->useCurrent();
             });
+
+            if (! $legacy->hasColumn('ticket', 'topic_id')) {
+                $legacy->table('ticket', function (Blueprint $table): void {
+                    $table->unsignedInteger('topic_id')->default(0);
+                });
+            }
 
             $this->ensureLegacyTable($legacy, 'lock', function (Blueprint $table) {
                 $table->unsignedInteger('lock_id')->autoIncrement();
@@ -215,12 +222,19 @@ abstract class TestCase extends BaseTestCase
                 $table->char('type', 1);
                 $table->string('poster')->default('');
                 $table->string('source')->default('');
+                $table->string('channel', 32)->default('');
                 $table->string('title')->default('');
                 $table->text('body')->nullable();
                 $table->string('format')->default('text');
                 $table->dateTime('created')->nullable();
                 $table->dateTime('updated')->nullable();
             });
+
+            if (! $legacy->hasColumn('thread_entry', 'channel')) {
+                $legacy->table('thread_entry', function (Blueprint $table): void {
+                    $table->string('channel', 32)->default('');
+                });
+            }
 
             $this->ensureLegacyTable($legacy, 'thread_event', function (Blueprint $table) {
                 $table->unsignedInteger('id')->autoIncrement();

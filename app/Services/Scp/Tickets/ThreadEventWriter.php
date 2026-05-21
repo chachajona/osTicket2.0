@@ -12,6 +12,13 @@ use InvalidArgumentException;
 
 final class ThreadEventWriter
 {
+    private const KNOWN_EVENTS = [
+        'assigned' => 'Ticket assigned',
+        'created' => 'Thread entry created',
+        'released' => 'Ticket assignment released',
+        'status' => 'Ticket status changed',
+    ];
+
     private array $eventCache = [];
 
     public function record(
@@ -46,16 +53,19 @@ final class ThreadEventWriter
             return $this->eventCache[$eventName];
         }
 
-        $event = Event::on('legacy')
-            ->where('name', $eventName)
-            ->first();
+        $event = Event::on('legacy')->firstOrNew(['name' => $eventName]);
 
-        if (! $event) {
+        if (! $event->exists && ! array_key_exists($eventName, self::KNOWN_EVENTS)) {
             throw new InvalidArgumentException("Unknown event name: {$eventName}");
         }
 
-        $this->eventCache[$eventName] = $event->id;
+        if (! $event->exists) {
+            $event->description = self::KNOWN_EVENTS[$eventName];
+            $event->save();
+        }
 
-        return $event->id;
+        $this->eventCache[$eventName] = (int) $event->id;
+
+        return (int) $event->id;
     }
 }

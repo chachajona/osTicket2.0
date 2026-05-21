@@ -41,6 +41,7 @@ class PermissionCatalogSeeder extends Seeder
                 'ticket.assign',
                 'ticket.transfer',
                 'ticket.reply',
+                'tickets.post-reply',
                 'ticket.close',
                 'ticket.delete',
                 'ticket.release',

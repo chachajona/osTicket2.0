@@ -2,6 +2,7 @@
 
 use App\Models\Staff;
 use App\Models\StaffAuthMigration;
+use Illuminate\Support\Facades\DB;
 
 it('shows the banner for migrated staff who have not dismissed it', function () {
     $staff = Staff::factory()->create(['isactive' => 1]);
@@ -89,4 +90,28 @@ it('recomputes a stale false session result when migration state changes', funct
         ->assertSessionHas($cacheKey, fn (array $cache): bool => $cache['visible'] === true && is_int($cache['cached_at']));
 
     $this->travelBack();
+});
+
+it('does not crash when migrated staff has undecryptable two-factor credentials', function () {
+    $staff = Staff::factory()->create(['isactive' => 1]);
+
+    StaffAuthMigration::create([
+        'staff_id' => $staff->staff_id,
+        'migrated_at' => now()->subDay(),
+        'upgrade_method' => 'totp',
+    ]);
+
+    DB::connection('osticket2')->table('staff_two_factor')->insert([
+        'staff_id' => $staff->staff_id,
+        'two_factor_secret' => 'not-a-valid-encrypted-payload',
+        'two_factor_recovery_codes' => 'not-a-valid-encrypted-payload',
+        'two_factor_confirmed_at' => now(),
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $this->actingAs($staff, 'staff')
+        ->get('/scp')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->where('auth.staff.migrationBanner', true));
 });
