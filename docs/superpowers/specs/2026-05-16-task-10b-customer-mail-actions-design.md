@@ -26,7 +26,7 @@ The other four #56 sub-features (file attachments, canned responses, field edits
 - `App\Services\Scp\Tickets\ReplyPostingService` — orchestrates thread-entry write + optional status change in one transaction
 - `App\Services\Scp\Mail\LegacyTemplateRenderer` — reads `ost_email_template` row, performs variable substitution
 - `App\Services\Scp\Mail\MessageIdGenerator` — deterministic Message-ID + `In-Reply-To` + `References` chain
-- `App\Services\Scp\Mail\EmailInfoPersister` — INSERTs into legacy `ost_email_info` so inbound piper's priority-1 lookup matches our outbound
+- `App\Services\Scp\Mail\EmailInfoPersister` — INSERTs into legacy `ost_thread_entry_email` (column `mid`) so inbound piper's priority-1 lookup matches our outbound
 
 **Services (extended):**
 
@@ -51,7 +51,7 @@ The other four #56 sub-features (file attachments, canned responses, field edits
 - Inertia `mail_event_owner` shared prop hides UI when class is legacy-owned
 - `ActionLogger` audit pattern
 - `LockService` + `expected_updated` concurrency token (Task 10a)
-- Legacy `ost_email_template` (read), `ost_email_info` (write)
+- Legacy `ost_email_template` (read), `ost_thread_entry_email` (write)
 
 **Out of scope (deferred to follow-up plans):**
 
@@ -94,8 +94,8 @@ Inside `DB::connection('legacy')->transaction(...)`:
 1. Lock current ticket row; assert `updated == expected_updated` or throw `TicketModifiedConcurrentlyException` (same pattern as `NotePostingService`)
 2. Create `thread_entry` row with `type='R'`, `staff_id`, `poster=$staff->displayName()`, `body` (raw, no signature appended — matches legacy), `format`, timestamps
 3. Generate Message-ID via `MessageIdGenerator::next($ticket, $entry)` → `<L-{ticket_id}-{entry_id}-{16-hex}@host>`
-4. Build `In-Reply-To` (last customer `type='M'` entry's `mid` from `email_info`, or null) and `References` chain via `MessageIdGenerator::references($thread)` (walks prior entries' `email_info`, most-recent on right)
-5. `EmailInfoPersister::record($entry, $messageId, $headers, $references)` — INSERTs into legacy `ost_email_info`
+4. Build `In-Reply-To` (last customer `type='M'` entry's `mid` from `thread_entry_email`, or null) and `References` chain via `MessageIdGenerator::references($thread)` (walks prior entries' `thread_entry_email`, most-recent on right)
+5. `EmailInfoPersister::record($entry, $messageId, $headersText)` — INSERTs into legacy `ost_thread_entry_email`
 6. If `reply_status_id` present: call `StatusTransitionService::transition(...)` with `notify_user=false, comments=null` (silent — the reply mail covers customer notification)
 7. `ThreadEventWriter->record('created', ...)`, `SearchIndexer->index('THE', ...)`, `TicketCacheUpdater->touch(...)` — same pattern as `NotePostingService`
 8. Resolve `StaffReplyMail` with `$ticket, $entry, $signatureChoice, $messageId, $inReplyTo, $references`
@@ -207,23 +207,26 @@ Implementation: a single `applySubstitutions(string $body, array $table): string
 - `In-Reply-To: <prior-mid>` — Message-ID of the most recent inbound (`type='M'`) thread entry, looked up from `email_info` by `thread_entry_id`. Null if no prior customer message.
 - `References: <chain>` — space-separated chain of all prior thread entries' `mid` values, most recent on the right. Built by `MessageIdGenerator::references($thread)` walking entries in `created` order.
 
-**Persistence to `ost_email_info`:**
+**Persistence to `ost_thread_entry_email`:**
 
 Inside the same transaction as the thread_entry write:
 
 ```sql
-INSERT INTO ost_email_info (thread_entry_id, email_id, mid, headers, recipients)
-VALUES (:entry, :dept_email, :mid, :headers, :recipient)
+INSERT INTO ost_thread_entry_email (thread_entry_id, email_id, mid, headers)
+VALUES (:entry, :dept_email_id_or_null, :mid, :serialized_headers)
 ```
 
-**Contract:** a row keyed by `thread_entry_id` with the generated `mid` so legacy's inbound piper priority-1 lookup (`email_info__mid` match) finds it when the customer replies. The exact column list (`headers`, `recipients`, `email_id`, etc.) is read from the `ost_email_info` migration during implementation via Laravel Boost's `database-schema` tool; the spec does not lock the column names because they're an implementation detail of mirroring the legacy table.
+Schema (per legacy): `id`, `thread_entry_id INT NOT NULL`, `email_id INT NULLABLE`, `mid VARCHAR(255) NOT NULL`, `headers TEXT`. No `created` or `recipients` columns on this table. `email_id` is nullable; we set it to the originating department's `ost_email.email_id` when resolvable, else null.
 
-**Inbound contract (legacy, unchanged):** customer reply hits legacy mail piper → pipes through priority chain: (1) direct `email_info` mid lookup → (2) `In-Reply-To` / `References` header parse → (3) decoded legacy-format Message-ID → (4) embedded body tag → (5) passive threading → (6) `[#1234]` subject match. Our outbound writes a row that satisfies priority (1), so customer replies thread regardless of which system sent the original.
+**Contract:** legacy's inbound piper priority-1 lookup (`ThreadEntry::lookupByEmailHeaders` querying this table by `mid`) matches our outbound when the customer replies.
+
+**Inbound contract (legacy, unchanged):** customer reply hits legacy mail piper → pipes through priority chain: (1) direct `ost_thread_entry_email.mid` lookup → (2) `In-Reply-To` / `References` header parse → (3) decoded legacy-format Message-ID → (4) embedded body tag → (5) passive threading → (6) `[#1234]` subject match. Our outbound writes a row that satisfies priority (1), so customer replies thread regardless of which system sent the original.
 
 ### Authorization
 
-- `TicketPolicy::postReply(Staff, Ticket): bool` — new method, same shape as existing `postNote`: staff is assignee, in ticket's dept, or has global access
-- `TicketPolicy::setStatus` — existing, covers close-with-notify (the `notify_user` toggle adds no new auth surface; staff who can close can notify)
+- `TicketActionPolicy::postReply(Staff, Ticket): bool` — new method, same shape as existing `postNote`: `$staff->can('tickets.post-reply')` AND `$this->deptService->hasAccessToDepartment($staff, $ticket->dept_id)`
+- `TicketActionPolicy::setStatus` — existing, covers close-with-notify (the `notify_user` toggle adds no new auth surface)
+- New permission key: `tickets.post-reply` (Spatie permission, guard `staff`) — seeded alongside existing `tickets.post-note`
 - Both controllers re-check `mail.event_class_owner.*` as defense in depth. Inertia hides UI; policy is auth-only; controller is the final ownership gate.
 
 ### Audit
@@ -284,7 +287,7 @@ Reuses the env-var mechanism from PR #73:
 - `app/Mail/StaffReplyMail.php`
 - `app/Mail/CloseNotifyMail.php`
 - `app/Mail/RenderedMail.php` (value object: subject + body_html + body_text)
-- `postReply` method added to existing `app/Policies/TicketPolicy.php` (matches existing `postNote` convention)
+- `postReply` method added to existing `app/Policies/TicketActionPolicy.php` (matches existing `postNote` convention)
 - `resources/js/components/tickets/ReplyComposer.tsx`
 - Tests listed in Verification
 
@@ -292,9 +295,9 @@ Reuses the env-var mechanism from PR #73:
 
 - `app/Http/Controllers/Scp/Tickets/StatusController.php` — accept `notify_user` payload
 - `app/Services/Scp/Tickets/StatusTransitionService.php` — accept `notify_user`, queue `CloseNotifyMail` when true
-- `app/Policies/TicketPolicy.php` — add `postReply` method
+- `app/Policies/TicketActionPolicy.php` — add `postReply` method
 - `app/Providers/AppServiceProvider.php` — bind new services as singletons (mirrors existing dispatcher bind)
-- `routes/web.php` (or appropriate routes file) — add `POST /scp/tickets/{ticket}/replies`
+- `routes/web.php` — add `POST /scp/tickets/{ticket}/replies` inside the existing SCP group (`scp.ticket-lock` middleware, named `tickets.replies.store`)
 - `resources/js/pages/Scp/Tickets/Show.tsx` — render `ReplyComposer`
 - `resources/js/components/tickets/StatusPicker.tsx` — add `notify_user` checkbox + required-comments enforcement
 

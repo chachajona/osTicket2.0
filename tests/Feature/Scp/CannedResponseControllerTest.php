@@ -21,28 +21,19 @@ final class CannedResponseControllerTest extends TestCase
 
         $schema = Schema::connection('legacy');
 
-        if (! $schema->hasTable('canned_response')) {
-            $schema->create('canned_response', function (Blueprint $table): void {
-                $table->increments('canned_id');
-                $table->unsignedInteger('dept_id')->nullable();
-                $table->string('title', 255);
-                $table->text('response');
-                $table->string('notes', 255)->nullable();
-                $table->tinyInteger('isactive')->default(1);
-                $table->string('lang', 16)->nullable();
-                $table->timestamp('created')->nullable();
-                $table->timestamp('updated')->nullable();
-            });
-        }
+        $schema->dropIfExists('canned_response');
+        $this->createLegacyCannedResponseTable('isactive');
 
         DB::connection('legacy')->table('canned_response')->delete();
     }
 
     private function createCannedResponse(array $attrs = []): int
     {
+        $activeColumn = $this->activeColumn();
+
         return DB::connection('legacy')->table('canned_response')->insertGetId(array_merge([
             'dept_id' => null,
-            'isactive' => 1,
+            $activeColumn => 1,
             'title' => 'Default Title',
             'response' => '<p>Default response</p>',
             'lang' => 'en',
@@ -50,6 +41,28 @@ final class CannedResponseControllerTest extends TestCase
             'created' => now(),
             'updated' => now(),
         ], $attrs));
+    }
+
+    private function createLegacyCannedResponseTable(string $activeColumn): void
+    {
+        Schema::connection('legacy')->create('canned_response', function (Blueprint $table) use ($activeColumn): void {
+            $table->increments('canned_id');
+            $table->unsignedInteger('dept_id')->nullable();
+            $table->string('title', 255);
+            $table->text('response');
+            $table->string('notes', 255)->nullable();
+            $table->tinyInteger($activeColumn)->default(1);
+            $table->string('lang', 16)->nullable();
+            $table->timestamp('created')->nullable();
+            $table->timestamp('updated')->nullable();
+        });
+    }
+
+    private function activeColumn(): string
+    {
+        return Schema::connection('legacy')->hasColumn('canned_response', 'isactive')
+            ? 'isactive'
+            : 'isenabled';
     }
 
     public function test_returns_global_responses_when_no_dept_id(): void
@@ -88,6 +101,23 @@ final class CannedResponseControllerTest extends TestCase
         $staff = Staff::factory()->create(['isactive' => 1]);
         $this->createCannedResponse(['title' => 'Enabled', 'isactive' => 1, 'dept_id' => null]);
         $this->createCannedResponse(['title' => 'Disabled', 'isactive' => 0, 'dept_id' => null]);
+
+        $this->actingAs($staff, 'staff')
+            ->getJson(route('scp.canned-responses.index'))
+            ->assertOk()
+            ->assertJsonFragment(['title' => 'Enabled'])
+            ->assertJsonMissing(['title' => 'Disabled']);
+    }
+
+    public function test_supports_legacy_isenabled_column(): void
+    {
+        Schema::connection('legacy')->dropIfExists('canned_response');
+        $this->createLegacyCannedResponseTable('isenabled');
+
+        /** @var Staff $staff */
+        $staff = Staff::factory()->create(['isactive' => 1]);
+        $this->createCannedResponse(['title' => 'Enabled', 'isenabled' => 1, 'dept_id' => null]);
+        $this->createCannedResponse(['title' => 'Disabled', 'isenabled' => 0, 'dept_id' => null]);
 
         $this->actingAs($staff, 'staff')
             ->getJson(route('scp.canned-responses.index'))

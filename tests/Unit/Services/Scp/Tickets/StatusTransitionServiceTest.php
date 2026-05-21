@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace Tests\Unit\Services\Scp\Tickets;
 
 use App\Exceptions\ForbiddenStatusTransition;
+use App\Mail\CloseNotifyMail;
 use App\Models\Staff;
-use App\Models\Ticket;
 use App\Models\Thread;
+use App\Models\Ticket;
+use App\Services\Scp\Mail\EmailInfoPersister;
+use App\Services\Scp\Mail\MessageIdGenerator;
 use App\Services\Scp\Tickets\NotePostingService;
 use App\Services\Scp\Tickets\StatusTransitionService;
 use App\Services\Scp\Tickets\ThreadEventWriter;
@@ -16,11 +19,14 @@ use Carbon\Carbon;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
+use Tests\Support\LegacyMailFixtures;
 use Tests\TestCase;
 
 final class StatusTransitionServiceTest extends TestCase
 {
+    use LegacyMailFixtures;
     use RefreshDatabase;
 
     private ThreadEventWriter $threadEvents;
@@ -34,6 +40,9 @@ final class StatusTransitionServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->ensureLegacyMailTables();
+        $this->seedMailTemplates();
 
         $this->ensureLegacyTable('ticket_status', function (Blueprint $table): void {
             $table->unsignedInteger('id')->primary();
@@ -100,9 +109,8 @@ final class StatusTransitionServiceTest extends TestCase
         ]);
 
         DB::connection('legacy')->table('event')->insertOrIgnore([
-            'id' => 200,
-            'name' => 'status',
-            'description' => 'Ticket status changed',
+            ['id' => 7, 'name' => 'created', 'description' => 'Entry created'],
+            ['id' => 200, 'name' => 'status', 'description' => 'Ticket status changed'],
         ]);
 
         $this->threadEvents = app(ThreadEventWriter::class);
@@ -113,6 +121,8 @@ final class StatusTransitionServiceTest extends TestCase
             $this->threadEvents,
             $this->notes,
             $this->cacheUpdater,
+            app(MessageIdGenerator::class),
+            app(EmailInfoPersister::class),
         );
     }
 
@@ -230,7 +240,7 @@ final class StatusTransitionServiceTest extends TestCase
         ], 'legacy');
     }
 
-    public function test_open_to_closed_forbidden(): void
+    public function test_open_to_closed_allowed(): void
     {
         $ticket = Ticket::factory()->create([
             'status_id' => 1,
@@ -239,30 +249,59 @@ final class StatusTransitionServiceTest extends TestCase
         $thread = Thread::factory()->for($ticket, 'ticket')->create(['object_type' => 'T']);
         $staff = Staff::factory()->create();
 
-        try {
-            $this->service->transition(
-                ticket: $ticket,
-                thread: $thread,
-                caller: $staff,
-                targetStatusId: 2,
-                comments: null,
-                expectedUpdated: '2026-05-03 10:15:00',
-            );
-
-            $this->fail('Expected ForbiddenStatusTransition was not thrown.');
-        } catch (ForbiddenStatusTransition $exception) {
-            $this->assertSame('open', $exception->fromState);
-            $this->assertSame('closed', $exception->toState);
-        }
+        $this->service->transition(
+            ticket: $ticket,
+            thread: $thread,
+            caller: $staff,
+            targetStatusId: 2,
+            comments: null,
+            expectedUpdated: '2026-05-03 10:15:00',
+        );
 
         $ticket->refresh();
 
-        $this->assertSame(1, (int) $ticket->status_id);
-        $this->assertDatabaseMissing('thread_event', [
+        $this->assertSame(2, (int) $ticket->status_id);
+        $this->assertDatabaseHas('thread_event', [
             'thread_id' => $thread->id,
             'event_id' => 200,
             'staff_id' => $staff->staff_id,
         ], 'legacy');
+    }
+
+    public function test_notify_user_true_with_comments_queues_close_notify_mail(): void
+    {
+        Mail::fake();
+        $fixture = $this->seedMailTicket();
+
+        $this->service->transition(
+            ticket: $fixture['ticket'],
+            thread: $fixture['thread'],
+            caller: $fixture['staff'],
+            targetStatusId: 2,
+            comments: 'Resolving the ticket.',
+            expectedUpdated: (string) $fixture['ticket']->updated,
+            notifyUser: true,
+        );
+
+        Mail::assertQueued(CloseNotifyMail::class, 1);
+    }
+
+    public function test_notify_user_false_does_not_queue_mail(): void
+    {
+        Mail::fake();
+        $fixture = $this->seedMailTicket();
+
+        $this->service->transition(
+            ticket: $fixture['ticket'],
+            thread: $fixture['thread'],
+            caller: $fixture['staff'],
+            targetStatusId: 2,
+            comments: 'Quietly closing.',
+            expectedUpdated: (string) $fixture['ticket']->updated,
+            notifyUser: false,
+        );
+
+        Mail::assertNothingQueued();
     }
 
     protected function tearDown(): void

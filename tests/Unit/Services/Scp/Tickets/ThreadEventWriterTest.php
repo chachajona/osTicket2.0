@@ -134,6 +134,32 @@ final class ThreadEventWriterTest extends TestCase
         ], 'legacy');
     }
 
+    public function test_creates_known_event_rows_when_missing(): void
+    {
+        DB::connection('legacy')->table('event')->where('name', 'status')->delete();
+
+        $thread = Thread::factory()->create();
+        $staff = Staff::factory()->create();
+
+        $result = $this->writer->record(
+            thread: $thread,
+            eventName: 'status',
+            entryId: null,
+            staff: $staff,
+        );
+
+        $eventId = DB::connection('legacy')->table('event')
+            ->where('name', 'status')
+            ->value('id');
+
+        $this->assertNotNull($eventId);
+        $this->assertDatabaseHas('thread_event', [
+            'id' => $result->id,
+            'event_id' => $eventId,
+            'thread_id' => $thread->id,
+        ], 'legacy');
+    }
+
     public function test_throws_for_unknown_event_name(): void
     {
         $thread = Thread::factory()->create();

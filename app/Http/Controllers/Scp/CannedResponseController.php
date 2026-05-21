@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\CannedResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 
 final class CannedResponseController extends Controller
 {
@@ -17,7 +18,6 @@ final class CannedResponseController extends Controller
         $q = $request->string('q')->trim()->value();
 
         $query = CannedResponse::query()
-            ->where('isactive', 1)
             ->where(function ($sub) use ($deptId): void {
                 $sub->whereNull('dept_id');
                 if ($deptId !== null) {
@@ -26,6 +26,12 @@ final class CannedResponseController extends Controller
             })
             ->orderBy('title')
             ->limit(10);
+
+        $activeColumn = $this->activeColumn();
+
+        if ($activeColumn !== null) {
+            $query->where($activeColumn, 1);
+        }
 
         if ($q !== '') {
             $query->where('title', 'like', "%{$q}%");
@@ -38,5 +44,21 @@ final class CannedResponseController extends Controller
                 'response' => $cr->response,
             ])
         );
+    }
+
+    private function activeColumn(): ?string
+    {
+        $schema = Schema::connection((new CannedResponse)->getConnectionName());
+        $table = (new CannedResponse)->getTable();
+
+        if ($schema->hasColumn($table, 'isactive')) {
+            return 'isactive';
+        }
+
+        if ($schema->hasColumn($table, 'isenabled')) {
+            return 'isenabled';
+        }
+
+        return null;
     }
 }

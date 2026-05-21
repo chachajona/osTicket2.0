@@ -9,6 +9,7 @@ use BaconQrCode\Renderer\ImageRenderer;
 use BaconQrCode\Renderer\RendererStyle\Fill;
 use BaconQrCode\Renderer\RendererStyle\RendererStyle;
 use BaconQrCode\Writer;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Laravel\Fortify\Contracts\TwoFactorAuthenticationProvider;
 use Laravel\Fortify\Fortify;
@@ -85,7 +86,11 @@ trait StaffTwoFactorAuthenticatable
 
     public function getTwoFactorSecretAttribute(): ?string
     {
-        return $this->loadMissing('twoFactorCredential')->twoFactorCredential?->two_factor_secret;
+        try {
+            return $this->loadMissing('twoFactorCredential')->twoFactorCredential?->two_factor_secret;
+        } catch (DecryptException) {
+            return null;
+        }
     }
 
     /**
@@ -93,7 +98,11 @@ trait StaffTwoFactorAuthenticatable
      */
     public function getTwoFactorRecoveryCodesAttribute(): ?array
     {
-        return $this->loadMissing('twoFactorCredential')->twoFactorCredential?->two_factor_recovery_codes;
+        try {
+            return $this->loadMissing('twoFactorCredential')->twoFactorCredential?->two_factor_recovery_codes;
+        } catch (DecryptException) {
+            return null;
+        }
     }
 
     public function getTwoFactorConfirmedAtAttribute(): mixed

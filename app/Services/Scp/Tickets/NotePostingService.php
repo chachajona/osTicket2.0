@@ -6,9 +6,9 @@ namespace App\Services\Scp\Tickets;
 
 use App\Exceptions\TicketModifiedConcurrentlyException;
 use App\Models\Staff;
-use App\Models\Ticket;
 use App\Models\Thread;
 use App\Models\ThreadEntry;
+use App\Models\Ticket;
 use Illuminate\Support\Facades\DB;
 
 final class NotePostingService

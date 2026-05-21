@@ -29,7 +29,11 @@ use App\Policies\TeamPolicy;
 use App\Policies\TicketActionPolicy;
 use App\Services\Admin\DepartmentRoleResolver;
 use App\Services\LegacyHasher;
+use App\Services\Scp\Mail\EmailInfoPersister;
+use App\Services\Scp\Mail\LegacyTemplateRenderer;
+use App\Services\Scp\Mail\MessageIdGenerator;
 use App\Services\Scp\Mail\OutboundMailDispatcher;
+use App\Services\Scp\Tickets\ReplyPostingService;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Hashing\HashManager;
 use Illuminate\Mail\Events\MessageSending;
@@ -46,6 +50,10 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(OutboundMailDispatcher::class);
+        $this->app->singleton(LegacyTemplateRenderer::class);
+        $this->app->singleton(MessageIdGenerator::class);
+        $this->app->singleton(EmailInfoPersister::class);
+        $this->app->singleton(ReplyPostingService::class);
     }
 
     /**
