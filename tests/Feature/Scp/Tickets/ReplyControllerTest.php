@@ -141,6 +141,51 @@ final class ReplyControllerTest extends TestCase
         );
     }
 
+    public function test_rejects_invalid_mentioned_staff_ids(): void
+    {
+        config(['mail.event_class_owner.reply' => 'laravel']);
+        Queue::fake();
+
+        $fixture = $this->seedMailTicket();
+        $fixture['staff']->givePermissionTo('tickets.post-reply');
+
+        $this->actingAs($fixture['staff'], 'staff')
+            ->postJson(route('scp.tickets.replies.store', $fixture['ticket']), [
+                'body' => 'Hey @Missing check this out',
+                'format' => 'html',
+                'signature' => 'none',
+                'expected_updated' => (string) $fixture['ticket']->updated,
+                'mentioned_staff_ids' => [999999],
+            ])
+            ->assertUnprocessable();
+
+        Queue::assertNotPushed(NotifyMentionedStaffJob::class);
+    }
+
+    public function test_notify_user_false_posts_reply_without_queueing_customer_mail(): void
+    {
+        config(['mail.event_class_owner.reply' => 'laravel']);
+        $fixture = $this->seedMailTicket();
+        $fixture['staff']->givePermissionTo('tickets.post-reply');
+
+        $this->actingAs($fixture['staff'], 'staff')
+            ->post(route('scp.tickets.replies.store', $fixture['ticket']), [
+                'body' => 'Quiet reply',
+                'format' => 'html',
+                'signature' => 'none',
+                'notify_user' => false,
+                'expected_updated' => (string) $fixture['ticket']->updated,
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('thread_entry', [
+            'thread_id' => $fixture['thread']->id,
+            'type' => 'R',
+            'body' => 'Quiet reply',
+        ], 'legacy');
+        Mail::assertNothingQueued();
+    }
+
     public function test_no_mention_jobs_dispatched_when_mentioned_staff_ids_empty(): void
     {
         config(['mail.event_class_owner.reply' => 'laravel']);

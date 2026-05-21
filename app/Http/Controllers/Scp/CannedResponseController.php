@@ -14,7 +14,13 @@ final class CannedResponseController extends Controller
 {
     public function __invoke(Request $request): JsonResponse
     {
-        $deptId = $request->filled('dept_id') ? $request->integer('dept_id') : null;
+        $validated = $request->validate([
+            'dept_id' => 'nullable|integer|min:0',
+        ]);
+
+        $deptId = array_key_exists('dept_id', $validated) && $validated['dept_id'] !== null
+            ? (int) $validated['dept_id']
+            : null;
         $q = $request->string('q')->trim()->value();
 
         $query = CannedResponse::query()

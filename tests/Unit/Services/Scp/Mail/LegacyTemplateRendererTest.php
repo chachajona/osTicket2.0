@@ -59,6 +59,27 @@ final class LegacyTemplateRendererTest extends TestCase
         $this->assertStringContainsString('&lt;script&gt;', $rendered->subject);
     }
 
+    public function test_preserves_rich_response_html_substitutions(): void
+    {
+        $fixture = $this->seedMailTicket(entryBody: '<p><strong>Formatted</strong> reply</p>');
+
+        $rendered = app(LegacyTemplateRenderer::class)
+            ->render('ticket.reply', $fixture['ticket'], $fixture['entry'], null);
+
+        $this->assertStringContainsString('<p><strong>Formatted</strong> reply</p>', $rendered->bodyHtml);
+        $this->assertStringNotContainsString('&lt;strong&gt;', $rendered->bodyHtml);
+    }
+
+    public function test_plain_text_fallback_preserves_paragraph_breaks(): void
+    {
+        $fixture = $this->seedMailTicket(entryBody: '<p>First paragraph.</p><p>Second paragraph.</p>');
+
+        $rendered = app(LegacyTemplateRenderer::class)
+            ->render('ticket.reply', $fixture['ticket'], $fixture['entry'], null);
+
+        $this->assertStringContainsString("First paragraph.\n\nSecond paragraph.", $rendered->bodyText);
+    }
+
     public function test_renders_note_alert_with_comments_override(): void
     {
         $fixture = $this->seedMailTicket();

@@ -95,6 +95,16 @@ final class CannedResponseControllerTest extends TestCase
             ->assertJsonMissing(['title' => 'Dept 9']);
     }
 
+    public function test_rejects_malformed_dept_id(): void
+    {
+        /** @var Staff $staff */
+        $staff = Staff::factory()->create(['isactive' => 1]);
+
+        $this->actingAs($staff, 'staff')
+            ->getJson(route('scp.canned-responses.index', ['dept_id' => 'abc']))
+            ->assertUnprocessable();
+    }
+
     public function test_excludes_disabled_responses(): void
     {
         /** @var Staff $staff */

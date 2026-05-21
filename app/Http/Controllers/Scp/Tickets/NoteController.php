@@ -30,12 +30,13 @@ final class NoteController extends Controller
             'format' => 'required|in:html,text',
             'expected_updated' => 'required|string',
             'mentioned_staff_ids' => 'nullable|array',
-            'mentioned_staff_ids.*' => 'integer',
+            'mentioned_staff_ids.*' => 'integer|min:1|distinct|exists:legacy.staff,staff_id',
         ]);
         $thread = $ticket->thread()->firstOrFail();
         $entry = $this->notes->post($ticket, $thread, $staff, $validated['body'], $validated['format'], $validated['expected_updated']);
-        foreach ((array) ($validated['mentioned_staff_ids'] ?? []) as $mentionedId) {
-            NotifyMentionedStaffJob::dispatch($ticket, $entry, $staff, (int) $mentionedId);
+        $mentionedIds = array_values(array_unique(array_map('intval', (array) ($validated['mentioned_staff_ids'] ?? []))));
+        foreach ($mentionedIds as $mentionedId) {
+            NotifyMentionedStaffJob::dispatch($ticket, $entry, $staff, $mentionedId);
         }
         $this->drafts->discard($staff, "ticket.note.{$ticket->ticket_id}");
         $this->audit->record(

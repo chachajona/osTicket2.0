@@ -91,7 +91,7 @@ final class LegacyTemplateRenderer
     private function applySubstitutions(string $template, array $table): string
     {
         foreach ($table as $token => $value) {
-            $replacement = $token === '%{signature}'
+            $replacement = in_array($token, ['%{signature}', '%{response}', '%{comments}'], true)
                 ? $value
                 : htmlspecialchars($value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
@@ -103,8 +103,13 @@ final class LegacyTemplateRenderer
 
     private function htmlToText(string $html): string
     {
-        $text = html_entity_decode(strip_tags($html), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $withBreaks = preg_replace('/<\/(p|div)>/i', "\n\n", $html) ?? $html;
+        $withBreaks = preg_replace('/<br\s*\/?>/i', "\n", $withBreaks) ?? $withBreaks;
+        $text = html_entity_decode(strip_tags($withBreaks), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $text = preg_replace("/[ \t]+\n/u", "\n", $text) ?? $text;
+        $text = preg_replace("/\n[ \t]+/u", "\n", $text) ?? $text;
+        $text = preg_replace('/[ \t]{2,}/u', ' ', $text) ?? $text;
 
-        return trim(preg_replace('/\s+/u', ' ', $text) ?? '');
+        return trim(preg_replace("/\n{3,}/u", "\n\n", $text) ?? $text);
     }
 }

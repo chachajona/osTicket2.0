@@ -518,7 +518,7 @@ final class MentionNotificationMail extends Mailable implements ShouldQueue, Sho
 
 Create `resources/views/mail/mention-notification.blade.php`:
 
-```
+```blade
 Hi {{ $mentioned->firstname }},
 
 {{ $mentioner->firstname }} {{ $mentioner->lastname }} mentioned you in ticket #{{ $ticket->ticket_id }}.

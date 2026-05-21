@@ -67,7 +67,7 @@ The other four #56 sub-features (file attachments, canned responses, field edits
 
 Inertia form payload:
 
-```
+```text
 body: string                  required, max 65535
 format: 'html' | 'text'       required
 signature: 'none' | 'mine' | 'dept'   server-defaulted from staff prefs
@@ -131,7 +131,7 @@ Inside `DB::connection('legacy')->transaction(...)`:
 
 Inertia form payload (existing fields plus new `notify_user`):
 
-```
+```text
 status_id: int                required, must exist
 comments: string | null       max 65535; required non-empty when notify_user=true
 notify_user: bool             new, default false
@@ -318,7 +318,7 @@ Reuses the env-var mechanism from PR #73:
 
 ### Unit / feature tests
 
-```
+```text
 tests/Feature/Tickets/ReplyControllerTest.php
   - posts a reply with reply-only fields → 302, thread_entry written, mail queued
   - posts a reply with reply_status_id → thread_entry + status change in one tx

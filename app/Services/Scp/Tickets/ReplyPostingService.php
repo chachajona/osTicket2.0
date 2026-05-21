@@ -35,8 +35,9 @@ final class ReplyPostingService
         string $signatureChoice,
         ?int $replyStatusId,
         string $expectedUpdated,
+        bool $notifyUser = true,
     ): ThreadEntry {
-        return DB::connection('legacy')->transaction(function () use ($ticket, $thread, $staff, $body, $format, $signatureChoice, $replyStatusId, $expectedUpdated): ThreadEntry {
+        return DB::connection('legacy')->transaction(function () use ($ticket, $thread, $staff, $body, $format, $signatureChoice, $replyStatusId, $expectedUpdated, $notifyUser): ThreadEntry {
             $current = $this->lockCurrentTicket($ticket);
 
             if ((string) $current->updated !== $expectedUpdated) {
@@ -55,16 +56,23 @@ final class ReplyPostingService
                 'updated' => now(),
             ]);
 
-            $messageId = $this->messageIds->next($current, $entry);
-            $inReplyTo = $this->messageIds->inReplyTo($thread);
-            $references = $this->messageIds->references($thread);
+            $customerEmail = $this->customerEmailFor($current);
+            $messageId = null;
+            $inReplyTo = null;
+            $references = '';
 
-            $this->emailInfo->record(
-                entry: $entry,
-                messageId: $messageId,
-                headers: $this->headersBlock($messageId, $inReplyTo, $references),
-                emailId: $this->resolveDeptEmailId($current),
-            );
+            if ($notifyUser && $customerEmail !== null) {
+                $messageId = $this->messageIds->next($current, $entry);
+                $inReplyTo = $this->messageIds->inReplyTo($thread);
+                $references = $this->messageIds->references($thread);
+
+                $this->emailInfo->record(
+                    entry: $entry,
+                    messageId: $messageId,
+                    headers: $this->headersBlock($messageId, $inReplyTo, $references),
+                    emailId: $this->resolveDeptEmailId($current),
+                );
+            }
 
             if ($replyStatusId !== null) {
                 $this->statusTransitions->transition(
@@ -82,15 +90,17 @@ final class ReplyPostingService
             $this->searchIndexer->index('THE', $entry->id, '', (string) $entry->body);
             $this->ticketCacheUpdater->touch($current, $thread);
 
-            Mail::to($this->customerEmailFor($current))->queue(new StaffReplyMail(
-                ticket: $current,
-                entry: $entry,
-                staff: $staff,
-                signatureChoice: $signatureChoice,
-                messageId: $messageId,
-                inReplyTo: $inReplyTo,
-                references: $references,
-            ));
+            if ($notifyUser && $customerEmail !== null && $messageId !== null) {
+                Mail::to($customerEmail)->queue(new StaffReplyMail(
+                    ticket: $current,
+                    entry: $entry,
+                    staff: $staff,
+                    signatureChoice: $signatureChoice,
+                    messageId: $messageId,
+                    inReplyTo: $inReplyTo,
+                    references: $references,
+                ));
+            }
 
             return $entry;
         });
@@ -131,8 +141,10 @@ final class ReplyPostingService
             : null;
     }
 
-    private function customerEmailFor(Ticket $ticket): string
+    private function customerEmailFor(Ticket $ticket): ?string
     {
-        return (string) ($ticket->user?->defaultEmail?->address ?? '');
+        $email = trim((string) ($ticket->user?->defaultEmail?->address ?? ''));
+
+        return filter_var($email, FILTER_VALIDATE_EMAIL) !== false ? $email : null;
     }
 }

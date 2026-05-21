@@ -42,6 +42,11 @@ final class EmailInfoPersisterTest extends TestCase
 
         app(EmailInfoPersister::class)->record($fixture['entry'], '<test@example.com>', 'headers');
 
-        $this->assertNull(DB::connection('legacy')->table('thread_entry_email')->first()->email_id);
+        $row = DB::connection('legacy')->table('thread_entry_email')
+            ->where('thread_entry_id', $fixture['entry']->id)
+            ->first();
+
+        $this->assertNotNull($row);
+        $this->assertNull($row->email_id);
     }
 }

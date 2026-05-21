@@ -92,7 +92,7 @@ it('recomputes a stale false session result when migration state changes', funct
     $this->travelBack();
 });
 
-it('does not crash when migrated staff has undecryptable two-factor credentials', function () {
+it('treats undecryptable migrated two-factor credentials as enabled', function () {
     $staff = Staff::factory()->create(['isactive' => 1]);
 
     StaffAuthMigration::create([
@@ -113,5 +113,5 @@ it('does not crash when migrated staff has undecryptable two-factor credentials'
     $this->actingAs($staff, 'staff')
         ->get('/scp')
         ->assertOk()
-        ->assertInertia(fn ($page) => $page->where('auth.staff.migrationBanner', true));
+        ->assertInertia(fn ($page) => $page->where('auth.staff.migrationBanner', false));
 });

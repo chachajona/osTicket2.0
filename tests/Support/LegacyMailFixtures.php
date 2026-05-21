@@ -16,9 +16,16 @@ trait LegacyMailFixtures
 {
     protected function ensureLegacyMailTables(): void
     {
-        if (! Schema::connection('legacy')->hasColumn('staff', 'signature')) {
-            Schema::connection('legacy')->table('staff', function (Blueprint $table): void {
+        $legacySchema = Schema::connection('legacy');
+
+        if (! $legacySchema->hasColumn('staff', 'signature')) {
+            $legacySchema->table('staff', function (Blueprint $table): void {
                 $table->text('signature')->nullable();
+            });
+        }
+
+        if (! $legacySchema->hasColumn('staff', 'default_signature_type')) {
+            $legacySchema->table('staff', function (Blueprint $table): void {
                 $table->string('default_signature_type', 16)->nullable();
             });
         }

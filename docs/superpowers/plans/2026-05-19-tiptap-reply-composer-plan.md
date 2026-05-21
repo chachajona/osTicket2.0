@@ -42,7 +42,7 @@ grep -E '"@tiptap' package.json
 ```
 
 Expected output (versions may differ):
-```
+```text
 "@tiptap/extension-link": "^2.x.x",
 "@tiptap/extension-placeholder": "^2.x.x",
 "@tiptap/extension-underline": "^2.x.x",

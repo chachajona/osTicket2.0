@@ -29,12 +29,16 @@ trait StaffTwoFactorAuthenticatable
 
     public function hasEnabledTwoFactorAuthentication(): bool
     {
-        if (Fortify::confirmsTwoFactorAuthentication()) {
-            return ! is_null($this->two_factor_secret) &&
-                ! is_null($this->two_factor_confirmed_at);
-        }
+        try {
+            if (Fortify::confirmsTwoFactorAuthentication()) {
+                return ! is_null($this->two_factor_secret) &&
+                    ! is_null($this->two_factor_confirmed_at);
+            }
 
-        return ! is_null($this->two_factor_secret);
+            return ! is_null($this->two_factor_secret);
+        } catch (DecryptException) {
+            return true;
+        }
     }
 
     /**
@@ -88,8 +92,9 @@ trait StaffTwoFactorAuthenticatable
     {
         try {
             return $this->loadMissing('twoFactorCredential')->twoFactorCredential?->two_factor_secret;
-        } catch (DecryptException) {
-            return null;
+        } catch (DecryptException $e) {
+            report($e);
+            throw $e;
         }
     }
 
@@ -100,8 +105,9 @@ trait StaffTwoFactorAuthenticatable
     {
         try {
             return $this->loadMissing('twoFactorCredential')->twoFactorCredential?->two_factor_recovery_codes;
-        } catch (DecryptException) {
-            return null;
+        } catch (DecryptException $e) {
+            report($e);
+            throw $e;
         }
     }
 

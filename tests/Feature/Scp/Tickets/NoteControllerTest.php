@@ -145,6 +145,36 @@ final class NoteControllerTest extends TestCase
         );
     }
 
+    public function test_rejects_invalid_mentioned_staff_ids(): void
+    {
+        Queue::fake();
+
+        Event::on('legacy')->create([
+            'id' => 7,
+            'name' => 'created',
+        ]);
+
+        $perm = LegacyPermission::create(['name' => 'tickets.post-note', 'guard_name' => 'staff']);
+        /** @var Staff $staff */
+        $staff = Staff::factory()->create();
+        $staff->givePermissionTo($perm);
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        $ticket = Ticket::factory()->create(['updated' => now()->toDateTimeString()]);
+        Thread::factory()->for($ticket, 'ticket')->create(['object_type' => 'T']);
+
+        $this->actingAs($staff, 'staff')
+            ->postJson(route('scp.tickets.notes.store', $ticket), [
+                'body' => '<p>Hey @Missing look at this</p>',
+                'format' => 'html',
+                'expected_updated' => (string) $ticket->updated,
+                'mentioned_staff_ids' => [999999],
+            ])
+            ->assertUnprocessable();
+
+        Queue::assertNotPushed(NotifyMentionedStaffJob::class);
+    }
+
     public function test_no_mention_jobs_when_mentioned_staff_ids_empty(): void
     {
         Queue::fake();

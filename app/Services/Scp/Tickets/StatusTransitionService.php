@@ -136,6 +136,12 @@ final class StatusTransitionService
         Staff $caller,
         string $comments,
     ): void {
+        $recipient = $this->customerEmailFor($ticket);
+
+        if ($recipient === null) {
+            return;
+        }
+
         $messageId = $this->messageIds->next($ticket, $entry);
         $inReplyTo = $this->messageIds->inReplyTo($thread);
         $references = $this->messageIds->references($thread);
@@ -147,7 +153,7 @@ final class StatusTransitionService
             emailId: $ticket->department?->email?->email_id !== null ? (int) $ticket->department->email->email_id : null,
         );
 
-        Mail::to((string) ($ticket->user?->defaultEmail?->address ?? ''))->queue(new CloseNotifyMail(
+        Mail::to($recipient)->queue(new CloseNotifyMail(
             ticket: $ticket,
             entry: $entry,
             staff: $caller,
@@ -156,6 +162,13 @@ final class StatusTransitionService
             inReplyTo: $inReplyTo,
             references: $references,
         ));
+    }
+
+    private function customerEmailFor(Ticket $ticket): ?string
+    {
+        $email = trim((string) ($ticket->user?->defaultEmail?->address ?? ''));
+
+        return filter_var($email, FILTER_VALIDATE_EMAIL) !== false ? $email : null;
     }
 
     private function headersBlock(string $messageId, ?string $inReplyTo, string $references): string

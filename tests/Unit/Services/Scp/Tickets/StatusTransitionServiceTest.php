@@ -286,6 +286,27 @@ final class StatusTransitionServiceTest extends TestCase
         Mail::assertQueued(CloseNotifyMail::class, 1);
     }
 
+    public function test_notify_user_true_with_missing_customer_email_skips_close_notify_mail(): void
+    {
+        Mail::fake();
+        $fixture = $this->seedMailTicket();
+        DB::connection('legacy')->table('user_email')
+            ->where('user_id', $fixture['ticket']->user_id)
+            ->delete();
+
+        $this->service->transition(
+            ticket: $fixture['ticket'],
+            thread: $fixture['thread'],
+            caller: $fixture['staff'],
+            targetStatusId: 2,
+            comments: 'Resolving the ticket.',
+            expectedUpdated: (string) $fixture['ticket']->updated,
+            notifyUser: true,
+        );
+
+        Mail::assertNothingQueued();
+    }
+
     public function test_notify_user_false_does_not_queue_mail(): void
     {
         Mail::fake();

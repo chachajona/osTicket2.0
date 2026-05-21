@@ -564,7 +564,8 @@
 /* ProseMirror base */
 .ProseMirror {
     white-space: pre-wrap;
-    word-break: break-word;
+    overflow-wrap: anywhere;
+    word-break: normal;
 }
 
 /* TipTap placeholder */

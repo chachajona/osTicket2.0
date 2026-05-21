@@ -57,6 +57,29 @@ final class ReplyPostingServiceTest extends TestCase
         Mail::assertQueued(StaffReplyMail::class, 1);
     }
 
+    public function test_missing_customer_email_skips_mail_queueing(): void
+    {
+        $fixture = $this->seedMailTicket();
+        DB::connection('legacy')->table('user_email')
+            ->where('user_id', $fixture['ticket']->user_id)
+            ->delete();
+
+        $entry = app(ReplyPostingService::class)->post(
+            ticket: $fixture['ticket'],
+            thread: $fixture['thread'],
+            staff: $fixture['staff'],
+            body: 'My reply',
+            format: 'html',
+            signatureChoice: 'none',
+            replyStatusId: null,
+            expectedUpdated: (string) $fixture['ticket']->updated,
+        );
+
+        $this->assertDatabaseHas('thread_entry', ['id' => $entry->id, 'body' => 'My reply'], 'legacy');
+        $this->assertDatabaseMissing('thread_entry_email', ['thread_entry_id' => $entry->id], 'legacy');
+        Mail::assertNothingQueued();
+    }
+
     public function test_concurrency_check_throws_and_rolls_back(): void
     {
         $fixture = $this->seedMailTicket();

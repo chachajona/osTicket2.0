@@ -43,8 +43,9 @@ final class ReplyController extends Controller
             'signature' => ['required', Rule::in(['none', 'mine', 'dept'])],
             'reply_status_id' => 'nullable|integer|exists:legacy.ticket_status,id',
             'expected_updated' => 'required|string',
+            'notify_user' => 'sometimes|boolean',
             'mentioned_staff_ids' => 'nullable|array',
-            'mentioned_staff_ids.*' => 'integer',
+            'mentioned_staff_ids.*' => 'integer|min:1|distinct|exists:legacy.staff,staff_id',
         ]);
 
         $this->ensureSignatureAvailable($staff, $ticket, (string) $data['signature']);
@@ -61,6 +62,7 @@ final class ReplyController extends Controller
                 signatureChoice: (string) $data['signature'],
                 replyStatusId: isset($data['reply_status_id']) ? (int) $data['reply_status_id'] : null,
                 expectedUpdated: (string) $data['expected_updated'],
+                notifyUser: (bool) ($data['notify_user'] ?? true),
             );
         } catch (TicketModifiedConcurrentlyException) {
             $this->audit->recordFailure($staff, 'reply.posted', 409, $ticket->ticket_id, TicketModifiedConcurrentlyException::class, $request);
@@ -72,8 +74,9 @@ final class ReplyController extends Controller
             return response()->json(['message' => 'Forbidden status transition'], 422);
         }
 
-        foreach ((array) ($data['mentioned_staff_ids'] ?? []) as $mentionedId) {
-            NotifyMentionedStaffJob::dispatch($ticket, $entry, $staff, (int) $mentionedId);
+        $mentionedIds = array_values(array_unique(array_map('intval', (array) ($data['mentioned_staff_ids'] ?? []))));
+        foreach ($mentionedIds as $mentionedId) {
+            NotifyMentionedStaffJob::dispatch($ticket, $entry, $staff, $mentionedId);
         }
 
         $this->drafts->discard($staff, "ticket.reply.{$ticket->ticket_id}");

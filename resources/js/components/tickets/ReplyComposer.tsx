@@ -352,12 +352,18 @@ function SendButton({
     statusState,
     statusName,
     onSend,
+    onToggleOptions,
+    optionsOpen,
+    optionsId,
     label,
     disabled,
 }: {
     statusState: string | null | undefined;
     statusName: string | undefined;
     onSend: () => void;
+    onToggleOptions?: () => void;
+    optionsOpen?: boolean;
+    optionsId?: string;
     label?: string;
     disabled?: boolean;
 }) {
@@ -382,8 +388,12 @@ function SendButton({
             <button
                 type="button"
                 aria-label="More send options"
+                aria-expanded={optionsOpen}
+                aria-controls={optionsId}
+                onClick={onToggleOptions}
+                disabled={disabled}
                 className={cn(
-                    'inline-flex items-center px-2.5 text-white transition-all duration-150 hover:brightness-95',
+                    'inline-flex items-center px-2.5 text-white transition-all duration-150 hover:brightness-95 disabled:opacity-50',
                     bgColor
                 )}
             >
@@ -607,8 +617,10 @@ export function ReplyComposer({
     const macroWrapRef = useRef<HTMLDivElement>(null);
     const emojiWrapRef = useRef<HTMLDivElement>(null);
     const sendOptionsRef = useRef<HTMLDivElement>(null);
+    const draftLoadedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const isNote = mode === 'note';
+    const sendOptionsId = `ticket-${ticketId}-send-options`;
 
     const { forceSave, deleteDraft, loadDraft } = useAutoSave({
         body,
@@ -623,9 +635,16 @@ export function ReplyComposer({
                 editorRef.current?.getEditor()?.commands.setContent(saved);
                 setBody(saved);
                 setSaveDraftState('saved');
-                setTimeout(() => setSaveDraftState('idle'), 2000);
+                if (draftLoadedTimerRef.current) clearTimeout(draftLoadedTimerRef.current);
+                draftLoadedTimerRef.current = setTimeout(() => {
+                    setSaveDraftState('idle');
+                    draftLoadedTimerRef.current = null;
+                }, 2000);
             }
         });
+        return () => {
+            if (draftLoadedTimerRef.current) clearTimeout(draftLoadedTimerRef.current);
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -689,6 +708,7 @@ export function ReplyComposer({
                 signature: sigPref,
                 reply_status_id: statusId ? Number(statusId) : null,
                 expected_updated: expectedUpdated,
+                notify_user: notify,
                 mentioned_staff_ids: extractMentionIds(),
             };
             if (ccIds.length > 0) payload.ccs = ccIds;
@@ -911,7 +931,11 @@ export function ReplyComposer({
                             </div>
                             <span className="text-[10px] font-medium uppercase tracking-[0.1em] text-[#A1A1AA]">Via</span>
                             <span className="inline-flex cursor-default items-center gap-1 rounded-full border border-[#E2E0D8] bg-white px-2 py-0.5 text-xs font-medium text-[#18181B]">
-                                <HugeiconsIcon icon={channel.icon} size={11} className={channel.color ? `text-[${channel.color}]` : 'text-[#A1A1AA]'} />
+                                <HugeiconsIcon
+                                    icon={channel.icon}
+                                    size={11}
+                                    style={{ color: channel.color ?? '#A1A1AA' }}
+                                />
                                 {channel.label}
                                 {sourceExtra && (
                                     <span className="text-[10px] text-[#A1A1AA]">· {sourceExtra}</span>
@@ -1096,11 +1120,17 @@ export function ReplyComposer({
                                 statusState={selectedStatus?.state}
                                 statusName={selectedStatus?.name}
                                 onSend={handleSend}
+                                onToggleOptions={() => setSendOptionsOpen((open) => !open)}
+                                optionsOpen={sendOptionsOpen}
+                                optionsId={sendOptionsId}
                                 disabled={isSubmitting || !body.trim()}
                                 label={isSubmitting ? 'Sending…' : undefined}
                             />
                             {sendOptionsOpen && (
-                                <div className="absolute bottom-[calc(100%+6px)] right-0 z-20 w-48 rounded-lg border border-[#E2E0D8] bg-white p-1 shadow-[0_18px_40px_-12px_rgba(24,24,27,0.18),0_4px_12px_-4px_rgba(24,24,27,0.06)]">
+                                <div
+                                    id={sendOptionsId}
+                                    className="absolute bottom-[calc(100%+6px)] right-0 z-20 w-48 rounded-lg border border-[#E2E0D8] bg-white p-1 shadow-[0_18px_40px_-12px_rgba(24,24,27,0.18),0_4px_12px_-4px_rgba(24,24,27,0.06)]"
+                                >
                                     <button
                                         type="button"
                                         onClick={() => {
