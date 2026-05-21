@@ -42,6 +42,7 @@ import {
 } from '@hugeicons/core-free-icons';
 import { type StatusOption } from './StatusPicker';
 import { RichTextEditor, type RichTextEditorHandle } from './RichTextEditor';
+import { AiDraftModal } from './AiDraftModal';
 import { cn } from '@/lib/utils';
 import { useAutoSave } from '@/hooks/useAutoSave';
 
@@ -596,6 +597,7 @@ export function ReplyComposer({
     const [macroOpen, setMacroOpen] = useState(false);
     const [emojiOpen, setEmojiOpen] = useState(false);
     const [saveDraftState, setSaveDraftState] = useState<'idle' | 'saving' | 'saved'>('idle');
+    const [aiDraftOpen, setAiDraftOpen] = useState(false);
     const [sendOptionsOpen, setSendOptionsOpen] = useState(false);
 
     const editorRef = useRef<RichTextEditorHandle>(null);
@@ -1008,12 +1010,7 @@ export function ReplyComposer({
                         </div>
                         <button
                             type="button"
-                            onClick={() => {
-                                const prompt = window.prompt('Describe what you want the AI to draft:');
-                                if (prompt) {
-                                    editorRef.current?.insertContent(`\n\n[AI Draft: ${prompt}]\n`);
-                                }
-                            }}
+                            onClick={() => setAiDraftOpen(true)}
                             className="ml-1 inline-flex h-7 items-center gap-1 rounded-sm border-none bg-transparent px-2.5 font-sans text-xs font-medium text-[#18181B] transition-colors hover:bg-[#FAFAF8]"
                         >
                             <HugeiconsIcon icon={MagicWand03Icon} size={13} className="text-[#EC4899]" />
@@ -1132,6 +1129,13 @@ export function ReplyComposer({
                     </div>
                 </div>
             </div>
+            {aiDraftOpen && (
+                <AiDraftModal
+                    ticketId={ticketId}
+                    editorRef={editorRef}
+                    onClose={() => setAiDraftOpen(false)}
+                />
+            )}
         </div>
     );
 }

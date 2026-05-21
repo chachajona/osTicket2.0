@@ -31,6 +31,7 @@ use App\Http\Controllers\Scp\SearchController;
 use App\Http\Controllers\Scp\Staff\AutocompleteController;
 use App\Http\Controllers\Scp\StaffPreferencesController;
 use App\Http\Controllers\Scp\TicketController;
+use App\Http\Controllers\Scp\Tickets\AiDraftController;
 use App\Http\Controllers\Scp\Tickets\AssignmentController;
 use App\Http\Controllers\Scp\Tickets\DraftController;
 use App\Http\Controllers\Scp\Tickets\LockController;
@@ -107,6 +108,8 @@ Route::prefix('scp')->name('scp.')->group(function () {
         Route::post('/tickets/{ticket}/draft', [DraftController::class, 'store'])->name('tickets.draft.store');
         Route::patch('/tickets/{ticket}/draft', [DraftController::class, 'update'])->name('tickets.draft.update');
         Route::delete('/tickets/{ticket}/draft', [DraftController::class, 'destroy'])->name('tickets.draft.destroy');
+        Route::post('/tickets/{ticket}/draft/ai', [AiDraftController::class, 'store'])
+            ->name('tickets.draft.ai');
         Route::post('/tickets/{ticket}/assignment', [AssignmentController::class, 'store'])
             ->middleware('scp.ticket-lock')
             ->name('tickets.assignment.store');
