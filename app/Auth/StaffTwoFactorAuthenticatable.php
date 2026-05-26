@@ -9,6 +9,7 @@ use BaconQrCode\Renderer\ImageRenderer;
 use BaconQrCode\Renderer\RendererStyle\Fill;
 use BaconQrCode\Renderer\RendererStyle\RendererStyle;
 use BaconQrCode\Writer;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Laravel\Fortify\Contracts\TwoFactorAuthenticationProvider;
 use Laravel\Fortify\Fortify;
@@ -28,12 +29,16 @@ trait StaffTwoFactorAuthenticatable
 
     public function hasEnabledTwoFactorAuthentication(): bool
     {
-        if (Fortify::confirmsTwoFactorAuthentication()) {
-            return ! is_null($this->two_factor_secret) &&
-                ! is_null($this->two_factor_confirmed_at);
-        }
+        try {
+            if (Fortify::confirmsTwoFactorAuthentication()) {
+                return ! is_null($this->two_factor_secret) &&
+                    ! is_null($this->two_factor_confirmed_at);
+            }
 
-        return ! is_null($this->two_factor_secret);
+            return ! is_null($this->two_factor_secret);
+        } catch (DecryptException) {
+            return true;
+        }
     }
 
     /**
@@ -85,7 +90,12 @@ trait StaffTwoFactorAuthenticatable
 
     public function getTwoFactorSecretAttribute(): ?string
     {
-        return $this->loadMissing('twoFactorCredential')->twoFactorCredential?->two_factor_secret;
+        try {
+            return $this->loadMissing('twoFactorCredential')->twoFactorCredential?->two_factor_secret;
+        } catch (DecryptException $e) {
+            report($e);
+            throw $e;
+        }
     }
 
     /**
@@ -93,7 +103,12 @@ trait StaffTwoFactorAuthenticatable
      */
     public function getTwoFactorRecoveryCodesAttribute(): ?array
     {
-        return $this->loadMissing('twoFactorCredential')->twoFactorCredential?->two_factor_recovery_codes;
+        try {
+            return $this->loadMissing('twoFactorCredential')->twoFactorCredential?->two_factor_recovery_codes;
+        } catch (DecryptException $e) {
+            report($e);
+            throw $e;
+        }
     }
 
     public function getTwoFactorConfirmedAtAttribute(): mixed

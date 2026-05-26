@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -34,17 +34,26 @@ export function StatusPicker({
     const [isOpen, setIsOpen] = useState(false);
     const [selectedStatusId, setSelectedStatusId] = useState<number | null>(null);
     const [comment, setComment] = useState('');
+    const [notifyUser, setNotifyUser] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const { props } = usePage<{ mail_event_owner?: Record<string, string> }>();
+    const closeNotifyOwnerLaravel = props.mail_event_owner?.close_notify === 'laravel';
 
     const validTransitions = availableStatuses.filter((s) => {
         if (s.name === currentStatus) return false;
-        return s.state.toLowerCase() === 'open' || s.state.toLowerCase() === 'onhold';
+        return ['open', 'onhold', 'closed'].includes(s.state.toLowerCase());
     });
+    const selectedStatus = validTransitions.find((status) => status.id === selectedStatusId);
+    const targetState = selectedStatus?.state.toLowerCase();
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedStatusId) return;
+        if (notifyUser && comment.trim() === '') {
+            setErrors({ comments: 'A note is required when notifying the customer.' });
+            return;
+        }
 
         setIsSubmitting(true);
         setErrors({});
@@ -52,6 +61,7 @@ export function StatusPicker({
         router.post(`/scp/tickets/${ticketId}/status`, {
             status_id: selectedStatusId,
             comments: comment,
+            notify_user: notifyUser,
             expected_updated: expectedUpdated || null,
         }, {
             onSuccess: () => {
@@ -59,6 +69,7 @@ export function StatusPicker({
                 setIsOpen(false);
                 setComment('');
                 setSelectedStatusId(null);
+                setNotifyUser(false);
             },
             onError: (errs) => {
                 setErrors(errs);
@@ -88,7 +99,10 @@ export function StatusPicker({
                         </label>
                         <Select
                             value={selectedStatusId?.toString() ?? ''}
-                            onValueChange={(val) => setSelectedStatusId(Number(val))}
+                            onValueChange={(val) => {
+                                setSelectedStatusId(Number(val));
+                                setNotifyUser(false);
+                            }}
                         >
                             <SelectTrigger className="w-full h-10 rounded-md border-[#E2E0D8] bg-[#FAFAF8] px-3">
                                 <SelectValue placeholder="Select a status" />
@@ -114,7 +128,7 @@ export function StatusPicker({
                     {selectedStatusId && (
                         <div className="space-y-3 fade-in animate-in">
                             <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#A1A1AA]">
-                                Optional Comment
+                                {notifyUser ? 'Required Comment' : 'Optional Comment'}
                             </label>
                             <Textarea
                                 value={comment}
@@ -123,6 +137,17 @@ export function StatusPicker({
                                 className="min-h-[80px] text-sm bg-[#FAFAF8] border-[#E2E0D8]"
                             />
                             {errors.comments && <p className="text-[11px] font-medium text-red-500">{errors.comments}</p>}
+                            {targetState === 'closed' && closeNotifyOwnerLaravel && (
+                                <label className="flex items-center gap-2 rounded-md border border-[#E2E0D8] bg-[#FAFAF8] px-3 py-2 text-sm text-[#18181B]">
+                                    <input
+                                        type="checkbox"
+                                        checked={notifyUser}
+                                        onChange={(event) => setNotifyUser(event.target.checked)}
+                                        className="h-4 w-4 rounded border-[#A1A1AA]"
+                                    />
+                                    Notify customer with the comment above
+                                </label>
+                            )}
                         </div>
                     )}
 

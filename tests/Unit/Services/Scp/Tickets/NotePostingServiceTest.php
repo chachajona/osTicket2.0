@@ -6,9 +6,9 @@ namespace Tests\Unit\Services\Scp\Tickets;
 
 use App\Exceptions\TicketModifiedConcurrentlyException;
 use App\Models\Staff;
-use App\Models\Ticket;
 use App\Models\Thread;
 use App\Models\ThreadEntry;
+use App\Models\Ticket;
 use App\Services\Scp\Tickets\NotePostingService;
 use Carbon\Carbon;
 use Illuminate\Database\Schema\Blueprint;
@@ -66,6 +66,7 @@ final class NotePostingServiceTest extends TestCase
             $table->char('type', 1);
             $table->string('poster')->default('');
             $table->string('source')->default('');
+            $table->string('channel', 32)->default('');
             $table->string('title')->default('');
             $table->text('body')->nullable();
             $table->string('format')->default('text');
@@ -125,6 +126,7 @@ final class NotePostingServiceTest extends TestCase
             'thread_id' => $thread->id,
             'staff_id' => $staff->staff_id,
             'type' => 'N',
+            'channel' => '',
             'format' => 'html',
             'body' => $body,
             'title' => '',
@@ -156,6 +158,41 @@ final class NotePostingServiceTest extends TestCase
         $this->assertSame('2026-05-03 11:15:00', $ticket->lastupdate);
         $this->assertSame('2026-05-03 11:15:00', $ticket->updated);
         $this->assertSame('2026-05-03 11:15:00', $thread->lastresponse);
+    }
+
+    public function test_strips_legacy_mysql_unsupported_characters_from_note_body(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-05-03 11:20:00'));
+
+        $ticket = Ticket::factory()->create([
+            'lastupdate' => '2026-05-03 09:00:00',
+            'updated' => '2026-05-03 09:00:00',
+        ]);
+        $thread = Thread::factory()->for($ticket, 'ticket')->create([
+            'object_type' => 'T',
+            'lastresponse' => '2026-05-03 09:00:00',
+        ]);
+        $staff = Staff::factory()->create();
+
+        $entry = $this->service->post(
+            ticket: $ticket,
+            thread: $thread,
+            staff: $staff,
+            body: '<p>Ships today 🚀 with accented text đ</p>',
+            format: 'html',
+            expectedUpdated: '2026-05-03 09:00:00',
+        );
+
+        $this->assertSame('<p>Ships today  with accented text đ</p>', $entry->body);
+        $this->assertDatabaseHas('thread_entry', [
+            'id' => $entry->id,
+            'body' => '<p>Ships today  with accented text đ</p>',
+        ], 'legacy');
+        $this->assertDatabaseHas('_search', [
+            'object_type' => 'THE',
+            'object_id' => $entry->id,
+            'content' => 'Ships today with accented text đ',
+        ], 'legacy');
     }
 
     public function test_throws_409_on_concurrent_modification(): void

@@ -19,7 +19,7 @@ final class DraftController extends Controller
     public function show(Request $request, Ticket $ticket): JsonResponse
     {
         $staff = $request->user('staff');
-        $namespace = "ticket.note.{$ticket->ticket_id}";
+        $namespace = $this->resolveNamespace($request, $ticket);
 
         $draft = $this->drafts->find($staff, $namespace);
 
@@ -39,7 +39,7 @@ final class DraftController extends Controller
     public function store(Request $request, Ticket $ticket): JsonResponse
     {
         $staff = $request->user('staff');
-        $namespace = "ticket.note.{$ticket->ticket_id}";
+        $namespace = $this->resolveNamespace($request, $ticket);
 
         $validated = $request->validate([
             'body' => 'required|string',
@@ -56,7 +56,7 @@ final class DraftController extends Controller
     public function update(Request $request, Ticket $ticket): JsonResponse
     {
         $staff = $request->user('staff');
-        $namespace = "ticket.note.{$ticket->ticket_id}";
+        $namespace = $this->resolveNamespace($request, $ticket);
 
         $validated = $request->validate([
             'body' => 'required|string',
@@ -73,10 +73,17 @@ final class DraftController extends Controller
     public function destroy(Request $request, Ticket $ticket): JsonResponse
     {
         $staff = $request->user('staff');
-        $namespace = "ticket.note.{$ticket->ticket_id}";
+        $namespace = $this->resolveNamespace($request, $ticket);
 
         $this->drafts->discard($staff, $namespace);
 
         return response()->json(status: 204);
+    }
+
+    private function resolveNamespace(Request $request, Ticket $ticket): string
+    {
+        return $request->query('type') === 'reply'
+            ? "ticket.reply.{$ticket->ticket_id}"
+            : "ticket.note.{$ticket->ticket_id}";
     }
 }

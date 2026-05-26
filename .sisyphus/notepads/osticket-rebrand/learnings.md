@@ -330,3 +330,9 @@ All commands registered in `routes/console.php`:
 - Check `ost_user_email.address` first to find existing user
 - If not found, create `ost_user` + `ost_user_email` rows
 - `ost_user.default_email_id` can be 0 initially (update later if needed)
+
+# AI Draft Provider Switching
+
+- `AiDraftService` can be tested without legacy DB tables by instantiating a `Ticket` model and preloading `cdata` plus `thread` relations (`setRelation('thread', null)`) to avoid lazy legacy queries.
+- Laravel `Http::response($sseBody)` provides a PSR body that the service can read via `getBody()->read()` in direct service tests.
+- Config now keeps provider-specific values under `ai.providers.{anthropic,openai,gemini}` while `ai.provider` controls dispatch.

@@ -1,4 +1,4 @@
-import { Link } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import { useCallback, useEffect, useMemo, useState, type ReactElement, type ReactNode } from 'react';
 import { Dialog as DialogPrimitive } from '@base-ui/react/dialog';
 import { HugeiconsIcon } from '@hugeicons/react';
@@ -26,8 +26,8 @@ import {
     PinOffIcon,
 } from '@hugeicons/core-free-icons';
 
-import { type StatusOption } from '@/components/tickets/StatusPicker';
-import { NoteComposer } from '@/components/tickets/NoteComposer';
+import { ReplyComposer } from '@/components/tickets/ReplyComposer';
+import { StatusPicker, type StatusOption } from '@/components/tickets/StatusPicker';
 import { appShellLayout, SetPageHeader } from '@/layouts/AppShell';
 import { formatBytes, formatDateTime, formatRelative } from '@/lib/datetime';
 import { sanitizeHtml } from '@/lib/sanitizeHtml';
@@ -44,6 +44,7 @@ interface Ticket {
     status: string | null;
     status_state: string | null;
     priority: string | null;
+    dept_id: number;
     department: string | null;
     assignee: string | null;
     team: string | null;
@@ -65,6 +66,7 @@ interface Ticket {
     subject: string | null;
     requester: string | null;
     requester_email: string | null;
+    dept_signature_available: boolean;
 }
 
 interface ThreadEntry {
@@ -122,6 +124,7 @@ interface TicketShowProps {
         canSetStatus?: boolean;
         canAssign?: boolean;
         canPostNote?: boolean;
+        canPostReply?: boolean;
     };
     availableStatuses?: StatusOption[];
     staffOptions?: { id: number; name: string }[];
@@ -357,6 +360,16 @@ export default function TicketShow({ ticket, customFields, timeline, attachments
                         <div className="flex min-w-0 items-baseline gap-2.5">
                             <span className="shrink-0 font-mono text-[14px] font-semibold text-[#18181B]">#{ticket.number}</span>
                             <span className="truncate text-[15px] font-medium text-[#18181B]">{ticket.subject ?? 'No Subject'}</span>
+                            {permissions?.canSetStatus && (
+                                <StatusPicker
+                                    ticketId={ticket.id}
+                                    expectedUpdated={ticket.updated}
+                                    currentStatus={ticket.status}
+                                    currentStatusState={ticket.status_state}
+                                    availableStatuses={availableStatuses ?? []}
+                                    onSuccess={() => router.reload({ only: ['ticket', 'timeline'] })}
+                                />
+                            )}
                         </div>
                     </div>
 
@@ -473,8 +486,20 @@ export default function TicketShow({ ticket, customFields, timeline, attachments
                         )}
                     </div>
 
-                    {permissions?.canPostNote && (
-                        <NoteComposer ticketId={ticket.id} expectedUpdated={ticket.updated ?? ''} />
+                    {(permissions?.canPostReply || permissions?.canPostNote) && (
+                        <ReplyComposer
+                            ticketId={ticket.id}
+                            expectedUpdated={ticket.updated ?? ''}
+                            statusOptions={availableStatuses ?? []}
+                            requester={ticket.requester}
+                            requesterEmail={ticket.requester_email}
+                            source={ticket.source}
+                            sourceExtra={ticket.source_extra}
+                            deptLabel={ticket.department || 'Department'}
+                            deptSignatureAvailable={ticket.dept_signature_available}
+                            ticketDeptId={ticket.dept_id}
+                            onSuccess={() => router.reload({ only: ['ticket', 'timeline'] })}
+                        />
                     )}
                 </div>
 

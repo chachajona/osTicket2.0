@@ -3,11 +3,15 @@
 namespace App\Services\Scp;
 
 use App\Models\Attachment;
+use App\Models\Staff;
 use App\Models\ThreadCollaborator;
 use App\Models\ThreadEvent;
 use App\Models\ThreadReferral;
 use App\Models\Ticket;
+use App\Models\TicketStatus;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 
 class TicketReadService
 {
@@ -39,6 +43,7 @@ class TicketReadService
                 'status' => $ticket->status?->name ?? (string) $ticket->status_id,
                 'status_state' => $ticket->status?->state,
                 'priority' => $ticket->cdata?->priority,
+                'dept_id' => (int) $ticket->dept_id,
                 'department' => $ticket->department?->name ?? (string) $ticket->dept_id,
                 'assignee' => $ticket->staff?->displayName(),
                 'team' => $ticket->team?->name,
@@ -60,7 +65,10 @@ class TicketReadService
                 'subject' => $ticket->cdata?->subject,
                 'requester' => $ticket->user?->name,
                 'requester_email' => $ticket->user?->defaultEmail?->address,
+                'dept_signature_available' => trim((string) ($ticket->department?->signature ?? '')) !== '',
             ],
+            'permissions' => $this->permissions($ticket),
+            'availableStatuses' => $this->availableStatuses(),
             'customFields' => $this->customFields->forTicket($ticket),
             'timeline' => $this->timeline($ticket),
             'attachments' => $this->attachments((int) $ticket->ticket_id, $entries->pluck('id')->map(fn ($id): int => (int) $id)->all()),
@@ -200,6 +208,51 @@ class TicketReadService
                     'object_type' => $referral->object_type,
                     'object_id' => (int) $referral->object_id,
                     'created' => $referral->created,
+                ])
+                ->all();
+        } catch (QueryException) {
+            return [];
+        }
+    }
+
+    /**
+     * @return array{canSetStatus: bool, canAssign: bool, canPostNote: bool, canPostReply: bool}
+     */
+    private function permissions(Ticket $ticket): array
+    {
+        $staff = Auth::guard('staff')->user();
+
+        if (! $staff instanceof Staff) {
+            return [
+                'canSetStatus' => false,
+                'canAssign' => false,
+                'canPostNote' => false,
+                'canPostReply' => false,
+            ];
+        }
+
+        return [
+            'canSetStatus' => Gate::forUser($staff)->allows('setStatus', $ticket),
+            'canAssign' => Gate::forUser($staff)->allows('assign', $ticket),
+            'canPostNote' => Gate::forUser($staff)->allows('postNote', $ticket),
+            'canPostReply' => Gate::forUser($staff)->allows('postReply', $ticket),
+        ];
+    }
+
+    /**
+     * @return list<array{id:int,name:string,state:string}>
+     */
+    private function availableStatuses(): array
+    {
+        try {
+            return TicketStatus::query()
+                ->orderBy('sort')
+                ->orderBy('id')
+                ->get(['id', 'name', 'state'])
+                ->map(fn (TicketStatus $status): array => [
+                    'id' => (int) $status->id,
+                    'name' => (string) $status->name,
+                    'state' => (string) $status->state,
                 ])
                 ->all();
         } catch (QueryException) {

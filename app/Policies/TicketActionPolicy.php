@@ -16,16 +16,30 @@ final class TicketActionPolicy
 
     public function postNote(Staff $staff, Ticket $ticket): bool
     {
-        return $staff->can('tickets.post-note') && $this->deptService->hasAccessToDepartment($staff, $ticket->dept_id);
+        return $this->canPerform($staff, $ticket, 'tickets.post-note');
+    }
+
+    public function postReply(Staff $staff, Ticket $ticket): bool
+    {
+        return $this->canPerform($staff, $ticket, 'tickets.post-reply');
     }
 
     public function assign(Staff $staff, Ticket $ticket): bool
     {
-        return $staff->can('tickets.assign') && $this->deptService->hasAccessToDepartment($staff, $ticket->dept_id);
+        return $this->canPerform($staff, $ticket, 'tickets.assign');
     }
 
     public function setStatus(Staff $staff, Ticket $ticket): bool
     {
-        return $staff->can('tickets.set-status') && $this->deptService->hasAccessToDepartment($staff, $ticket->dept_id);
+        return $this->canPerform($staff, $ticket, 'tickets.set-status');
+    }
+
+    private function canPerform(Staff $staff, Ticket $ticket, string $permission): bool
+    {
+        if (! $this->deptService->hasAccessToDepartment($staff, $ticket->dept_id)) {
+            return false;
+        }
+
+        return (bool) $staff->isadmin || $staff->can($permission);
     }
 }

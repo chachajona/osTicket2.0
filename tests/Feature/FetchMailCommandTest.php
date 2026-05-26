@@ -160,6 +160,7 @@ test('createTicket initializes lastupdate for new email tickets', function () {
 
     $ticket = DB::connection('legacy')->table('ticket')->first();
     $thread = DB::connection('legacy')->table('thread')->first();
+    $entry = DB::connection('legacy')->table('thread_entry')->first();
     $email = DB::connection('legacy')->table('thread_entry_email')->first();
 
     expect($ticket)->not->toBeNull();
@@ -170,6 +171,8 @@ test('createTicket initializes lastupdate for new email tickets', function () {
     expect($ticket->updated)->toBe('2026-04-14 12:34:56');
     expect($thread)->not->toBeNull();
     expect($thread->object_type)->toBe('T');
+    expect($entry)->not->toBeNull();
+    expect($entry->channel)->toBe('');
     expect($email)->not->toBeNull();
     expect($email->mid)->toBe('<new-ticket@example.test>');
 });
@@ -233,10 +236,13 @@ test('appendToThread marks reopened tickets in command output', function () {
     );
 
     $ticket = DB::connection('legacy')->table('ticket')->where('ticket_id', 55)->first();
+    $entry = DB::connection('legacy')->table('thread_entry')->first();
 
     expect($ticket->status_id)->toBe(1);
     expect($ticket->closed)->toBeNull();
     expect($ticket->isanswered)->toBe(0);
+    expect($entry)->not->toBeNull();
+    expect($entry->channel)->toBe('');
     expect($buffer->fetch())->toContain("Appended reply to thread #{$threadId} (reopened)");
 });
 
@@ -526,11 +532,18 @@ function ensureFetchMailLegacyTables(): void
             $table->char('type', 1);
             $table->string('poster')->default('');
             $table->string('source')->default('');
+            $table->string('channel', 32)->default('');
             $table->string('title')->default('');
             $table->text('body')->nullable();
             $table->string('format')->default('text');
             $table->dateTime('created')->nullable();
             $table->dateTime('updated')->nullable();
+        });
+    }
+
+    if (! $schema->hasColumn('thread_entry', 'channel')) {
+        $schema->table('thread_entry', function (Blueprint $table) {
+            $table->string('channel', 32)->default('');
         });
     }
 
@@ -611,6 +624,12 @@ function ensureFetchMailLegacyTables(): void
             $table->string('name')->default('');
             $table->dateTime('created')->nullable();
             $table->dateTime('updated')->nullable();
+        });
+    }
+
+    if (! $schema->hasColumn('user', 'status')) {
+        $schema->table('user', function (Blueprint $table) {
+            $table->unsignedInteger('status')->default(0);
         });
     }
 
