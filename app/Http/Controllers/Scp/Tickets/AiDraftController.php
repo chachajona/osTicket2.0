@@ -29,7 +29,9 @@ final class AiDraftController extends Controller
                 try {
                     foreach ($this->aiDraft->stream($ticket, $data['prompt']) as $text) {
                         echo 'data: '.json_encode(['text' => $text])."\n\n";
-                        ob_flush();
+                        if (ob_get_level() > 0) {
+                            @ob_flush();
+                        }
                         flush();
                     }
                 } catch (\RuntimeException $e) {
@@ -38,7 +40,9 @@ final class AiDraftController extends Controller
                         ? 'AI quota exceeded. Please try again later.'
                         : 'AI service error. Please try again.';
                     echo 'data: '.json_encode(['error' => $message])."\n\n";
-                    ob_flush();
+                    if (ob_get_level() > 0) {
+                        @ob_flush();
+                    }
                     flush();
                 }
             },
